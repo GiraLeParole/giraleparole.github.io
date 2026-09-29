@@ -716,6 +716,17 @@ const Audio_ = (() => {
     [1046.5, 1318.5, 1568.0].forEach((f) => tono(f, "sine", 0.6, 0.16, 0.6));
   }
 
+  // Punto 69, quattordicesimo giro (29/09/2026, richiesta di Chiara — "fuori
+  // mandato" nella sua scheda, scelta mia): il secondo tempo dell'annuncio,
+  // «Tocca a», ha un suono suo, breve e gentile — due note morbide che
+  // salgono (sine, come letteraRivelata/jolly), ben diverso dal suono
+  // squadrato e discendente di letteraAssente() che lo precede. Dal divano
+  // il suono arriva prima dell'immagine.
+  function toccaA() {
+    tono(659.25, "sine", 0.16, 0.14);
+    tono(880, "sine", 0.26, 0.16, 0.13);
+  }
+
   function click() {
     tono(800, "sine", 0.06, 0.12);
   }
@@ -734,6 +745,7 @@ const Audio_ = (() => {
     passa,
     jolly,
     vittoria,
+    toccaA,
     click,
     inizioSpin,
     festaVittoria,

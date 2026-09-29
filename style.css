@@ -1306,7 +1306,11 @@ h1 {
   }
   .colonna-ruota { grid-column: 1; grid-row: 1 / span 2; align-self: center; width: 80vh; max-width: 80vh; margin: 0; }
   .colonna-centrale { grid-column: 2; grid-row: 1; align-items: center; gap: 1.4vh; min-height: 0; }
-  .colonna-giocatori { grid-column: 2; grid-row: 2; width: 100%; flex-direction: row; justify-content: center; gap: 1.6vh; }
+  /* Punto 69, quattordicesimo giro (29/09/2026, disegno di Chiara): padding-top
+     in piu` per fare posto alla tessera di turno che si alza (voce 1), e
+     align-items:end cosi` le tessere restano ancorate in basso quando quella
+     di turno cresce verso l'alto invece che dal centro. */
+  .colonna-giocatori { grid-column: 2; grid-row: 2; width: 100%; flex-direction: row; justify-content: center; align-items: end; gap: 1.6vh; padding-top: 2.4vh; }
 
   .puntatore {
     top: -2.2vh; width: 5vh; height: 6.6vh;
@@ -1440,6 +1444,34 @@ h1 {
      "Round N" in oro, sotto in bianco e piu` grande di una scena normale. */
   .annuncio.scena.round .annuncio-sotto { font: 700 3.6vh/1.15 var(--font-titoli); color: #fff; text-shadow: 0 0.3vh 0 rgba(0,0,0,.3); }
 
+  /* Punto 69, quattordicesimo giro (29/09/2026, disegno di Chiara): il
+     secondo tempo dell'annuncio, «Tocca a» — la tessera del giocatore
+     (bianca, iniziale nera, anello del suo colore, come nella fila e nella
+     festa), grande come la tessera della lettera; a destra «Tocca a»
+     piccolo e il nome grande, bianco con l'alone del suo colore. */
+  .annuncio.tocca { text-align: left; }
+  .annuncio.tocca .annuncio-tessera {
+    background: #fff; color: #111; border-color: #0b0b1e;
+    outline: 0.6vh solid var(--colore-giocatore, var(--accento)); outline-offset: 0.5vh;
+    box-shadow: inset 0 -0.7vh 0 rgba(0, 0, 0, 0.12), 0 0 4vh 0.4vh var(--colore-giocatore, transparent), 0 1.2vh 2.6vh rgba(0, 0, 0, 0.45);
+  }
+  .annuncio.tocca .annuncio-sopra {
+    font: 700 3.4vh/1.1 var(--font-titoli);
+    color: var(--testo-attenuato);
+    letter-spacing: 0.04em;
+    text-shadow: 0 0.2vh 0 rgba(0, 0, 0, 0.3);
+  }
+  .annuncio.tocca .annuncio-titolo {
+    margin-top: 0.4vh;
+    font-size: 8vh;
+    color: #fff;
+    text-shadow: 0 0.4vh 0 rgba(0, 0, 0, 0.35), 0 0 4vh var(--colore-giocatore, transparent);
+    overflow-wrap: anywhere;
+  }
+  /* nome lungo (piu` di 12 lettere): scende cosi` sta su una riga anche a
+     1366×768, vedi gioco.js Annuncio.mostra. */
+  .annuncio.tocca.lungo .annuncio-titolo { font-size: 5.2vh; line-height: 1.1; }
+
   /* --- l'entrata: la tessera cade dall'alto e rimbalza (380 ms), il testo la
      segue da sinistra (260 ms, parte a 140 ms); le scene si gonfiano (320 ms) --- */
   .annuncio.entra .annuncio-tessera { animation: annuncio-tessera-cade 380ms cubic-bezier(0.2, 1.5, 0.4, 1) both; }
@@ -1501,7 +1533,7 @@ h1 {
     border-width: 0.3vh; border-left-width: 0.8vh;
     display: grid; grid-template-columns: 5.4vh minmax(0, 1fr); column-gap: 1vh; row-gap: 0.2vh;
     align-items: center; text-align: left;
-    transition: transform 160ms ease-out, box-shadow 160ms ease-out;
+    transition: transform 260ms ease-out, opacity 260ms ease-out, box-shadow 260ms ease-out;
   }
   /* Voce 4 della scheda dell'undicesimo giro: 5,4vh × 6,4vh, lettera 3,6vh. */
   .scheda-giocatore .tessera-giocatore {
@@ -1525,9 +1557,37 @@ h1 {
     font-size: 1.8vh;
     box-shadow: 0 0.2vh 0.4vh rgba(0, 0, 0, 0.35);
   }
+  /* Punto 69, quattordicesimo giro (29/09/2026, disegno di Chiara): una
+     tessera avanti, tre indietro — chi non e` di turno si sbiadisce
+     (OPACITA_GIOCATORE_NON_DI_TURNO in config.js, letta in --opacita-non-turno,
+     vedi gioco.js) e rimpicciolisce del 6%, restando leggibile. */
+  .scheda-giocatore:not(.turno-attivo) {
+    opacity: var(--opacita-non-turno, 0.55);
+    transform: scale(0.94);
+  }
   .scheda-giocatore.turno-attivo {
-    transform: translateY(-0.6vh);
-    box-shadow: 0 0 0 0.4vh #fff, 0 0 3vh 0.4vh var(--colore-giocatore, var(--accento)), 0 1.2vh 2.4vh rgba(0, 0, 0, 0.4);
+    opacity: 1;
+    transform: translateY(-1.2vh) scale(1.08);
+    box-shadow: 0 0 0 0.5vh #fff, 0 0 3vh 0.3vh var(--colore-giocatore, var(--accento)), 0 1.6vh 3vh rgba(0, 0, 0, 0.45);
+    animation: turno-respira 1.8s ease-in-out infinite;
+  }
+  /* l'alone respira: da 3vh a 5,5vh di sfumato, avanti e indietro in 1,8s */
+  @keyframes turno-respira {
+    0%, 100% { box-shadow: 0 0 0 0.5vh #fff, 0 0 3vh 0.3vh var(--colore-giocatore, var(--accento)), 0 1.6vh 3vh rgba(0, 0, 0, 0.45); }
+    50%      { box-shadow: 0 0 0 0.5vh #fff, 0 0 5.5vh 1.4vh var(--colore-giocatore, var(--accento)), 0 1.6vh 3vh rgba(0, 0, 0, 0.45); }
+  }
+  .scheda-giocatore.turno-attivo .tessera-giocatore { outline-width: 0.55vh; outline-offset: 0.3vh; }
+
+  /* la tessera che entra in turno: un balzo di 600ms (classe messa dal JS
+     SOLO quando l'indice del giocatore e` appena cambiato, vedi gioco.js
+     aggiornaSchedeGiocatori), poi il respiro riprende da solo. */
+  .scheda-giocatore.turno-attivo.entra-in-turno {
+    animation: turno-entra 600ms cubic-bezier(0.2, 1.4, 0.4, 1) both, turno-respira 1.8s ease-in-out 600ms infinite;
+  }
+  @keyframes turno-entra {
+    0%   { transform: translateY(0) scale(0.94); opacity: var(--opacita-non-turno, 0.55); }
+    60%  { transform: translateY(-2.2vh) scale(1.18); opacity: 1; }
+    100% { transform: translateY(-1.2vh) scale(1.08); opacity: 1; }
   }
 
   /* --- la festa di fine round: grande quanto lo schermo merita --- */

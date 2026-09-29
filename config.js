@@ -16,9 +16,21 @@
 // Sono 24 spicchi (il minimo chiesto era 20). Larghezza uguale per tutti
 // (360/24 = 15 gradi ciascuno) — piu semplice da disegnare e da capire.
 //
-// Scelte fatte per rispettare le indicazioni di Damiano (28/09/2026):
-// - PASSA: 4 spicchi (il sito di riferimento ne aveva 2 su 14 — qui la
-//   proporzione e piu alta, come chiesto "piu Passa di adesso").
+// Scelte fatte per rispettare le indicazioni di Damiano (28/09/2026, punto 3):
+// - PASSA: 2 spicchi (quattordicesimo giro, punto 75, 29/09/2026 — "come nel
+//   programma in TV di oggi", Damiano lo vedeva in diretta mentre lo diceva).
+//   Prima erano 4, a distanza di 6 fra loro (due coppie gia` opposte a 12).
+//   Tenuta la coppia agli indici 3 e 15 (opposta, 12 spicchi esatti), gli
+//   altri due Passa (indici 9 e 21) sono diventati spicchi "soldi": 800€
+//   all'indice 9 e 400€ all'indice 21, scelti da Erbottega per non
+//   addensare valori uguali nella stessa zona di ruota — l'indice 9 stava
+//   fra due spicchi bassi (400€, 500€) e ora porta un valore alto, l'indice
+//   21 stava fra due spicchi alti (900€, 1000€) e ora porta un valore basso.
+//   Cosi` restano 2 copie per ognuno dei 7 livelli invariati e 3 copie per
+//   400€ e 800€ — lo sbilancio minimo possibile spalmando 20 spicchi "soldi"
+//   su 9 livelli (20 non e` multiplo di 9). Verificato con
+//   `node design/strumenti/colori-round.mjs livello` su tutti e 7 i round:
+//   nessuna coppia di spicchi vicini dello stesso colore.
 // - BANCAROTTA: 2 spicchi in tutto. Damiano non era sicuro fra 2 e 3 ("mi
 //   sa"): ho scelto 2 perche uno dei due sta gia dentro lo spicchio triplo
 //   qui sotto, quindi il "peso" percepito sulla ruota e comunque alto.
@@ -81,7 +93,7 @@ const SEGMENTI_RUOTA = [
   { tipo: "soldi", valore: 1500 },
   { tipo: "soldi", valore: 600, jolly: true },
   { tipo: "soldi", valore: 400 },
-  { tipo: "passa" },
+  { tipo: "soldi", valore: 800 }, // ex-Passa (quattordicesimo giro, punto 75): fra 400€ e 500€, valore alto
   { tipo: "soldi", valore: 500 },
   { tipo: "soldi", valore: 700 },
   { tipo: "triplo" }, // vedi sopra: UNA fetta, tre parti nel disegno
@@ -93,7 +105,7 @@ const SEGMENTI_RUOTA = [
   { tipo: "soldi", valore: 300 },
   { tipo: "soldi", valore: 400 },
   { tipo: "soldi", valore: 900 },
-  { tipo: "passa" },
+  { tipo: "soldi", valore: 400 }, // ex-Passa (quattordicesimo giro, punto 75): fra 900€ e 1000€, valore basso
   { tipo: "soldi", valore: 1000 },
   { tipo: "soldi", valore: 800 },
 ];
@@ -281,8 +293,23 @@ const VOLUME_EFFETTI_CURSORE_INIZIALE = 1.0;
 // serve più). Due durate, in millisecondi: quanto il gioco aspetta prima di
 // passare il turno dopo un esito negativo (DURATA_ANNUNCIO_MS) e quanto dopo
 // un esito più pesante — bancarotta, avvisi (DURATA_ANNUNCIO_LUNGO_MS).
-const DURATA_ANNUNCIO_MS = 1600;
+const DURATA_ANNUNCIO_MS = 1300;
 const DURATA_ANNUNCIO_LUNGO_MS = 1800;
+
+// Punto 69, quattordicesimo giro (29/09/2026, disegno di Chiara): ogni
+// annuncio che passa il turno ha un secondo tempo, «Tocca a <nome>», che
+// arriva DOPO DURATA_ANNUNCIO_MS (o DURATA_ANNUNCIO_LUNGO_MS per la
+// bancarotta) e dura DURATA_TOCCA_A_MS — durante questo tempo il turno e`
+// gia` passato e la fila dei giocatori mostra il balzo (voce 2 della scheda).
+// I comandi tornano solo alla fine di questo secondo tempo, non prima.
+// Raccomandazione di Chiara: 2400. Se in prova sembra lento, scendere a 1800.
+const DURATA_TOCCA_A_MS = 2400;
+
+// La tessera di chi NON e` di turno si sbiadisce a questa opacita` (1 =
+// piena, 0 = invisibile) — cosi` la tessera di chi gioca ora risalta senza
+// che le altre spariscano (i soldi restano leggibili). Raccomandazione di
+// Chiara: 0.55. Se dal divano sembrano "fuori gioco", salire a 0.65.
+const OPACITA_GIOCATORE_NON_DI_TURNO = 0.55;
 
 // Voce C, tredicesimo giro (29/09/2026): l'annuncio del cambio di round
 // resta 2,4s invece di 1,6 — la ruota ci mette 1s a fare il giro dell'onda

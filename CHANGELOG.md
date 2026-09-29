@@ -1,0 +1,125 @@
+# Gira le Parole — cosa è cambiato
+
+Versione per versione, la più recente in cima. Si gioca su https://giraleparole.github.io/.
+
+## In arrivo
+
+Idee già scelte ma non ancora costruite. L'ordine non è quello in cui arriveranno, e qualcuna può cambiare strada facendo.
+
+- **Il round lampo.** Le lettere si accendono da sole, una alla volta, e risponde chi prenota per primo. Vale poco, ma decide chi apre il round.
+- **L'aiutino.** All'iscrizione si potrà segnare chi gioca con un aiuto: una vocale gratis a round, oppure una casella regalata.
+- **La frase premio.** Una frase a partita nasconde un premio, per esempio un jolly in più o la cassaforte raddoppiata. Lo si scopre solo risolvendola.
+- **Genitori contro figli.** Una partita a squadre, con due tessere: dentro la squadra si passa la mano a turno.
+- **I premi di casa.** Prima di cominciare si scrive un premio vero, come il film della sera o il dolce in più, e chi vince la partita lo trova nella schermata finale.
+- **L'albo d'oro.** Il gioco si ricorderà partite e record: chi vince più spesso, la vincita più alta, la frase risolta con meno lettere.
+- **Le frasi dei ragazzi.** Una pagina dove scrivere frasi proprie, con la loro categoria. Finiscono nel mazzo di casa, e quando escono il gioco dice chi le ha scritte.
+- **La sfida con un link.** Si scrive una frase e la si manda con un link: chi lo apre la gioca da solo.
+
+## 1.2 — 29 settembre 2026 · Si vede a chi tocca
+
+- La tessera di chi gioca è piena del suo colore e respira. Le altre restano sbiadite.
+- Dopo un errore, un «non c'è», un Passa o una bancarotta compare in grande «Tocca a», con l'iniziale e il nome di chi gioca adesso, e un suono tutto suo: due note gentili. Lo stesso succede a inizio round. Se il turno resta a chi stava giocando, non compare.
+- I Passa sono due invece di quattro, uno di fronte all'altro, come nel gioco televisivo di oggi. Al posto degli altri due ci sono un 800 € e un 400 €.
+
+## 1.1 — 29 settembre 2026 · I 1.000 € solo a chi parte da zero
+
+- Chi risolve la frase porta in cassaforte i soldi del round, e nient'altro: con 500 € vince 500 €, con 3.500 € vince 3.500 €. I 1.000 € di premio restano solo a chi risolve con zero nel round. Prima arrivavano a tutti, in aggiunta.
+- Il gioco ha un indirizzo nuovo e si apre direttamente: https://giraleparole.github.io/.
+- A fine partita c'è un invito: se vi va, scrivetemi chi ha vinto.
+- Il nome Gira le Parole ora c'è dappertutto, anche nelle righe del codice che giocando non si vedono.
+
+## 1.0 — 29 settembre 2026 · Si esce di casa
+
+- Prima versione pubblica: il gioco e il suo codice stanno su GitHub, per chi vuole giocarci o guardarci dentro.
+- Si gioca da 1 a 4, tutti sullo stesso schermo. Nessun dato esce dal browser.
+
+## 0.13 — 29 settembre 2026 · Frasi nostre
+
+- Trecento frasi scritte apposta per il gioco.
+- Prima di cominciare si sceglie con quali frasi giocare: Bambini, Famiglia, Grandi, Esperti, anche più gruppi insieme. La prima volta è acceso Famiglia.
+- Il lancio a mano è più lento e più corto, come il pulsante quando spinge al massimo. Se il lancio è troppo debole, il gioco vi dice «Più forte!».
+- Ogni spicchio tiene il suo colore anche quando le cifre salgono: due spicchi vicini non finiscono più dello stesso colore.
+- Al cambio di round un lampo di luce passa sugli spicchi, e le cifre vecchie sfumano nelle nuove.
+
+## 0.12 — 29 settembre 2026 · La ruota si gira con le mani
+
+- La ruota si lancia anche trascinandola, col mouse o col dito. È pesante: parte forte quanto la spingete, poi frena piano, da sola. Il pulsante resta, per chi lo preferisce.
+- Se la ruota non fa almeno mezzo giro, il lancio non vale e si rifà.
+- Le cifre salgono di round in round: il 300 € del primo round vale 350 € nel secondo e 400 € nel terzo, e lo spicchio più ricco passa da 1.500 a 1.800, poi a 2.100 €.
+
+## 0.11 — 29 settembre 2026 · Il conduttore annuncia
+
+- Quante lettere ha la frase lo annuncia una scritta grande al centro, come la direbbe il conduttore, e non più una riga di stato.
+- Ogni giocatore è una tessera del tabellone con l'iniziale del nome e un anello del suo colore, al posto dei disegnini.
+- Le cifre si scrivono col punto delle migliaia: 1.000 €, non 1000 €.
+
+## 0.10 — 28 settembre 2026 · Una faccia nuova
+
+- Il tabellone diventa quello del gioco televisivo: 52 caselle su quattro righe, da 12, 14, 14 e 12.
+- La ruota prende tutta l'altezza dello schermo, con le scritte che corrono dal centro verso il bordo.
+- I giocatori stanno in fila sotto il tabellone, e le lettere si scelgono su tessere.
+- Lo spicchio in tre cambia: al centro, stretto, il Raddoppia, e ai lati due bancarotte strette. Chi finisce sul Raddoppia dice una consonante: se c'è, i soldi del round raddoppiano; se non c'è, il turno passa.
+- Il jolly sta sopra uno spicchio, uno solo per round. Chi lo prende non incassa i soldi di quello spicchio: il jolly sparisce, al suo posto compare la cifra, e quella la prende chi ci finisce dopo.
+- La freccia sbatte sui pioli mentre gli spicchi le passano sotto.
+
+## 0.9 — 28 settembre 2026 · Per lo schermo grande
+
+- Il gioco è pensato per lo schermo largo di un PC: ruota, tabellone e giocatori su tre colonne, invece che stretti in una fascia al centro con i lati vuoti.
+- Il tabellone è una griglia fissa, sempre uguale: quando esce la frase si accendono le caselle che servono, le altre restano spente.
+- Le scritte grandi stanno al centro della zona di gioco, non della pagina.
+- Scintille nella festa di fine round, fuochi d'artificio a fine partita.
+- Caratteri nuovi, più leggibili.
+
+## 0.8 — 28 settembre 2026 · Niente appunti
+
+- Le lettere già chiamate non si segnano da nessuna parte: ricordarsele fa parte del gioco. Chi richiama una consonante già chiamata perde il turno.
+- Chiedere una vocale che non c'è fa perdere il turno.
+- Una scritta grande avvisa quando le consonanti sono finite, quando sono finite le vocali, e quando una lettera è già stata chiamata. Per quest'ultima c'è anche un suono d'errore.
+- Due cursori di volume, uno per la musica e uno per gli effetti.
+- All'inizio si decide quanti round giocare, e in alto si vede sempre a che round siete. Arriva anche la classifica.
+- A fine partita, una schermata col vincitore, che resta lì finché qualcuno non la chiude.
+- La festa per chi risolve dura qualche secondo in più.
+
+## 0.7 — 28 settembre 2026 · Musica vera
+
+- Al posto delle musichette arrivano brani veri, uno diverso per round.
+- I quattro Passa sono alla stessa distanza l'uno dall'altro, e le due bancarotte una di fronte all'altra.
+- Colori ritoccati: il 300 € e il 1.500 € non si somigliano più, e il 1.000 € non si perde accanto alla bancarotta nera.
+
+## 0.6 — 28 settembre 2026 · Il jolly bisogna guadagnarselo
+
+- Chi finisce sul jolly deve comunque dire una lettera: se c'è, il jolly è suo; se non c'è, niente jolly e il turno passa.
+- Tessere dei giocatori più strette, ognuna con un disegnino scelto all'inizio. La ruota si allarga nello spazio liberato.
+- Stessa cifra, stesso colore: tutti i 300 € di un colore, tutti i 400 € di un altro.
+- La festa per chi risolve: parte una musichetta, e la cifra vinta vola nella cassaforte.
+
+## 0.5 — 28 settembre 2026 · Funky
+
+- Quattro musichette funky, una per round, al posto del sottofondo di prima.
+- Sfondo più luminoso.
+- Caselle del tabellone come nel gioco televisivo: bianche quando sono coperte, arancioni quando si accendono, bianche con la lettera nera quando le scoprite.
+
+## 0.4 — 28 settembre 2026 · Come una mano che gira
+
+- La ruota gira come la girerebbe una persona: fra un giro e mezzo e tre, poi una frenata lunga. Prima ne faceva da quattro a sette.
+- Ruota dorata, con i pioli.
+- Tabellone più compatto, con le frasi su più righe.
+
+## 0.3 — 28 settembre 2026 · Le caselle da toccare
+
+- Le lettere non compaiono più da sole: le caselle giuste si accendono, e il giocatore le tocca per scoprirle.
+- Tabellone e categoria grandi, in vista.
+- I Passa diventano bianchi, con la scritta scura.
+- La ruota parte con una spinta, non più di scatto.
+- Colori meno scuri, e una musica di sottofondo.
+
+## 0.1 e 0.2 — 28 settembre 2026 · La prima ruota, con le regole di casa
+
+- Da 1 a 4 giocatori sullo stesso schermo, ognuno col suo colore.
+- Una ruota di 24 spicchi: quattro Passa, un jolly e due bancarotte, una delle quali in mezzo a due 1.500 €.
+- La bancarotta toglie tutto: i soldi del round e quelli già in cassaforte.
+- Le vocali costano 500 € e se ne comprano quante se ne vuole, finché ci sono i soldi. Si pagano anche se la vocale non c'è.
+- Il jolly si tiene e si gioca quando serve, contro un Passa o una bancarotta: salva il turno e i soldi.
+- Chi dice «do la soluzione» ha 20 secondi per scriverla.
+- Chi risolve porta in cassaforte i soldi del round più 1.000 €, e gli altri perdono quelli del round.
+- Il round dopo non lo apre chi ha appena vinto, ma il giocatore dopo di lui.

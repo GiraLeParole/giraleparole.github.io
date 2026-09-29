@@ -338,6 +338,12 @@ const annuncioEl = document.getElementById("annuncio");
 const colonnaGiocatoriEl = document.getElementById("colonna-giocatori");
 const canvasRuota = document.getElementById("canvas-ruota");
 
+// Punto 69, quattordicesimo giro (29/09/2026, disegno di Chiara): lo
+// sbiadimento delle tessere non di turno si ritocca da config.js
+// (OPACITA_GIOCATORE_NON_DI_TURNO), non da qui — passa alla CSS con una
+// custom property, cosi` la transizione resta nel foglio di stile.
+document.documentElement.style.setProperty("--opacita-non-turno", OPACITA_GIOCATORE_NON_DI_TURNO);
+
 const btnGira = document.getElementById("btn-gira");
 const btnCompraVocale = document.getElementById("btn-compra-vocale");
 btnCompraVocale.textContent = "Vocale · " + euro(COSTO_VOCALE); // voce 3, undicesimo giro: sempre allineato a COSTO_VOCALE
@@ -544,7 +550,10 @@ function nuovoRound() {
   Gioco.posizioniRivelate = new Set();
   Gioco.posizioniAccese = new Set();
   Gioco.lettereUsate = new Set();
-  Gioco.stato = "idle";
+  // Punto 69, voce 4 (29/09/2026, disegno di Chiara): anche l'inizio round
+  // assegna un turno e ora lo dice il palco ("Tocca a", qui sotto) — lo
+  // stato resta "in_annuncio" finche` quel secondo tempo non ha finito.
+  Gioco.stato = "in_annuncio";
   // Punto 33/37: il "consonanti/vocali finite" si annuncia una volta sola
   // per round — si azzera qui, la frase e` nuova.
   Gioco.consonantiFiniteAvvisate = false;
@@ -578,6 +587,25 @@ function nuovoRound() {
   nascondiTuttiIPannelli();
   aggiornaComandi();
   aggiornaSchedeGiocatori();
+
+  // Punto 69, voce 4: al round 1 il palco mostra subito «Tocca a»; dal round
+  // 2 lo mostra dopo l'annuncio "Round N" (durata DURATA_ANNUNCIO_ROUND_MS),
+  // 50ms prima che quello esca da solo, cosi` il palco non resta vuoto in
+  // mezzo. In tutti e due i casi i comandi tornano solo alla fine.
+  const attesaToccaA = Gioco.numeroRoundCorrente > 1 ? DURATA_ANNUNCIO_ROUND_MS - 50 : 0;
+  setTimeout(() => {
+    const g = giocatoreCorrente();
+    Audio_.toccaA();
+    Annuncio.mostra({
+      stile: "tocca" + (g.nome.length > 12 ? " lungo" : ""),
+      lettera: g.iniziale,
+      colore: g.colore,
+      sopra: "Tocca a",
+      titolo: g.nome,
+      durata: DURATA_TOCCA_A_MS,
+    });
+    setTimeout(() => { Gioco.stato = "idle"; aggiornaComandi(); }, DURATA_TOCCA_A_MS);
+  }, attesaToccaA);
 }
 
 // Punto 45 (28/09/2026, nono giro): il tabellone e` ora una griglia fissa,
@@ -682,19 +710,32 @@ function hexInRgba(hex, alpha) {
   return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }
 
+// Punto 69, quattordicesimo giro (29/09/2026, disegno di Chiara), voce 2: la
+// tessera che entra in turno fa un balzo — ma SOLO quando l'indice del
+// giocatore e` appena cambiato, non a ogni ridisegno per i soldi. Siccome
+// aggiornaSchedeGiocatori ricostruisce la fila da zero (innerHTML = ""), il
+// confronto va tenuto qui fuori, a livello di modulo.
+let ultimoIndiceDisegnato = -1;
+
 // Decimo giro (28/09/2026), disegno di Chiara, intervento 4: un numero
 // grande per tessera (i soldi del round) e il resto piccolo — non piu` sei
 // righe di testo per due numeri. I jolly diventano carte (.carta-jolly),
 // non piu` un'emoji che su Linux esce come un quadratino.
 function aggiornaSchedeGiocatori() {
   colonnaGiocatoriEl.innerHTML = "";
+  const indiceCambiato = ultimoIndiceDisegnato !== Gioco.indiceCorrente;
+  ultimoIndiceDisegnato = Gioco.indiceCorrente;
   Gioco.giocatori.forEach((g, i) => {
     const div = document.createElement("div");
     const inTurno = i === Gioco.indiceCorrente;
-    div.className = "scheda-giocatore" + (inTurno ? " turno-attivo" : "");
+    // Punto 69, voce 1: il giocatore di turno e` l'unica tessera piena, al
+    // 55% del suo colore (OPACITA_GIOCATORE_NON_DI_TURNO governa lo
+    // sbiadimento delle altre, in CSS — qui resta lo sfondo del turno).
+    div.className = "scheda-giocatore" + (inTurno ? " turno-attivo" : "")
+      + (inTurno && indiceCambiato ? " entra-in-turno" : "");
     div.style.setProperty("--colore-giocatore", g.colore);
     div.style.borderLeftColor = g.colore;
-    div.style.background = hexInRgba(g.colore, inTurno ? 0.3 : 0.16);
+    div.style.background = hexInRgba(g.colore, inTurno ? 0.55 : 0.16);
 
     // Undicesimo giro, punto 58, strada B (28/09/2026): non piu` un
     // disegnino ma la tessera bianca con l'iniziale del nome — il colore del
@@ -879,12 +920,17 @@ const Annuncio = (() => {
   let timer = null;
   let timerUscita = null;
 
-  // voce = { lettera?, titolo, sotto?, stile?: 'no' | 'scena' | 'scena rosso' | 'scena oro', durata?: ms }
+  // voce = { lettera?, titolo, sotto?, sopra?, colore?, stile?: 'no' | 'scena' | 'scena rosso' | 'scena oro' | 'tocca'[' lungo'], durata?: ms }
+  // sopra/colore, punto 69 (29/09/2026, disegno di Chiara): il secondo tempo
+  // «Tocca a» — sopra e` la riga piccola "Tocca a", colore e` il colore del
+  // giocatore per l'anello della tessera e l'alone del nome (var CSS
+  // --colore-giocatore, con fallback sull'accento se non passato).
   function mostra(voce) {
     if (timer) { clearTimeout(timer); timer = null; }
     if (timerUscita) { clearTimeout(timerUscita); timerUscita = null; }
     annuncioEl.className = "annuncio " + (voce.stile || "");
     annuncioEl.innerHTML = "";
+    if (voce.colore) annuncioEl.style.setProperty("--colore-giocatore", voce.colore);
     if (voce.lettera) {
       const t = document.createElement("div");
       t.className = "annuncio-tessera";
@@ -893,6 +939,12 @@ const Annuncio = (() => {
     }
     const testo = document.createElement("div");
     testo.className = "annuncio-testo";
+    if (voce.sopra) {
+      const sp = document.createElement("div");
+      sp.className = "annuncio-sopra";
+      sp.textContent = voce.sopra;
+      testo.appendChild(sp);
+    }
     const h = document.createElement("div");
     h.className = "annuncio-titolo";
     h.textContent = voce.titolo;
@@ -933,7 +985,10 @@ function numeraCaselleAccese() {
 }
 
 // "Prossimo" — chi gioca dopo, calcolato PRIMA che passaTurno() avanzi
-// Gioco.indiceCorrente (vedi le chiamate qui sotto).
+// Gioco.indiceCorrente. Punto 69 (29/09/2026): da quando il secondo tempo
+// «Tocca a» legge il nome DOPO che passaTurno ha gia` avanzato l'indice
+// (giocatoreCorrente(), in annunciaEPassaTurno), questa funzione non serve
+// piu` a nessun testo — lasciata per chi la vuole ancora.
 function nomeGiocatoreProssimo() {
   return Gioco.giocatori[(Gioco.indiceCorrente + 1) % Gioco.giocatori.length].nome;
 }
@@ -945,11 +1000,31 @@ function quanteVolte(n) {
 // Mostra un annuncio che finisce con il turno che passa: i comandi restano
 // spenti (stato diverso da "idle") finche` l'annuncio non ha finito il suo
 // tempo — cosi` si vede cosa e` successo prima che tocchi al prossimo.
+//
+// Punto 69, quattordicesimo giro (29/09/2026, disegno di Chiara): il palco ha
+// un secondo tempo. Il primo tempo (voce, come passato dal chiamante: "non
+// c'è", "Passa!", "Bancarotta!"...) dice solo cosa e` successo. Allo scadere
+// il turno passa (passaTurno, che ora non rimette idle da solo) e il palco
+// mostra «Tocca a <nome>» per DURATA_TOCCA_A_MS: solo alla fine di QUESTO
+// secondo tempo i comandi tornano.
 function annunciaEPassaTurno(voce) {
   Gioco.stato = "in_annuncio";
   aggiornaComandi();
   Annuncio.mostra(voce);
-  setTimeout(passaTurno, voce.durata);
+  setTimeout(() => {
+    passaTurno();
+    const g = giocatoreCorrente();
+    Audio_.toccaA();
+    Annuncio.mostra({
+      stile: "tocca" + (g.nome.length > 12 ? " lungo" : ""),
+      lettera: g.iniziale,
+      colore: g.colore,
+      sopra: "Tocca a",
+      titolo: g.nome,
+      durata: DURATA_TOCCA_A_MS,
+    });
+    setTimeout(() => { Gioco.stato = "idle"; aggiornaComandi(); }, DURATA_TOCCA_A_MS);
+  }, voce.durata);
 }
 
 // ---- GIRA LA RUOTA ---------------------------------------------------------
@@ -1097,7 +1172,7 @@ function gestisciEsitoRuota(segmento, indice) {
       return;
     }
     Audio_.passa();
-    annunciaEPassaTurno({ stile: "scena", titolo: "Passa!", sotto: "tocca a " + nomeGiocatoreProssimo(), durata: DURATA_ANNUNCIO_MS });
+    annunciaEPassaTurno({ stile: "scena", titolo: "Passa!", durata: DURATA_ANNUNCIO_MS });
     return;
   }
   if (segmento.tipo === "bancarotta") {
@@ -1113,7 +1188,7 @@ function gestisciEsitoRuota(segmento, indice) {
     annunciaEPassaTurno({
       stile: "scena rosso",
       titolo: "Bancarotta!",
-      sotto: g.nome + " perde tutto · tocca a " + nomeGiocatoreProssimo(),
+      sotto: g.nome + " perde tutto",
       durata: DURATA_ANNUNCIO_LUNGO_MS,
     });
     return;
@@ -1171,7 +1246,6 @@ function sceltaConsonante(lettera) {
       lettera,
       stile: "no",
       titolo: "è già uscita",
-      sotto: "tocca a " + nomeGiocatoreProssimo(),
       durata: DURATA_ANNUNCIO_LUNGO_MS,
     });
     return;
@@ -1230,11 +1304,11 @@ function sceltaConsonante(lettera) {
   } else {
     Audio_.letteraAssente();
     if (Gioco.spicchioTipo === "jolly") {
-      annunciaEPassaTurno({ lettera, stile: "no", titolo: "non c’è", sotto: "niente Jolly · tocca a " + nomeGiocatoreProssimo(), durata: DURATA_ANNUNCIO_MS });
+      annunciaEPassaTurno({ lettera, stile: "no", titolo: "non c’è", sotto: "niente Jolly", durata: DURATA_ANNUNCIO_MS });
     } else if (Gioco.spicchioTipo === "raddoppia") {
-      annunciaEPassaTurno({ lettera, stile: "no", titolo: "non c’è", sotto: "niente raddoppio · tocca a " + nomeGiocatoreProssimo(), durata: DURATA_ANNUNCIO_MS });
+      annunciaEPassaTurno({ lettera, stile: "no", titolo: "non c’è", sotto: "niente raddoppio", durata: DURATA_ANNUNCIO_MS });
     } else {
-      annunciaEPassaTurno({ lettera, stile: "no", titolo: "non c’è", sotto: "tocca a " + nomeGiocatoreProssimo(), durata: DURATA_ANNUNCIO_MS });
+      annunciaEPassaTurno({ lettera, stile: "no", titolo: "non c’è", durata: DURATA_ANNUNCIO_MS });
     }
   }
 }
@@ -1332,7 +1406,6 @@ function sceltaVocale(lettera) {
         lettera,
         stile: "no",
         titolo: "è già uscita",
-        sotto: "tocca a " + nomeGiocatoreProssimo(),
         durata: DURATA_ANNUNCIO_LUNGO_MS,
       });
     } else {
@@ -1363,7 +1436,7 @@ function sceltaVocale(lettera) {
     Audio_.letteraAssente();
     aggiornaSchedeGiocatori();
     if (VOCALE_ASSENTE_PERDE_TURNO) {
-      annunciaEPassaTurno({ lettera, stile: "no", titolo: "non c’è", sotto: "tocca a " + nomeGiocatoreProssimo(), durata: DURATA_ANNUNCIO_MS });
+      annunciaEPassaTurno({ lettera, stile: "no", titolo: "non c’è", durata: DURATA_ANNUNCIO_MS });
     } else {
       Annuncio.mostra({ lettera, stile: "no", titolo: "non c’è", durata: DURATA_ANNUNCIO_MS });
       Gioco.stato = "idle";
@@ -1408,7 +1481,7 @@ btnJollyNo.addEventListener("click", () => {
   contestoJollyPendente = null;
   if (contesto === "passa") {
     Audio_.passa();
-    annunciaEPassaTurno({ stile: "scena", titolo: "Passa!", sotto: "tocca a " + nomeGiocatoreProssimo(), durata: DURATA_ANNUNCIO_MS });
+    annunciaEPassaTurno({ stile: "scena", titolo: "Passa!", durata: DURATA_ANNUNCIO_MS });
   } else {
     Audio_.bancarotta();
     g.soldiRound = 0;
@@ -1417,7 +1490,7 @@ btnJollyNo.addEventListener("click", () => {
     annunciaEPassaTurno({
       stile: "scena rosso",
       titolo: "Bancarotta!",
-      sotto: g.nome + " perde tutto · tocca a " + nomeGiocatoreProssimo(),
+      sotto: g.nome + " perde tutto",
       durata: DURATA_ANNUNCIO_LUNGO_MS,
     });
   }
@@ -1445,7 +1518,7 @@ function avviaTimerSoluzione() {
     if (secondi <= 0) {
       fermaTimerSoluzione();
       pannelloSoluzione.classList.add("nascosta");
-      annunciaEPassaTurno({ stile: "scena", titolo: "Tempo scaduto", sotto: "tocca a " + nomeGiocatoreProssimo(), durata: DURATA_ANNUNCIO_MS });
+      annunciaEPassaTurno({ stile: "scena", titolo: "Tempo scaduto", durata: DURATA_ANNUNCIO_MS });
     }
   }, 1000);
 }
@@ -1466,7 +1539,7 @@ formSoluzione.addEventListener("submit", (ev) => {
   if (tentativo.length > 0 && tentativo === corretta) {
     vinciRound();
   } else {
-    annunciaEPassaTurno({ stile: "scena", titolo: "Non è questa", sotto: "tocca a " + nomeGiocatoreProssimo(), durata: DURATA_ANNUNCIO_MS });
+    annunciaEPassaTurno({ stile: "scena", titolo: "Non è questa", durata: DURATA_ANNUNCIO_MS });
   }
 });
 
@@ -1631,11 +1704,13 @@ btnTornaInizio.addEventListener("click", () => {
   schermataIscrizione.classList.remove("nascosta");
 });
 
+// Punto 69 (29/09/2026): non rimette piu` lo stato a "idle" da solo — quello
+// arriva alla fine del secondo tempo «Tocca a» (vedi annunciaEPassaTurno).
+// Qui si avanza l'indice e si ridisegna la fila (col balzo sulla tessera
+// nuova, vedi aggiornaSchedeGiocatori).
 function passaTurno() {
   Gioco.indiceCorrente = (Gioco.indiceCorrente + 1) % Gioco.giocatori.length;
-  Gioco.stato = "idle";
   aggiornaSchedeGiocatori();
-  aggiornaComandi();
 }
 
 // ---- VOLUME (punto 36, 28/09/2026) — sostituisce i vecchi interruttori

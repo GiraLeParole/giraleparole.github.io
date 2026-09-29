@@ -2,7 +2,7 @@
 
 Il gioco della ruota, per giocare in famiglia sullo stesso schermo. Si gira la ruota, si indovina la parola nascosta lettera per lettera, si accumulano i soldi del round. Da 1 a 4 giocatori, nessun dato esce dal browser.
 
-Per giocare: apri [`index.html`](index.html), oppure vai direttamente su https://barbattack.github.io/gira-le-parole/.
+Per giocare: apri [`index.html`](index.html), oppure vai direttamente su https://giraleparole.github.io/.
 
 ## Crediti
 

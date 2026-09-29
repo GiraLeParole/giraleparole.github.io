@@ -1484,12 +1484,15 @@ function vinciRound() {
   fermaTimerSoluzione();
   const g = giocatoreCorrente();
 
-  // Regola 9 (28/09/2026): chi risolve porta a casa i soldi del round in
-  // corso PIU` il bonus fisso (anche se nel round aveva 0€), e vanno nel suo
-  // totale. Tutti gli altri — vincitore compreso, ormai svuotato — ripartono
-  // dal round successivo con 0€ di round: chi accumulava senza dare la
-  // soluzione perde tutto quello che aveva messo da parte nel round.
-  const soldiPortatiACasa = g.soldiRound + BONUS_VITTORIA_ROUND;
+  // Regola 9 (28/09/2026, corretta punto 68 del 29/09/2026): chi risolve
+  // porta a casa i soldi del round in corso. Il bonus fisso di 1000€ vale
+  // SOLO se nel round aveva 0€ (altrimenti il round stesso vale gia` di
+  // piu` di 1000€ nella maggior parte dei casi, e il bonus raddoppierebbe
+  // un premio gia` alto). Tutti gli altri — vincitore compreso, ormai
+  // svuotato — ripartono dal round successivo con 0€ di round: chi
+  // accumulava senza dare la soluzione perde tutto quello che aveva messo
+  // da parte nel round.
+  const soldiPortatiACasa = g.soldiRound === 0 ? BONUS_VITTORIA_ROUND : g.soldiRound;
   g.soldiTotale += soldiPortatiACasa;
   Gioco.giocatori.forEach((giocatore) => {
     giocatore.soldiRound = 0;

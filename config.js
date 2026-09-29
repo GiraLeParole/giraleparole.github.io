@@ -1,5 +1,5 @@
 // ============================================================================
-// CONFIGURAZIONE DEL GIOCO — LA RUOTA DELLA FORTUNA (versione di casa)
+// CONFIGURAZIONE DEL GIOCO — GIRA LE PAROLE (versione di casa)
 // Tutto quello che Damiano vuole poter ritoccare giocando sta qui, in un solo
 // punto. Non serve capire il resto del codice per cambiare questi numeri.
 // ============================================================================
@@ -226,7 +226,7 @@ const COSTO_VOCALE = 500;      // ogni acquisto di vocale costa questo, si paga 
 // vedi PAGA_VOCALE_CON in gioco.js).
 const VOCALE_SI_PAGA_COL_TOTALE = false;
 
-const BONUS_VITTORIA_ROUND = 1000; // bonus fisso a chi risolve la frase
+const BONUS_VITTORIA_ROUND = 1000; // bonus a chi risolve la frase SOLO se nel round aveva 0€ (punto 68, 29/09/2026); con soldi nel round porta quelli
 
 // ----------------------------------------------------------------------------
 // OTTAVO GIRO (28/09/2026) — quattro regole nuove, dettate dopo aver giocato

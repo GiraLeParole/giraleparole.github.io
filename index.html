@@ -2,11 +2,220 @@
 <html lang="it">
 <head>
   <meta charset="UTF-8" />
-  <meta http-equiv="refresh" content="0; url=GiraLeParole.html" />
-  <title>Gira le Parole</title>
-  <link rel="canonical" href="GiraLeParole.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gira le Parole — gioco di casa</title>
+  <meta name="description" content="Il gioco della ruota, per giocare in famiglia sullo stesso schermo. Nessun dato esce da questo computer." />
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <p>Se non parti automaticamente, <a href="GiraLeParole.html">clicca qui per giocare</a>.</p>
+
+  <!-- SCHERMATA 1: iscrizione giocatori -->
+  <section id="schermata-iscrizione" class="schermata">
+    <h1>Gira le Parole</h1>
+    <p class="sottotitolo">Gioco di casa — da 1 a 4 giocatori, tutti sullo stesso schermo</p>
+
+    <div id="lista-giocatori" class="lista-giocatori"></div>
+
+    <!-- Voce D, tredicesimo giro (29/09/2026, punto 64): con che frasi si
+         gioca stasera — costruita da gioco.js a partire da GRUPPI_FRASI
+         (config.js). -->
+    <div class="scelta-gruppi">
+      <p>Quali frasi?</p>
+      <div class="opzioni-gruppi" id="opzioni-gruppi" role="group" aria-label="Quali frasi"></div>
+      <p class="conta-frasi" id="conta-frasi" aria-live="polite"></p>
+    </div>
+
+    <!-- Punto 38 (28/09/2026, seconda dettatura): quanti round giocare —
+         costruito da gioco.js a partire da OPZIONI_NUMERO_ROUND (config.js). -->
+    <div class="scelta-round">
+      <p>Quanti round?</p>
+      <div class="opzioni-round" id="opzioni-round"></div>
+    </div>
+
+    <div class="azioni-iscrizione">
+      <button id="btn-aggiungi-giocatore" type="button">+ Aggiungi giocatore</button>
+      <button id="btn-inizia-partita" type="button" class="primario">Inizia la partita</button>
+    </div>
+    <p id="errore-iscrizione" class="messaggio-errore" role="alert" aria-live="polite"></p>
+
+    <!-- Settimo giro, secondo compito: crediti dei brani veri, discreti. -->
+    <p class="crediti-musica">Musiche: Kevin MacLeod, incompetech.com, CC BY 4.0</p>
+  </section>
+
+  <!-- SCHERMATA 2: partita -->
+  <section id="schermata-gioco" class="schermata nascosta">
+
+    <header class="intestazione-gioco">
+      <div class="pulsanti-audio">
+        <!-- Punto 36 (28/09/2026): un solo pulsante altoparlanti apre il
+             pannello coi due cursori di volume (assorbe i vecchi
+             interruttori sì/no separati per musica ed effetti). -->
+        <button id="btn-volume" type="button" class="btn-muto" aria-label="Apri i controlli del volume" aria-expanded="false" aria-controls="pannello-volume">🔊</button>
+        <div id="pannello-volume" class="pannello-volume nascosta">
+          <label class="riga-volume">
+            <span>Musica</span>
+            <input id="cursore-volume-musica" type="range" min="0" max="100" step="1" />
+          </label>
+          <label class="riga-volume">
+            <span>Effetti</span>
+            <input id="cursore-volume-effetti" type="range" min="0" max="100" step="1" />
+          </label>
+        </div>
+      </div>
+      <!-- Decimo giro (28/09/2026), disegno di Chiara, intervento 4: i round
+           vinti diventano pallini qui al centro dell'intestazione — la
+           categoria si sposta sotto il tabellone (vedi colonna-centrale),
+           come la striscia della TV (intervento 1/3). -->
+      <div id="round-punti" class="round-punti" aria-live="polite"></div>
+      <!-- Punto 39 (28/09/2026, seconda dettatura): la classifica sostituisce
+           il vecchio spaziatore vuoto — un solo pulsante come a sinistra,
+           per bilanciare l'intestazione, che pero` ora fa qualcosa: apre la
+           classifica con un tocco (comodo anche a 375px, non spinge fuori
+           dallo schermo ruota e tabellone). -->
+      <div class="pulsanti-classifica">
+        <button id="btn-classifica" type="button" class="btn-muto" aria-label="Apri la classifica" aria-expanded="false" aria-controls="pannello-classifica">🏆</button>
+        <div id="pannello-classifica" class="pannello-classifica nascosta">
+          <div id="contenuto-classifica"></div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Nono giro, punto 43-45 (28/09/2026): "un gioco da PC su schermo
+         largo" — ruota, tabellone/comandi e tessere dei giocatori diventano
+         tre colonne fianco a fianco quando c'e` spazio (vedi .area-partita
+         in style.css), invece di stare tutti stretti in una fascia centrale
+         con i lati vuoti. Sotto i 900px (telefono) restano impilate in
+         quest'ordine — non e` piu` il riferimento, "basta che non si rompa". -->
+    <div class="area-partita">
+      <div class="colonna-ruota">
+        <!-- Decimo giro (28/09/2026): risoluzione interna del canvas alzata
+             da 620 a 1000 — a 80vh su uno schermo 1080p la ruota e` larga
+             864px, e il vecchio 620 sgranava (vedi
+             `design/2026-09-28-revisione.md`, intervento 2). Il browser puo`
+             solo rimpicciolire un'immagine piu` grande, mai ingrandirla
+             senza sgranarla. -->
+        <canvas id="canvas-ruota" width="1000" height="1000"></canvas>
+        <div class="puntatore" aria-hidden="true"></div>
+      </div>
+
+      <div class="colonna-centrale">
+        <!-- Punto 38: "Round X di N" — resta per gli schermi sotto i 1200px
+             (telefono, non piu` il riferimento ma "basta che non si rompa");
+             da 1200px in su e` nascosto, sostituito dai pallini in
+             #round-punti nell'intestazione (vedi style.css). -->
+        <div id="indicatore-round" class="indicatore-round"></div>
+
+        <div id="tabellone-frase" class="tabellone-frase" aria-live="polite"></div>
+
+        <!-- Decimo giro, intervento 1/3 (28/09/2026): la categoria si sposta
+             qui, sotto il tabellone, come la striscia della TV — prima
+             stava nell'intestazione (vedi header sopra). -->
+        <div id="categoria-corrente" class="categoria"></div>
+
+        <!-- Undicesimo giro, punto 56 (28/09/2026, disegno di Chiara): il
+             "palco" dell'annuncio, come se fosse Gerry Scotti a dirlo —
+             sostituisce sia la vecchia riga verde (#messaggio-gioco) sia il
+             messaggio grande sopra il tabellone (#overlay-messaggio-grande,
+             punto 37/42): un solo posto dove guardare, vedi Annuncio in
+             gioco.js e il blocco @media(min-width:1200px) in style.css. -->
+        <div id="annuncio" class="annuncio" aria-live="assertive"></div>
+
+        <div class="area-comandi">
+          <button id="btn-gira" type="button" class="primario">Gira la ruota</button>
+          <button id="btn-compra-vocale" type="button">Vocale · 500 €</button>
+          <button id="btn-risolvi" type="button">Do la soluzione</button>
+        </div>
+
+        <div id="pannello-vocali" class="pannello-scelta nascosta">
+          <p>Scegli la vocale</p>
+          <div class="griglia-lettere" id="griglia-vocali"></div>
+          <button id="btn-annulla-vocale" type="button" class="secondario">Annulla</button>
+        </div>
+
+        <div id="pannello-consonanti" class="pannello-scelta nascosta">
+          <p>Scegli una consonante</p>
+          <div class="griglia-lettere" id="griglia-consonanti"></div>
+        </div>
+
+        <div id="pannello-jolly" class="pannello-scelta nascosta">
+          <p id="testo-jolly-domanda"></p>
+          <button id="btn-jolly-si" type="button" class="primario">Sì, mi salvo</button>
+          <button id="btn-jolly-no" type="button" class="secondario">No, va così</button>
+        </div>
+
+        <div id="pannello-soluzione" class="pannello-scelta nascosta">
+          <p><span id="secondi-rimasti">20</span> secondi</p>
+          <form id="form-soluzione" autocomplete="off">
+            <input id="input-soluzione" type="text" placeholder="Scrivi qui la frase intera" />
+            <button type="submit" class="primario">Conferma</button>
+          </form>
+        </div>
+
+        <div id="pannello-fine-round" class="pannello-scelta nascosta">
+          <p id="testo-fine-round"></p>
+          <button id="btn-round-successivo" type="button" class="primario">Prossimo round</button>
+        </div>
+      </div>
+
+      <div class="colonna-giocatori" id="colonna-giocatori"></div>
+    </div>
+
+    <!-- Punto 30 (28/09/2026): la festa di chi vince il round — resta un
+         modale a tutta pagina (position:fixed), sopra a tutto il resto
+         (compreso il pannello fine-round qui sopra, che resta pronto
+         sotto), musichetta a parte, e si chiude da sola o con un tocco. -->
+    <div id="overlay-festa" class="overlay-festa nascosta" role="dialog" aria-live="polite" aria-label="Festa di fine round">
+      <div class="scheda-festa">
+        <!-- Undicesimo giro, punto 58, strada B (28/09/2026): non piu` un
+             disegnino ma la tessera con l'iniziale del nome e l'anello del
+             colore del giocatore (gioco.js, mostraFestaVittoria). -->
+        <div id="festa-immagine" class="festa-immagine" aria-hidden="true"></div>
+        <div id="festa-nome" class="festa-nome"></div>
+        <div class="festa-testo">ha risolto la frase!</div>
+        <div class="festa-cifra-wrap"><span id="festa-cifra">0</span><span class="festa-euro"> €</span></div>
+        <div class="festa-cassaforte">volano in cassaforte</div>
+        <div id="festa-monete" class="festa-monete" aria-hidden="true"></div>
+        <button id="btn-chiudi-festa" type="button" class="secondario">Continua</button>
+      </div>
+    </div>
+
+  </section>
+
+  <!-- SCHERMATA 3 (punto 39, 28/09/2026): fine partita, dopo l'ultimo round.
+       Non si chiude da sola (Damiano, seconda dettatura): resta finché non
+       si tocca "Gioca ancora" o "Torna all'inizio". -->
+  <section id="schermata-finale" class="schermata nascosta">
+    <!-- Punto 46 (28/09/2026, nono giro): "feste più animate, sia alla
+         vittoria del round sia alla vittoria finale". Alcuni botti di
+         pallini colorati, generati e rimossi al volo da gioco.js
+         (avviaFuochiFinale) — la schermata resta sobria a regime, i fuochi
+         durano solo pochi secondi dopo l'arrivo qui. -->
+    <div id="overlay-fuochi-finale" class="overlay-fuochi-finale" aria-hidden="true"></div>
+    <h1>Fine partita!</h1>
+    <div class="scheda-finale-vincitore">
+      <div id="finale-vincitore-immagine" class="festa-immagine" aria-hidden="true"></div>
+      <div id="finale-vincitore-nome" class="festa-nome"></div>
+      <div class="festa-testo">ha vinto la partita!</div>
+      <div class="festa-cifra-wrap"><span id="finale-vincitore-cifra">0</span><span class="festa-euro"> €</span></div>
+      <div class="festa-cassaforte">in cassaforte</div>
+    </div>
+    <p class="titolo-classifica">Classifica finale</p>
+    <div id="finale-classifica" class="finale-classifica"></div>
+    <div class="azioni-iscrizione">
+      <button id="btn-gioca-ancora" type="button" class="primario">Gioca ancora</button>
+      <button id="btn-torna-inizio" type="button" class="secondario">Torna all'inizio</button>
+    </div>
+    <p class="crediti-musica">A fine partita, se vi va, scrivetemi chi ha vinto: <a href="mailto:barbattack84@gmail.com?subject=Gira%20le%20Parole">barbattack84@gmail.com</a></p>
+  </section>
+
+  <script src="config.js"></script>
+  <!-- Punto 66 (29/09/2026): le frasi nostre (Penna), non piu` quelle del
+       sito di partenza. frasi.js resta nel repository ma non si carica piu`:
+       i due file dichiarano lo stesso `const FRASI`, quindi va caricato uno
+       solo, mai insieme. -->
+  <script src="frasi-nostre.js"></script>
+  <script src="audio.js"></script>
+  <script src="ruota.js"></script>
+  <script src="gioco.js"></script>
 </body>
 </html>

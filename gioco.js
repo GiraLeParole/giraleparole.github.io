@@ -1,5 +1,5 @@
 // ============================================================================
-// GIOCO — stato e logica di "Gira le Parole" (versione di casa).
+// GIOCO — stato e logica di "Gira le Parole".
 // Vanilla JS, nessuna libreria, nessuna chiamata di rete.
 // ============================================================================
 
@@ -102,7 +102,7 @@ const Gioco = {
   // click del giocatore — accese sul tabellone, in attesa di un tocco.
   posizioniAccese: new Set(),
   lettereUsate: new Set(), // lettere gia tentate/comprate in questo round
-  stato: "idle",           // idle | girando | scegli_consonante | scegli_vocale | attesa_jolly | risolvendo | rivelando | fine_round
+  stato: "idle",           // idle | girando | scegli_consonante | scegli_vocale | attesa_jolly | risolvendo | rivelando | fine_round | scegli_casella | in_annuncio
   timerSoluzione: null,
   timerAutoscoperta: null,
   // Punto 33 (28/09/2026): se il "consonanti/vocali finite" di QUESTO round
@@ -121,6 +121,12 @@ const Gioco = {
   // una sola volta per round. Azzerato in nuovoRound().
   jollyPresoInQuestoRound: false,
   spicchioIndice: null, // l'indice dello spicchio su cui si e` fermata l'ultima girata
+  // Giro A (29/09/2026, voce A2/A4): l'aiutino usato in questo round, un
+  // booleano per indice di Gioco.giocatori — azzerato in nuovoRound(). Il
+  // premio di casa (voce A4) e` fisso per tutta la partita, scritto
+  // all'iscrizione.
+  aiutinoUsato: [],
+  premioCasa: "",
 };
 
 function mescola(array) {
@@ -200,13 +206,21 @@ function prossimaFrase() {
 }
 
 // ----------------------------------------------------------------------------
-// SCHERMATA 1 — ISCRIZIONE GIOCATORI
+// SCHERMATA 1 — ISCRIZIONE GIOCATORI (Giro A, 29/09/2026, disegno di Chiara —
+// `design/2026-09-29-scheda-otto-idee.md`, voce A1): due colonne — "Chi
+// gioca" (tessere dei giocatori, ognuno per sé o a squadre, posto vuoto che
+// aggiunge un giocatore con un tocco) e "Stasera" (frasi, round, aiutino
+// segnato in tessera, premio di casa). I nomi dell'ultima sera restano
+// scritti: si tocca "Inizia" e via.
 // ----------------------------------------------------------------------------
 
 const listaGiocatoriEl = document.getElementById("lista-giocatori");
-const btnAggiungiGiocatore = document.getElementById("btn-aggiungi-giocatore");
+const btnAggiungiGiocatore = document.getElementById("btn-aggiungi-giocatore"); // resta nel DOM, nascosto: il posto vuoto lo sostituisce
 const btnIniziaPartita = document.getElementById("btn-inizia-partita");
 const erroreIscrizioneEl = document.getElementById("errore-iscrizione");
+const modoGiocoEl = document.getElementById("modo-gioco");
+const premioCasaEl = document.getElementById("premio-casa");
+const lampoAttivoEl = document.getElementById("lampo-attivo");
 
 // Undicesimo giro, punto 58, strada B (28/09/2026, scelta di Damiano: "la
 // tessera con l'iniziale, moooolto carina"): la prima lettera del nome,
@@ -217,66 +231,241 @@ function inizialeDiNome(nome) {
   return car ? car.toUpperCase() : "?";
 }
 
-function rigaGiocatoreHtml(indice, nomeIniziale) {
-  const div = document.createElement("div");
-  div.className = "riga-giocatore";
-  div.dataset.indice = String(indice);
+// Lo stato dell'iscrizione vive QUI, non nel DOM. Difetto trovato da Chiara
+// (29/09/2026, scheda otto idee): `Gioco.giocatori` si costruiva leggendo
+// `[...listaGiocatoriEl.children]` — con il "posto vuoto +" della nuova
+// iscrizione quel posto sarebbe diventato un giocatore in più al primo
+// avvio. Ora Gioco.giocatori si costruisce da Iscrizione (vedi
+// btnIniziaPartita qui sotto), il DOM è solo la sua rappresentazione.
+const Iscrizione = {
+  modo: "singoli", // "singoli" | "squadre"
+  giocatori: [{ nome: "", aiutino: false }, { nome: "", aiutino: false }],
+  squadre: [
+    { nome: "", componenti: [{ nome: "", aiutino: false }, { nome: "", aiutino: false }, { nome: "", aiutino: false }] },
+    { nome: "", componenti: [{ nome: "", aiutino: false }, { nome: "", aiutino: false }, { nome: "", aiutino: false }] },
+  ],
+  premioCasa: "",
+  lampoAttivo: false,
+};
 
-  // La tessera bianca con l'iniziale e l'anello del colore del giocatore —
-  // si aggiorna da sola mentre si scrive il nome (vedi l'ascoltatore
-  // sull'input qui sotto), niente da cliccare o scegliere.
-  const tessera = document.createElement("div");
-  tessera.className = "tessera-iniziale-iscrizione";
-  tessera.setAttribute("aria-hidden", "true");
-  tessera.style.outlineColor = COLORI_GIOCATORI[indice];
-  tessera.textContent = inizialeDiNome(nomeIniziale);
+// I nomi dell'ultima partita restano scritti (scelta 1 della scheda,
+// raccomandata da Chiara, approvata da Damiano): la sera normale e` aprire
+// e toccare "Inizia la partita".
+(function ricordaIscrizione() {
+  try {
+    const v = JSON.parse(window.localStorage.getItem(CHIAVE_ULTIMA_ISCRIZIONE));
+    if (v && (v.modo === "singoli" || v.modo === "squadre")) {
+      Iscrizione.modo = v.modo;
+      if (Array.isArray(v.giocatori) && v.giocatori.length) Iscrizione.giocatori = v.giocatori;
+      if (Array.isArray(v.squadre) && v.squadre.length === 2) Iscrizione.squadre = v.squadre;
+      if (typeof v.premioCasa === "string") Iscrizione.premioCasa = v.premioCasa;
+      if (typeof v.lampoAttivo === "boolean") Iscrizione.lampoAttivo = v.lampoAttivo;
+    }
+  } catch (e) {}
+})();
+function salvaIscrizione() {
+  try {
+    window.localStorage.setItem(
+      CHIAVE_ULTIMA_ISCRIZIONE,
+      JSON.stringify({
+        modo: Iscrizione.modo,
+        giocatori: Iscrizione.giocatori,
+        squadre: Iscrizione.squadre,
+        premioCasa: Iscrizione.premioCasa,
+        lampoAttivo: Iscrizione.lampoAttivo,
+      })
+    );
+  } catch (e) {}
+}
 
+function tesseraIniziale(nome, colore, classe) {
+  const t = document.createElement("div");
+  t.className = "tessera-iniziale-iscrizione" + (classe ? " " + classe : "");
+  t.setAttribute("aria-hidden", "true");
+  t.style.outlineColor = colore;
+  t.textContent = inizialeDiNome(nome);
+  return t;
+}
+
+function interruttoreAiutino(oggetto) {
+  const l = document.createElement("label");
+  l.className = "interruttore";
+  const i = document.createElement("input");
+  i.type = "checkbox";
+  i.checked = !!oggetto.aiutino;
+  i.setAttribute("aria-label", "Aiutino");
+  i.addEventListener("change", () => {
+    oggetto.aiutino = i.checked;
+    salvaIscrizione();
+  });
+  const leva = document.createElement("span");
+  leva.className = "leva";
+  leva.setAttribute("aria-hidden", "true");
+  const testo = document.createElement("span");
+  testo.className = "testo-interruttore";
+  testo.textContent = "Aiutino";
+  l.appendChild(i);
+  l.appendChild(leva);
+  l.appendChild(testo);
+  return l;
+}
+
+function campoNome(oggetto, segnaposto, tessera) {
   const input = document.createElement("input");
   input.type = "text";
   input.maxLength = 16;
-  input.placeholder = `Giocatore ${indice + 1}`;
-  input.value = nomeIniziale || "";
+  input.placeholder = segnaposto;
+  input.value = oggetto.nome || "";
   input.addEventListener("input", () => {
-    tessera.textContent = inizialeDiNome(input.value);
+    oggetto.nome = input.value;
+    tessera.textContent = inizialeDiNome(input.value || segnaposto);
+    salvaIscrizione();
   });
-
-  const btnRimuovi = document.createElement("button");
-  btnRimuovi.type = "button";
-  btnRimuovi.className = "btn-rimuovi";
-  btnRimuovi.textContent = "✕";
-  btnRimuovi.setAttribute("aria-label", "Rimuovi giocatore");
-  btnRimuovi.addEventListener("click", () => {
-    if (listaGiocatoriEl.children.length <= 1) return;
-    div.remove();
-    rinumeraRigheIscrizione();
-  });
-
-  div.appendChild(tessera);
-  div.appendChild(input);
-  div.appendChild(btnRimuovi);
-  return div;
+  return input;
 }
 
-function rinumeraRigheIscrizione() {
-  [...listaGiocatoriEl.children].forEach((riga, i) => {
-    riga.dataset.indice = String(i);
-    riga.querySelector(".tessera-iniziale-iscrizione").style.outlineColor = COLORI_GIOCATORI[i];
-    riga.querySelector("input").placeholder = `Giocatore ${i + 1}`;
+function disegnaIscrizione() {
+  listaGiocatoriEl.innerHTML = "";
+  listaGiocatoriEl.classList.toggle("squadre", Iscrizione.modo === "squadre");
+  [...modoGiocoEl.children].forEach((b) => {
+    const on = b.dataset.modo === Iscrizione.modo;
+    b.classList.toggle("selezionata", on);
+    b.setAttribute("aria-checked", on ? "true" : "false");
   });
-  btnAggiungiGiocatore.disabled = listaGiocatoriEl.children.length >= 4;
+
+  if (Iscrizione.modo === "singoli") {
+    Iscrizione.giocatori.forEach((g, i) => {
+      const card = document.createElement("div");
+      card.className = "riga-giocatore tessera-iscrizione";
+      card.style.setProperty("--colore-giocatore", COLORI_GIOCATORI[i]);
+      const t = tesseraIniziale(g.nome, COLORI_GIOCATORI[i]);
+      card.appendChild(t);
+      card.appendChild(campoNome(g, `Giocatore ${i + 1}`, t));
+      card.appendChild(interruttoreAiutino(g));
+      if (Iscrizione.giocatori.length > 1) {
+        const x = document.createElement("button");
+        x.type = "button";
+        x.className = "btn-rimuovi";
+        x.textContent = "✕";
+        x.setAttribute("aria-label", "Togli questo giocatore");
+        x.addEventListener("click", () => {
+          Iscrizione.giocatori.splice(i, 1);
+          salvaIscrizione();
+          disegnaIscrizione();
+        });
+        card.appendChild(x);
+      }
+      listaGiocatoriEl.appendChild(card);
+    });
+  } else {
+    Iscrizione.squadre.forEach((s, i) => {
+      const card = document.createElement("div");
+      card.className = "riga-giocatore tessera-iscrizione tessera-squadra";
+      card.style.setProperty("--colore-giocatore", COLORI_GIOCATORI[i]);
+      const t = tesseraIniziale(s.nome || NOMI_SQUADRE_SEGNAPOSTO[i], COLORI_GIOCATORI[i]);
+      card.appendChild(t);
+      const nomeSquadra = campoNome(s, NOMI_SQUADRE_SEGNAPOSTO[i], t);
+      nomeSquadra.addEventListener("input", () => {
+        if (!nomeSquadra.value) t.textContent = inizialeDiNome(NOMI_SQUADRE_SEGNAPOSTO[i]);
+      });
+      card.appendChild(nomeSquadra);
+      const comp = document.createElement("div");
+      comp.className = "componenti";
+      s.componenti.forEach((c, k) => {
+        const riga = document.createElement("div");
+        riga.className = "componente";
+        const mt = tesseraIniziale(c.nome, COLORI_GIOCATORI[i]);
+        riga.appendChild(mt);
+        riga.appendChild(campoNome(c, k === 0 ? "chi c’è" : "", mt));
+        riga.appendChild(interruttoreAiutino(c));
+        comp.appendChild(riga);
+      });
+      card.appendChild(comp);
+      listaGiocatoriEl.appendChild(card);
+    });
+  }
+  disegnaPostoVuoto();
 }
 
-btnAggiungiGiocatore.addEventListener("click", () => {
-  if (listaGiocatoriEl.children.length >= 4) return;
-  const indice = listaGiocatoriEl.children.length;
-  listaGiocatoriEl.appendChild(rigaGiocatoreHtml(indice));
-  rinumeraRigheIscrizione();
+// Il posto vuoto vive accanto alla lista, MA non e` un giocatore: gioco.js
+// non lo legge mai (vedi la nota sopra Iscrizione). E` solo il pulsante che
+// aggiunge una tessera con un tocco.
+let postoVuoto = null;
+function disegnaPostoVuoto() {
+  if (postoVuoto) postoVuoto.remove();
+  postoVuoto = null;
+  if (Iscrizione.modo !== "singoli" || Iscrizione.giocatori.length >= MAX_GIOCATORI) return;
+  postoVuoto = document.createElement("button");
+  postoVuoto.type = "button";
+  postoVuoto.className = "tessera-vuota";
+  postoVuoto.innerHTML = "<b>+</b><span>un altro</span>";
+  postoVuoto.addEventListener("click", () => {
+    Iscrizione.giocatori.push({ nome: "", aiutino: false });
+    salvaIscrizione();
+    disegnaIscrizione();
+    listaGiocatoriEl.querySelector(".tessera-iscrizione:last-child input")?.focus();
+  });
+  listaGiocatoriEl.appendChild(postoVuoto);
+}
+
+modoGiocoEl.addEventListener("click", (ev) => {
+  const b = ev.target.closest(".segmento");
+  if (!b || b.dataset.modo === Iscrizione.modo) return;
+  Iscrizione.modo = b.dataset.modo;
+  salvaIscrizione();
+  disegnaIscrizione();
 });
 
-// due giocatori di partenza, comodo per il caso piu comune
-listaGiocatoriEl.appendChild(rigaGiocatoreHtml(0));
-listaGiocatoriEl.appendChild(rigaGiocatoreHtml(1));
-rinumeraRigheIscrizione();
+premioCasaEl.value = Iscrizione.premioCasa;
+premioCasaEl.addEventListener("input", () => {
+  Iscrizione.premioCasa = premioCasaEl.value;
+  salvaIscrizione();
+});
+
+lampoAttivoEl.checked = Iscrizione.lampoAttivo;
+lampoAttivoEl.addEventListener("change", () => {
+  Iscrizione.lampoAttivo = lampoAttivoEl.checked;
+  salvaIscrizione();
+});
+
+disegnaIscrizione();
+
+// ---- «Le nostre frasi», il quinto gruppo (giro C, non ancora costruito) ---
+// Il chip compare solo se in questo browser esistono gia` frasi scritte in
+// casa (CHIAVE_FRASI_NOSTRE) — oggi non esiste ancora la pagina che le
+// scrive (C2), quindi il chip resta assente finche` GIRO_B_C_ATTIVO non
+// diventa vero: qui il codice e` gia` pronto, non serve toccarlo giovedì.
+(function gruppoFrasiNostre() {
+  function leggiFrasiNostre() {
+    try {
+      const v = JSON.parse(window.localStorage.getItem(CHIAVE_FRASI_NOSTRE));
+      return Array.isArray(v) ? v : [];
+    } catch (e) {
+      return [];
+    }
+  }
+  const nostre = leggiFrasiNostre();
+  if (!GIRO_B_C_ATTIVO || !nostre.length || opzioniGruppiEl.querySelector(".nostre")) return;
+  const b = document.createElement("button");
+  b.type = "button";
+  b.className = "opzione-gruppo nostre";
+  b.setAttribute("aria-pressed", "false");
+  b.innerHTML = `Le nostre frasi <small>· ${nostre.length}</small>`;
+  b.addEventListener("click", () => {
+    const on = b.classList.toggle("selezionata");
+    b.setAttribute("aria-pressed", on ? "true" : "false");
+  });
+  opzioniGruppiEl.appendChild(b);
+})();
+
+// ---- Le porte del giro C, e la leva del round lampo (giro B): finche`
+// GIRO_B_C_ATTIVO (config.js) resta false, non si vedono — un solo
+// interruttore per riaccenderle giovedì, senza toccare il markup. ----------
+if (!GIRO_B_C_ATTIVO) {
+  document.getElementById("btn-albo")?.classList.add("nascosta");
+  document.getElementById("btn-frasi-nostre")?.classList.add("nascosta");
+  document.getElementById("riga-lampo")?.classList.add("nascosta");
+}
 
 // ---- SCELTA DEL NUMERO DI ROUND (punto 38, 28/09/2026, seconda dettatura) --
 
@@ -300,17 +489,124 @@ function costruisciOpzioniRound() {
 }
 costruisciOpzioniRound();
 
-btnIniziaPartita.addEventListener("click", () => {
-  const righe = [...listaGiocatoriEl.children];
-  if (righe.length < 1) {
-    erroreIscrizioneEl.textContent = "Serve almeno un giocatore.";
-    return;
-  }
-  Gioco.giocatori = righe.map((riga, i) => {
-    const input = riga.querySelector("input");
-    const nome = input.value.trim() || `Giocatore ${i + 1}`;
-    return { nome, colore: COLORI_GIOCATORI[i], iniziale: inizialeDiNome(nome), soldiRound: 0, soldiTotale: 0, jolly: 0 };
+// ---- VERSIONE, NOVITÀ, MINI GUIDA (Giro A, voci A5/A6) --------------------
+// NOVITA arriva da novita.js, generato da CHANGELOG.md (vedi
+// genera-novita.mjs e pubblica.sh): mai scritto a mano nel gioco.
+(function versioneENovita() {
+  if (typeof NOVITA === "undefined" || !NOVITA.versioni || !NOVITA.versioni.length) return;
+  const ultima = NOVITA.versioni[0];
+  const versioneEl = document.getElementById("versione-gioco");
+  if (versioneEl) versioneEl.textContent = "v " + ultima.versione;
+  const pallino = document.querySelector("#btn-novita .pallino-nuovo");
+  let viste = null;
+  try { viste = window.localStorage.getItem(CHIAVE_NOVITA_VISTE); } catch (e) {}
+  if (pallino) pallino.classList.toggle("acceso", viste !== ultima.versione);
+
+  const elenco = document.getElementById("elenco-novita");
+  NOVITA.versioni.forEach((v) => {
+    const blocco = document.createElement("div");
+    blocco.className = "versione-novita";
+    blocco.innerHTML =
+      `<h3>Versione ${v.versione}${v.titolo ? " · " + v.titolo : ""} <small>${v.data}</small></h3>` +
+      `<ul>${v.voci.map((x) => `<li>${x}</li>`).join("")}</ul>`;
+    elenco.appendChild(blocco);
   });
+  if (NOVITA.inArrivo && NOVITA.inArrivo.length) {
+    const blocco = document.createElement("div");
+    blocco.className = "versione-novita novita-in-arrivo";
+    blocco.innerHTML = `<h3>In arrivo</h3><ul>${NOVITA.inArrivo.map((x) => `<li>${x}</li>`).join("")}</ul>`;
+    elenco.appendChild(blocco);
+  }
+
+  const fin = document.getElementById("finestra-novita");
+  document.getElementById("btn-novita")?.addEventListener("click", () => {
+    fin.classList.remove("nascosta");
+    try { window.localStorage.setItem(CHIAVE_NOVITA_VISTE, ultima.versione); } catch (e) {}
+    if (pallino) pallino.classList.remove("acceso");
+  });
+  document.getElementById("btn-chiudi-novita")?.addEventListener("click", () => fin.classList.add("nascosta"));
+  fin.addEventListener("click", (ev) => { if (ev.target === fin) fin.classList.add("nascosta"); });
+})();
+
+// La mini guida «Come si gioca» — voce = il pezzo vero in piccolo (a
+// sinistra) + nome e riga (a destra). Testi di Penna, da usare cosi` come
+// sono (brief del 29/09/2026). Le voci 7-8 (round lampo, frase premio)
+// arrivano col giro B: stessa impostazione GIRO_B_C_ATTIVO.
+const GUIDA = [
+  { esempio: '<button class="primario">Gira la ruota</button>', nome: "Gira la ruota", testo: "Poi una consonante: prendi la cifra per ogni volta che c’è." },
+  { esempio: "<button>Vocale · 500 €</button>", nome: "Vocale · 500 €", testo: "La paghi con i soldi del round, tutte le volte che vuoi." },
+  { esempio: "<button>Do la soluzione</button>", nome: "Do la soluzione", testo: "Hai 20 secondi. Se è giusta, soldi del round in cassaforte." },
+  { esempio: '<button class="aiutino">Aiutino</button>', nome: "Aiutino", testo: "Se ce l’hai, scopri gratis la casella che vuoi. Una a round." },
+  { esempio: '<span class="tessera-guida">J</span>', nome: "Jolly", testo: "Su Bancarotta o Passa lo giochi: non perdi soldi né turno." },
+  { esempio: '<button class="segmento selezionata" style="border-radius:999px">A squadre</button>', nome: "A squadre", testo: "Due squadre, e dentro la squadra si gioca un turno a testa." },
+  { esempio: '<span class="interruttore"><span class="leva" style="background:var(--accento);border-color:var(--accento)"></span></span>', nome: "Round lampo", testo: "Le lettere escono da sole. La sai? Tocca il tuo nome: 500 €." },
+  { esempio: '<span class="tessera-guida">★</span>', nome: "Frase premio", testo: "Una sola a partita: se la risolvi, vinci una sorpresa." },
+];
+(function guida() {
+  const elenco = document.getElementById("elenco-guida");
+  const voci = GIRO_B_C_ATTIVO ? GUIDA : GUIDA.slice(0, 6);
+  voci.forEach((v) => {
+    const es = document.createElement("div");
+    es.className = "esempio";
+    es.innerHTML = v.esempio;
+    const t = document.createElement("div");
+    t.className = "voce";
+    t.innerHTML = `<b>${v.nome}</b>${v.testo}`;
+    elenco.appendChild(es);
+    elenco.appendChild(t);
+  });
+  const fin = document.getElementById("finestra-guida");
+  document.getElementById("btn-guida")?.addEventListener("click", () => fin.classList.remove("nascosta"));
+  document.getElementById("btn-chiudi-guida")?.addEventListener("click", () => fin.classList.add("nascosta"));
+  fin.addEventListener("click", (ev) => { if (ev.target === fin) fin.classList.add("nascosta"); });
+})();
+
+btnIniziaPartita.addEventListener("click", () => {
+  erroreIscrizioneEl.textContent = "";
+
+  if (Iscrizione.modo === "singoli") {
+    if (Iscrizione.giocatori.length < 1) {
+      erroreIscrizioneEl.textContent = "Serve almeno un giocatore.";
+      return;
+    }
+    Gioco.giocatori = Iscrizione.giocatori.map((g, i) => {
+      const nome = (g.nome || "").trim() || `Giocatore ${i + 1}`;
+      return {
+        nome,
+        colore: COLORI_GIOCATORI[i],
+        iniziale: inizialeDiNome(nome),
+        soldiRound: 0,
+        soldiTotale: 0,
+        jolly: 0,
+        aiutino: !!g.aiutino,
+      };
+    });
+  } else {
+    // A squadre (voce A3 della scheda): i componenti vuoti si ignorano
+    // (minimo 1, massimo MAX_PER_SQUADRA per squadra).
+    const squadreValide = Iscrizione.squadre.map((s, i) => {
+      const componenti = s.componenti
+        .filter((c) => (c.nome || "").trim())
+        .slice(0, MAX_PER_SQUADRA)
+        .map((c) => ({ nome: c.nome.trim(), iniziale: inizialeDiNome(c.nome), aiutino: !!c.aiutino }));
+      return { indice: i, nome: (s.nome || "").trim() || NOMI_SQUADRE_SEGNAPOSTO[i], componenti };
+    });
+    if (squadreValide.some((s) => s.componenti.length < 1)) {
+      erroreIscrizioneEl.textContent = "Ogni squadra ha bisogno di almeno un giocatore.";
+      return;
+    }
+    Gioco.giocatori = squadreValide.map((s) => ({
+      nome: s.nome,
+      colore: COLORI_GIOCATORI[s.indice],
+      iniziale: inizialeDiNome(s.nome),
+      soldiRound: 0,
+      soldiTotale: 0,
+      jolly: 0,
+      componenti: s.componenti,
+      mano: 0,
+    }));
+  }
+
   // Punto 38: quanti round dura questa partita.
   Gioco.numeroRoundTotale = numeroRoundScelto;
   Gioco.numeroRoundCorrente = 1;
@@ -319,6 +615,11 @@ btnIniziaPartita.addEventListener("click", () => {
   // Voce D: una partita nuova non pesca dal mazzo dei gruppi scelti l'ultima
   // volta, che potevano essere diversi.
   Gioco.frasiRimaste = [];
+  // Voce A2/A4: l'aiutino usato si azzera round per round (vedi nuovoRound);
+  // il premio di casa e il round lampo restano quelli scelti stasera.
+  Gioco.aiutinoUsato = [];
+  Gioco.premioCasa = premioCasaEl.value.trim();
+  Gioco.lampoAttivo = GIRO_B_C_ATTIVO && lampoAttivoEl.checked;
   erroreIscrizioneEl.textContent = "";
   iniziaPartita();
 });
@@ -348,6 +649,9 @@ const btnGira = document.getElementById("btn-gira");
 const btnCompraVocale = document.getElementById("btn-compra-vocale");
 btnCompraVocale.textContent = "Vocale · " + euro(COSTO_VOCALE); // voce 3, undicesimo giro: sempre allineato a COSTO_VOCALE
 const btnRisolvi = document.getElementById("btn-risolvi");
+// Giro A, voce A2: l'aiutino — pulsante + pannello "Scegli una casella".
+const btnAiutino = document.getElementById("btn-aiutino");
+const pannelloAiutino = document.getElementById("pannello-aiutino");
 const btnVolume = document.getElementById("btn-volume");
 const pannelloVolume = document.getElementById("pannello-volume");
 const cursoreVolumeMusica = document.getElementById("cursore-volume-musica");
@@ -540,8 +844,32 @@ function giocatoreCorrente() {
   return Gioco.giocatori[Gioco.indiceCorrente];
 }
 
+// A squadre (Giro A, voce A3 della scheda), chi parla adesso non e` la
+// squadra ma il componente che ha la mano — negli annunci "Tocca a" e`
+// il suo nome che i ragazzi devono sentire; il colore resta quello della
+// squadra. In "ognuno per sé" chi parla e` semplicemente il giocatore.
+function chiTocca(g) {
+  if (g.componenti && g.componenti.length) {
+    const c = g.componenti[g.mano % g.componenti.length];
+    return { nome: c.nome, iniziale: c.iniziale, colore: g.colore };
+  }
+  return { nome: g.nome, iniziale: g.iniziale, colore: g.colore };
+}
+
+// A ogni turno che finisce, se la squadra che ha appena giocato ha piu` di
+// un componente, la mano passa al successivo dentro la squadra — cosi` la
+// prossima volta che tocca a questa squadra parla qualcun altro.
+function avanzaManoSquadra(g) {
+  if (g && g.componenti && g.componenti.length) {
+    g.mano = (g.mano + 1) % g.componenti.length;
+  }
+}
+
 function nuovoRound() {
   fermaTimerAutoscoperta();
+  // Giro A, voce A2: l'aiutino si usa al massimo una volta per round.
+  Gioco.aiutinoUsato = Gioco.giocatori.map(() => false);
+  if (tabelloneEl) tabelloneEl.classList.remove("scegli-casella");
   // Ogni round nuovo passa alla musichetta successiva fra le quattro
   // (richiesta di Damiano: "una diversa per ogni round, varia di piu`"),
   // compreso il primo round della partita — vedi Audio_.musicaProssimoRound.
@@ -594,14 +922,14 @@ function nuovoRound() {
   // mezzo. In tutti e due i casi i comandi tornano solo alla fine.
   const attesaToccaA = Gioco.numeroRoundCorrente > 1 ? DURATA_ANNUNCIO_ROUND_MS - 50 : 0;
   setTimeout(() => {
-    const g = giocatoreCorrente();
+    const p = chiTocca(giocatoreCorrente());
     Audio_.toccaA();
     Annuncio.mostra({
-      stile: "tocca" + (g.nome.length > 12 ? " lungo" : ""),
-      lettera: g.iniziale,
-      colore: g.colore,
+      stile: "tocca" + (p.nome.length > 12 ? " lungo" : ""),
+      lettera: p.iniziale,
+      colore: p.colore,
       sopra: "Tocca a",
-      titolo: g.nome,
+      titolo: p.nome,
       durata: DURATA_TOCCA_A_MS,
     });
     setTimeout(() => { Gioco.stato = "idle"; aggiornaComandi(); }, DURATA_TOCCA_A_MS);
@@ -682,6 +1010,21 @@ function disegnaTabellone(animaIngresso = false) {
           // durante la verifica di questo giro: il tabellone risultava
           // completamente vuoto a inizio round). "coperta" non collide.
           cella.className = "cella-tabellone coperta";
+          // Giro A, voce A2: con l'aiutino in corso (Gioco.stato ===
+          // "scegli_casella") una casella ancora coperta si sceglie con un
+          // tocco — respira in CSS (.scegli-casella .coperta).
+          if (Gioco.stato === "scegli_casella") {
+            cella.setAttribute("role", "button");
+            cella.setAttribute("tabindex", "0");
+            cella.setAttribute("aria-label", "Scegli questa casella per l'aiutino");
+            cella.addEventListener("click", () => sceltaCasellaAiutino(idx));
+            cella.addEventListener("keydown", (ev) => {
+              if (ev.key === "Enter" || ev.key === " ") {
+                ev.preventDefault();
+                sceltaCasellaAiutino(idx);
+              }
+            });
+          }
         }
         if (animaIngresso) {
           cella.classList.add("appare");
@@ -774,6 +1117,33 @@ function aggiornaSchedeGiocatori() {
     info.appendChild(nome);
     info.appendChild(soldiRound);
     info.appendChild(soldiTotale);
+
+    // Giro A, voce A3: a squadre, le mini-tessere dei componenti sotto il
+    // nome — quella che ha la mano e` accesa, le altre attenuate.
+    if (g.componenti && g.componenti.length) {
+      const componentiEl = document.createElement("div");
+      componentiEl.className = "componenti-squadra";
+      g.componenti.forEach((c, k) => {
+        const mini = document.createElement("span");
+        mini.className = "mini" + (k === g.mano ? " in-mano" : "");
+        mini.textContent = c.iniziale;
+        mini.title = c.nome;
+        componentiEl.appendChild(mini);
+      });
+      info.appendChild(componentiEl);
+    }
+
+    // Giro A, voce A2: la riga "aiutino" — per un giocatore singolo, sempre
+    // che ce l'abbia; a squadre, solo quando ce l'ha chi ha la mano adesso
+    // ("la riga compare quando ha la mano", scheda otto idee).
+    const haAiutino = g.componenti ? (g.componenti[g.mano] && g.componenti[g.mano].aiutino) : g.aiutino;
+    if (haAiutino) {
+      const segno = document.createElement("div");
+      segno.className = "segno-aiutino" + (Gioco.aiutinoUsato[i] ? " usato" : "");
+      segno.textContent = "aiutino";
+      info.appendChild(segno);
+    }
+
     div.appendChild(iniziale);
     div.appendChild(info);
     div.appendChild(jolly);
@@ -835,9 +1205,10 @@ function aggiornaPannelloClassifica() {
 }
 
 function nascondiTuttiIPannelli() {
-  [pannelloVocali, pannelloConsonanti, pannelloJolly, pannelloSoluzione, pannelloFineRound].forEach((p) =>
+  [pannelloVocali, pannelloConsonanti, pannelloJolly, pannelloSoluzione, pannelloFineRound, pannelloAiutino].forEach((p) =>
     p.classList.add("nascosta")
   );
+  tabelloneEl.classList.remove("scegli-casella");
   fermaTimerSoluzione();
 }
 
@@ -902,7 +1273,39 @@ function aggiornaComandi() {
   const contoPerLaVocale = VOCALE_SI_PAGA_COL_TOTALE ? g.soldiTotale : g.soldiRound;
   btnCompraVocale.disabled = !idle || contoPerLaVocale < COSTO_VOCALE || !vocaliRimaste || vocaliFinite;
   btnRisolvi.disabled = !idle;
+  // Giro A, voce A2: l'aiutino c'e` solo per chi ce l'ha (nelle squadre, il
+  // componente che ha la mano adesso), e si spegne dopo l'uso nel round.
+  const haAiutino = g.componenti ? (g.componenti[g.mano] && g.componenti[g.mano].aiutino) : g.aiutino;
+  const usato = !!Gioco.aiutinoUsato[Gioco.indiceCorrente];
+  btnAiutino.classList.toggle("nascosta", !haAiutino);
+  btnAiutino.disabled = !idle || usato;
   aggiornaAvvisoLettereFinite(consonantiFinite, vocaliFinite);
+}
+
+// L'aiutino, toccato: si sceglie una casella coperta (Giro A, voce A2). Il
+// turno NON passa — resta a chi ha appena scoperto la casella gratis.
+btnAiutino.addEventListener("click", () => {
+  if (Gioco.stato !== "idle" || Gioco.aiutinoUsato[Gioco.indiceCorrente]) return;
+  Gioco.aiutinoUsato[Gioco.indiceCorrente] = true;
+  Gioco.stato = "scegli_casella";
+  nascondiTuttiIPannelli();
+  tabelloneEl.classList.add("scegli-casella");
+  pannelloAiutino.classList.remove("nascosta");
+  disegnaTabellone();
+  aggiornaSchedeGiocatori();
+  aggiornaComandi();
+});
+
+function sceltaCasellaAiutino(idx) {
+  if (Gioco.stato !== "scegli_casella") return;
+  Gioco.posizioniRivelate.add(idx);
+  Audio_.click();
+  tabelloneEl.classList.remove("scegli-casella");
+  pannelloAiutino.classList.add("nascosta");
+  disegnaTabellone();
+  Gioco.stato = "idle";
+  aggiornaComandi();
+  if (fraseCompletamenteRivelata()) vinciRound();
 }
 
 // ---- L'ANNUNCIO (punto 56, undicesimo giro, 28/09/2026, disegno di Chiara) -
@@ -1013,14 +1416,14 @@ function annunciaEPassaTurno(voce) {
   Annuncio.mostra(voce);
   setTimeout(() => {
     passaTurno();
-    const g = giocatoreCorrente();
+    const p = chiTocca(giocatoreCorrente());
     Audio_.toccaA();
     Annuncio.mostra({
-      stile: "tocca" + (g.nome.length > 12 ? " lungo" : ""),
-      lettera: g.iniziale,
-      colore: g.colore,
+      stile: "tocca" + (p.nome.length > 12 ? " lungo" : ""),
+      lettera: p.iniziale,
+      colore: p.colore,
       sopra: "Tocca a",
-      titolo: g.nome,
+      titolo: p.nome,
       durata: DURATA_TOCCA_A_MS,
     });
     setTimeout(() => { Gioco.stato = "idle"; aggiornaComandi(); }, DURATA_TOCCA_A_MS);
@@ -1570,6 +1973,9 @@ function vinciRound() {
   Gioco.giocatori.forEach((giocatore) => {
     giocatore.soldiRound = 0;
   });
+  // Giro A, voce A3: anche il round vinto e` un turno che finisce — la mano
+  // passa al componente successivo della squadra vincitrice.
+  avanzaManoSquadra(g);
 
   Gioco.posizioniRivelate = new Set([...Gioco.fraseCorrente.testo].map((_, i) => i));
   disegnaTabellone();
@@ -1644,6 +2050,16 @@ function mostraSchermataFinale() {
     finaleClassificaEl.appendChild(riga);
   });
 
+  // Giro A, voce A4: il premio di casa, solo se all'iscrizione era stato
+  // scritto qualcosa in "In palio stasera".
+  const premioCasaEl2 = document.getElementById("finale-premio-casa");
+  const premioCasaTestoEl = document.getElementById("finale-premio-testo");
+  if (premioCasaEl2 && premioCasaTestoEl) {
+    const testo = Gioco.premioCasa || "";
+    premioCasaTestoEl.textContent = testo;
+    premioCasaEl2.classList.toggle("nascosta", !testo);
+  }
+
   avviaFuochiFinale();
 }
 
@@ -1685,6 +2101,7 @@ btnGiocaAncora.addEventListener("click", () => {
     g.soldiRound = 0;
     g.soldiTotale = 0;
     g.jolly = 0;
+    if (g.componenti) g.mano = 0;
   });
   Gioco.numeroRoundCorrente = 1;
   Gioco.storicoRound = [];
@@ -1709,6 +2126,9 @@ btnTornaInizio.addEventListener("click", () => {
 // Qui si avanza l'indice e si ridisegna la fila (col balzo sulla tessera
 // nuova, vedi aggiornaSchedeGiocatori).
 function passaTurno() {
+  // Giro A, voce A3: la squadra che ha appena giocato passa la mano al
+  // componente successivo, PRIMA di lasciare il turno alla squadra dopo.
+  avanzaManoSquadra(giocatoreCorrente());
   Gioco.indiceCorrente = (Gioco.indiceCorrente + 1) % Gioco.giocatori.length;
   aggiornaSchedeGiocatori();
 }

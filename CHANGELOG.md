@@ -7,13 +7,21 @@ Versione per versione, la più recente in cima. Si gioca su https://giraleparole
 Idee già scelte ma non ancora costruite. L'ordine non è quello in cui arriveranno, e qualcuna può cambiare strada facendo.
 
 - **Il round lampo.** Le lettere si accendono da sole, una alla volta, e risponde chi prenota per primo. Vale poco, ma decide chi apre il round.
-- **L'aiutino.** All'iscrizione si potrà segnare chi gioca con un aiuto: una vocale gratis a round, oppure una casella regalata.
 - **La frase premio.** Una frase a partita nasconde un premio, per esempio un jolly in più o la cassaforte raddoppiata. Lo si scopre solo risolvendola.
-- **Genitori contro figli.** Una partita a squadre, con due tessere: dentro la squadra si passa la mano a turno.
-- **I premi di casa.** Prima di cominciare si scrive un premio vero, come il film della sera o il dolce in più, e chi vince la partita lo trova nella schermata finale.
 - **L'albo d'oro.** Il gioco si ricorderà partite e record: chi vince più spesso, la vincita più alta, la frase risolta con meno lettere.
 - **Le frasi dei ragazzi.** Una pagina dove scrivere frasi proprie, con la loro categoria. Finiscono nel mazzo di casa, e quando escono il gioco dice chi le ha scritte.
 - **La sfida con un link.** Si scrive una frase e la si manda con un link: chi lo apre la gioca da solo.
+
+## 2.0 — 29 settembre 2026 · Genitori contro figli
+
+- Si gioca anche a squadre: due squadre, fino a tre giocatori per parte. Dentro la squadra si fa un turno per uno, e «Tocca a» chiama chi ha la mano, non la squadra. Sulla tessera della squadra ci sono le iniziali di tutti, e si accende quella di chi tocca adesso. Le squadre lasciate senza nome si chiamano Genitori e Figli.
+- Chi sceglie «Ognuno per sé» gioca come prima, da 1 a 4.
+- L'iscrizione sta su due colonne: a sinistra le tessere di chi gioca, a destra le frasi, i round e il premio della sera. Un giocatore in più si aggiunge toccando il posto vuoto con il «+». I nomi dell'ultima volta restano scritti: se giocano gli stessi, basta toccare «Inizia la partita».
+- Arriva l'aiutino. Ognuno, all'iscrizione, ha la sua levetta: chi la accende trova in partita un pulsante in più. Lo tocca, sceglie una casella coperta, e quella si scopre gratis, senza che il turno passi. Una volta per round.
+- Si può mettere in palio un premio vero, per esempio chi sceglie il film o il dolce in più. Si scrive nella casella «In palio stasera», e a fine partita compare sulla scheda di chi ha vinto, con la scritta «e stasera».
+- «Come si gioca», in alto a destra, spiega il gioco una riga per volta. Accanto a ogni riga c'è il pezzo vero, in piccolo: il pulsante, la tessera del jolly.
+- Il numero di versione adesso si vede, in fondo alla prima schermata: oggi è «v 2.0». Accanto c'è «Novità», che apre questo elenco, con le idee in arrivo in fondo. Finché non avete aperto l'ultima versione, resta acceso un pallino.
+- Nella scheda del browser il gioco si chiama solo «Gira le Parole». Sotto il titolo adesso c'è scritto «Un gioco da fare in famiglia e tra amici, tutti davanti allo stesso schermo».
 
 ## 1.2 — 29 settembre 2026 · Si vede a chi tocca
 

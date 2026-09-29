@@ -1,5 +1,5 @@
 /* ============================================================================
-   GIRA LE PAROLE — stile di casa. Vanilla, niente framework CSS.
+   GIRA LE PAROLE — stile del gioco. Vanilla, niente framework CSS.
    Pensato per reggere da smartphone piccolo (375px) a schermo/TV (1280px+),
    tutto sullo stesso schermo (nessuna vista "a specchio" per altri device).
    ============================================================================ */
@@ -1619,4 +1619,234 @@ h1 {
   .area-comandi button {
     flex: 1 1 100%;
   }
+}
+
+/* ============================================================================
+   GIRO A (29/09/2026, disegno di Chiara — `design/2026-09-29-scheda-otto-
+   idee.md`): l'iscrizione per lo schermo largo, l'aiutino, le squadre, il
+   premio di casa nella finale, la versione/novità, la mini guida. Codice
+   copiato dal prototipo `design/prototipi/2026-09-29-otto-idee/proposta.css`
+   (sezioni 1 e 3), meno tutto quello che riguarda il round lampo e la frase
+   premio (Giro B, non ancora costruito).
+   ============================================================================ */
+
+/* ---------------------------------------------------------------------------
+   1. ISCRIZIONE — a ogni larghezza
+   --------------------------------------------------------------------------- */
+.testata-iscrizione { display: flex; align-items: flex-end; justify-content: space-between; gap: 1rem; }
+.testata-iscrizione h1 { text-align: left; margin: 0; }
+.testata-iscrizione .sottotitolo { text-align: left; margin: 0; }
+.porte-iscrizione { display: flex; gap: 0.6rem; }
+.corpo-iscrizione { display: grid; gap: 1.2rem; margin: 1rem 0; }
+.blocco-chi-gioca h2, .blocco-stasera h2 { font: 700 1.1rem var(--font-titoli); margin: 0 0 0.6rem; color: var(--testo-attenuato); letter-spacing: 0.04em; text-transform: uppercase; }
+.riga-titolo-blocco { display: flex; align-items: center; justify-content: flex-start; gap: 1.4rem; margin-bottom: 0.6rem; }
+.riga-titolo-blocco h2 { margin: 0; }
+
+/* i due segmenti «Ognuno per sé | A squadre»: un solo pezzo, la parte accesa è piena */
+.segmenti { display: inline-flex; background: var(--sfondo-pannello); border: 2px solid var(--bordo); border-radius: 999px; padding: 3px; }
+.segmento { border: none; background: transparent; border-radius: 999px; padding: 0.4rem 1rem; font-weight: 700; color: var(--testo-attenuato); }
+.segmento.selezionata { background: #fff; color: #111; }
+
+/* le tessere dei giocatori: stessa famiglia della scheda in partita */
+.tessere-iscrizione { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 0.8rem; margin: 0; }
+.tessera-iscrizione {
+  position: relative;
+  display: flex; flex-direction: column; align-items: center; gap: 0.5rem;
+  padding: 0.9rem 0.8rem 0.8rem;
+  background: var(--sfondo-pannello);
+  border: 3px solid var(--bordo); border-top-width: 8px; border-top-color: var(--colore-giocatore, var(--bordo));
+  border-radius: 12px;
+}
+.tessera-iscrizione .tessera-iniziale-iscrizione { width: 3.4rem; height: 4.1rem; font-size: 2.3rem; border-radius: 8px; }
+.tessera-iscrizione input[type="text"] {
+  width: 100%; text-align: center;
+  font: 700 1.1rem var(--font-testo);
+  padding: 0.45rem 0.5rem; border-radius: 8px; border: 1px solid var(--bordo);
+  background: #0d1230; color: var(--testo);
+}
+.tessera-iscrizione input[type="text"]::placeholder { color: #6a72a8; font-weight: 400; }
+.tessera-iscrizione .btn-rimuovi { position: absolute; top: 0.15rem; right: 0.3rem; background: transparent; border: none; color: var(--testo-attenuato); font-size: 1rem; padding: 0.2rem 0.4rem; opacity: 0.7; }
+.tessera-iscrizione .btn-rimuovi:hover { opacity: 1; color: #fff; }
+
+/* il posto vuoto: è il pulsante «aggiungi», un tocco */
+.tessera-vuota {
+  display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 0.2rem;
+  min-height: 9rem;
+  border: 3px dashed var(--bordo); border-radius: 12px; background: transparent;
+  color: var(--testo-attenuato); font: 700 1rem var(--font-testo); cursor: pointer;
+}
+.tessera-vuota b { font: 300 2.6rem/1 var(--font-titoli); }
+.tessera-vuota:hover { border-color: var(--accento); color: var(--testo); }
+
+/* l'interruttore dell'aiutino, e quello del lampo: una leva, non una casella */
+.interruttore { display: inline-flex; align-items: center; gap: 0.5rem; cursor: pointer; user-select: none; }
+.interruttore input { position: absolute; opacity: 0; width: 0; height: 0; }
+.interruttore .leva { position: relative; width: 2.3rem; height: 1.3rem; border-radius: 999px; background: #0d1230; border: 2px solid var(--bordo); transition: background-color 140ms ease-out, border-color 140ms ease-out; flex-shrink: 0; }
+.interruttore .leva::after { content: ""; position: absolute; top: 0.1rem; left: 0.1rem; width: 0.85rem; height: 0.85rem; border-radius: 50%; background: var(--testo-attenuato); transition: transform 140ms ease-out, background-color 140ms ease-out; }
+.interruttore input:checked + .leva { background: var(--accento); border-color: var(--accento); }
+.interruttore input:checked + .leva::after { transform: translateX(1rem); background: #1a1a1a; }
+.interruttore input:focus-visible + .leva { outline: 2px solid #fff; outline-offset: 2px; }
+.interruttore .testo-interruttore { font-weight: 700; }
+.interruttore .testo-interruttore small { display: block; font-weight: 400; color: var(--testo-attenuato); font-size: 0.8em; }
+.tessera-iscrizione .interruttore { font-size: 0.9rem; }
+.tessera-iscrizione .interruttore .testo-interruttore { font-weight: 600; color: var(--testo-attenuato); }
+.tessera-iscrizione .interruttore input:checked ~ .testo-interruttore { color: var(--testo); }
+
+/* a squadre: due tessere larghe, dentro i componenti */
+.tessere-iscrizione.squadre { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.tessera-squadra .componenti { width: 100%; display: flex; flex-direction: column; gap: 0.4rem; margin-top: 0.2rem; }
+.tessera-squadra .componente { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 0.5rem; }
+.tessera-squadra .componente .tessera-iniziale-iscrizione { width: 1.7rem; height: 2rem; font-size: 1.05rem; outline-width: 2px; outline-offset: 2px; border-radius: 4px; }
+.tessera-squadra .componente input[type="text"] { text-align: left; font-weight: 600; font-size: 1rem; padding: 0.35rem 0.5rem; }
+.tessera-squadra .componente .interruttore { font-size: 0.85rem; }
+.tessera-squadra .componente .interruttore .testo-interruttore { display: none; }
+.tessera-squadra .componente .interruttore .leva { width: 2rem; height: 1.15rem; }
+.tessera-squadra .componente .interruttore input:checked + .leva::after { transform: translateX(0.8rem); }
+
+/* la colonna «Stasera» */
+.blocco-stasera .scelta-gruppi, .blocco-stasera .scelta-round { text-align: left; margin: 0 0 0.9rem; }
+.blocco-stasera .scelta-gruppi > p:first-child, .blocco-stasera .scelta-round > p { margin: 0 0 0.4rem; font-weight: 700; }
+.blocco-stasera .opzioni-gruppi, .blocco-stasera .opzioni-round { justify-content: flex-start; }
+.blocco-stasera .conta-frasi { text-align: left; }
+.opzione-gruppo.nostre.selezionata { background: #fff; border-color: #fff; }
+.opzione-gruppo small { font-weight: 400; opacity: 0.8; }
+.scelta-extra { display: flex; flex-direction: column; gap: 0.8rem; margin-top: 0.4rem; }
+.campo-premio { display: flex; flex-direction: column; gap: 0.3rem; font-weight: 700; }
+.campo-premio input { font: 1rem var(--font-testo); padding: 0.5rem 0.6rem; border-radius: 8px; border: 1px solid var(--bordo); background: #0d1230; color: var(--testo); }
+.campo-premio input::placeholder { color: #6a72a8; }
+
+button.primario.grande { font-size: 1.25rem; padding: 0.9rem 2.6rem; }
+
+/* il piede: crediti a sinistra, versione + guida + novità a destra */
+.pie-iscrizione { display: flex; justify-content: space-between; align-items: baseline; gap: 1rem; margin-top: 1.4rem; }
+.pie-iscrizione .crediti-musica { margin: 0; text-align: left; }
+.versione-e-novita { margin: 0; font-size: 0.75rem; color: var(--testo-attenuato); opacity: 0.85; display: flex; gap: 0.9rem; align-items: baseline; }
+.versione-e-novita .versione { opacity: 0.8; }
+button.link { background: none; border: none; padding: 0; color: var(--testo-attenuato); font: inherit; text-decoration: underline; text-underline-offset: 0.2em; cursor: pointer; position: relative; }
+button.link:hover { color: #fff; }
+.pallino-nuovo { display: none; width: 0.5em; height: 0.5em; border-radius: 50%; background: var(--accento); margin-right: 0.35em; vertical-align: middle; box-shadow: 0 0 0 2px rgba(243,156,18,0.35); }
+.pallino-nuovo.acceso { display: inline-block; }
+
+/* le finestre (novità, guida): stessa scheda scura della festa, sopra a tutto */
+.finestra { position: fixed; inset: 0; z-index: 60; background: rgba(10, 12, 40, 0.72); display: flex; align-items: center; justify-content: center; padding: 1rem; }
+.scheda-finestra { width: min(100%, 560px); max-height: 90vh; overflow: auto; background: linear-gradient(160deg, #2A3268, #10184a); border: 3px solid var(--bordo); border-radius: 18px; padding: 1.4rem 1.6rem; box-shadow: 0 12px 34px rgba(0,0,0,0.5); }
+.scheda-finestra h2 { font: 800 1.6rem var(--font-titoli); margin: 0 0 0.8rem; }
+.scheda-finestra .primario { margin-top: 1rem; }
+.elenco-novita .versione-novita { margin: 0 0 1rem; }
+.elenco-novita h3 { font: 800 1.1rem var(--font-titoli); margin: 0 0 0.3rem; display: flex; gap: 0.6rem; align-items: baseline; }
+.elenco-novita h3 small { font: 400 0.8rem var(--font-testo); color: var(--testo-attenuato); }
+.elenco-novita ul { margin: 0; padding-left: 1.1rem; }
+.elenco-novita li { margin: 0.2rem 0; }
+.elenco-novita .novita-in-arrivo { margin-top: 1rem; padding-top: 0.8rem; border-top: 1px dashed var(--bordo); }
+.elenco-novita .novita-in-arrivo h3 { color: var(--testo-attenuato); }
+.elenco-novita .novita-in-arrivo li { color: var(--testo-attenuato); }
+.elenco-guida { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 0.7rem 1rem; align-items: center; }
+.elenco-guida .esempio { justify-self: stretch; display: flex; justify-content: center; }
+.elenco-guida .esempio button, .elenco-guida .esempio .tessera-guida { pointer-events: none; font-size: 0.85rem; padding: 0.4rem 0.8rem; }
+.elenco-guida .esempio .tessera-guida { width: 2rem; height: 2.4rem; display: flex; align-items: center; justify-content: center; background: #fff; color: #111; font: 800 1.2rem var(--font-titoli); border-radius: 5px; outline: 2px solid var(--accento); outline-offset: 2px; padding: 0; }
+.elenco-guida .voce b { display: block; }
+.elenco-guida .voce { font-size: 0.95rem; line-height: 1.3; }
+
+/* ---------------------------------------------------------------------------
+   2. IN PARTITA — aiutino, squadre (a ogni larghezza)
+   --------------------------------------------------------------------------- */
+button.aiutino { background: var(--sfondo-pannello); color: #fff; border-color: #fff; font-weight: 700; }
+button.aiutino:disabled { opacity: 0.35; }
+.scheda-giocatore .segno-aiutino { font-size: 0.75rem; color: var(--testo-attenuato); }
+.scheda-giocatore .segno-aiutino.usato { opacity: 0.4; text-decoration: line-through; }
+/* le caselle da scegliere con l'aiutino: le coperte respirano */
+.tabellone-frase.scegli-casella .cella-tabellone.coperta { cursor: pointer; animation: respira-casella 1.1s ease-in-out infinite; }
+@keyframes respira-casella { 50% { box-shadow: 0 0 0 3px #fff, 0 0 14px 3px rgba(255, 194, 51, 0.7); } }
+
+/* premio di casa nella finale: un nastro sotto la cassaforte */
+.premio-casa { margin: 0.8rem -1.4rem -1.4rem; padding: 0.7rem 1rem 0.9rem; background: var(--accento); color: #1a1a1a; border-radius: 0 0 16px 16px; }
+.premio-casa small { display: block; font-weight: 600; opacity: 0.75; font-size: 0.85rem; }
+.premio-casa b { display: block; font: 800 1.5rem/1.1 var(--font-titoli); }
+
+/* a squadre in partita: i componenti sotto il nome, chi ha la mano è acceso */
+.scheda-giocatore .componenti-squadra { display: flex; gap: 0.25rem; }
+.scheda-giocatore .componenti-squadra .mini { width: 1.3rem; height: 1.6rem; border-radius: 3px; background: #fff; color: #111; font: 800 0.9rem/1.6rem var(--font-titoli); text-align: center; opacity: 0.45; }
+.scheda-giocatore .componenti-squadra .mini.in-mano { opacity: 1; outline: 2px solid #fff; outline-offset: 1px; }
+
+/* ---------------------------------------------------------------------------
+   3. DA 1200px IN SU — l'iscrizione riempie lo schermo 16:9, niente scorrimento
+   --------------------------------------------------------------------------- */
+@media (min-width: 1200px) {
+  #schermata-iscrizione.iscrizione-larga {
+    max-width: none; height: 100vh; padding: 3vh 4vw 2vh;
+    display: flex; flex-direction: column; gap: 0;
+  }
+  .testata-iscrizione { flex: 0 0 auto; }
+  .testata-iscrizione h1 { font-size: 6.4vh; line-height: 1; }
+  .testata-iscrizione .sottotitolo { font-size: 1.9vh; margin-top: 0.6vh; max-width: 60vw; line-height: 1.3; }
+  .porte-iscrizione { gap: 1.2vh; }
+  .porte-iscrizione button { font-size: 2.2vh; padding: 1.1vh 2.4vh; border-radius: 1.2vh; border-width: 0.25vh; }
+
+  .corpo-iscrizione { flex: 1 1 auto; min-height: 0; grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr); column-gap: 4vw; margin: 2vh 0 0; align-content: center; align-items: start; }
+  .blocco-chi-gioca h2, .blocco-stasera h2 { font-size: 2vh; margin-bottom: 1.4vh; }
+  .riga-titolo-blocco { margin-bottom: 1.8vh; gap: 3vh; }
+  .segmenti { padding: 0.4vh; border-width: 0.25vh; }
+  .segmento { font-size: 2vh; padding: 0.8vh 2.2vh; }
+
+  .tessere-iscrizione { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1.6vh; }
+  .tessera-iscrizione { padding: 3vh 1.6vh 2.4vh; gap: 1.8vh; border-radius: 1.8vh; border-width: 0.3vh; border-top-width: 1.1vh; }
+  .tessera-iscrizione .tessera-iniziale-iscrizione { width: 11vh; height: 13.2vh; font-size: 7.4vh; border-radius: 1.3vh; outline-width: 0.45vh; outline-offset: 0.45vh; }
+  .tessera-iscrizione input[type="text"] { font-size: 2.6vh; padding: 1.1vh 1vh; border-radius: 1vh; }
+  .tessera-iscrizione .btn-rimuovi { top: 0.4vh; right: 0.8vh; font-size: 2vh; }
+  .tessera-vuota { min-height: 0; align-self: stretch; border-width: 0.3vh; border-radius: 1.8vh; font-size: 2.2vh; }
+  .tessera-vuota b { font-size: 6vh; }
+  .interruttore { gap: 1vh; }
+  .interruttore .leva { width: 5vh; height: 2.8vh; border-width: 0.25vh; }
+  .interruttore .leva::after { top: 0.2vh; left: 0.2vh; width: 1.9vh; height: 1.9vh; }
+  .interruttore input:checked + .leva::after { transform: translateX(2.2vh); }
+  .tessera-iscrizione .interruttore { font-size: 2vh; }
+  .interruttore .testo-interruttore { font-size: 2.2vh; }
+
+  .tessere-iscrizione.squadre { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 2.4vh; }
+  .tessera-squadra .componenti { gap: 1vh; margin-top: 0.6vh; }
+  .tessera-squadra .componente { gap: 1vh; }
+  .tessera-squadra .componente .tessera-iniziale-iscrizione { width: 4vh; height: 4.8vh; font-size: 2.6vh; outline-width: 0.25vh; outline-offset: 0.25vh; border-radius: 0.5vh; }
+  .tessera-squadra .componente input[type="text"] { font-size: 2.1vh; padding: 0.7vh 1vh; }
+  .tessera-squadra .componente .interruttore .leva { width: 4.2vh; height: 2.4vh; }
+  .tessera-squadra .componente .interruttore .leva::after { width: 1.6vh; height: 1.6vh; }
+  .tessera-squadra .componente .interruttore input:checked + .leva::after { transform: translateX(1.8vh); }
+
+  .blocco-stasera .scelta-gruppi, .blocco-stasera .scelta-round { margin-bottom: 2.4vh; }
+  .blocco-stasera .scelta-gruppi > p:first-child, .blocco-stasera .scelta-round > p { font-size: 2.2vh; margin-bottom: 0.9vh; }
+  .blocco-stasera .opzioni-gruppi { gap: 1vh; }
+  .blocco-stasera .opzione-gruppo { font-size: 2vh; padding: 1vh 1.8vh; min-width: 0; border-radius: 1.1vh; gap: 0.8vh; }
+  .blocco-stasera .opzione-gruppo::before { width: 2vh; height: 2vh; font-size: 1.4vh; border-radius: 0.4vh; }
+  .blocco-stasera .conta-frasi { font-size: 1.8vh; margin-top: 0.7vh; }
+  .blocco-stasera .opzioni-round { gap: 1vh; }
+  .blocco-stasera .opzione-round { font-size: 2vh; padding: 1vh 2.2vh; border-radius: 1.1vh; }
+  .scelta-extra { gap: 2vh; margin-top: 0.4vh; }
+  .campo-premio { gap: 0.7vh; font-size: 2.2vh; }
+  .campo-premio input { font-size: 2.1vh; padding: 1vh 1.2vh; border-radius: 1vh; max-width: 46vh; }
+
+  .azioni-iscrizione { flex: 0 0 auto; margin: 2vh 0 0; }
+  button.primario.grande { font-size: 3.2vh; padding: 1.8vh 7vh; border-radius: 1.6vh; box-shadow: 0 0.8vh 2.4vh rgba(243, 156, 18, 0.35); }
+  #errore-iscrizione:empty { display: none; }
+  .pie-iscrizione { margin-top: auto; padding-top: 1.6vh; }
+  .pie-iscrizione .crediti-musica, .versione-e-novita { font-size: 1.6vh; }
+  .versione-e-novita { gap: 2vh; }
+
+  .scheda-finestra { width: min(100%, 72vh); padding: 3vh 3.4vh; border-radius: 2.2vh; }
+  .scheda-finestra h2 { font-size: 4vh; }
+  .scheda-finestra .primario { font-size: 2.4vh; padding: 1.2vh 3vh; }
+  .elenco-novita h3 { font-size: 2.6vh; }
+  .elenco-novita h3 small { font-size: 1.8vh; }
+  .elenco-novita li, .elenco-guida .voce { font-size: 2.2vh; }
+  .scheda-finestra.guida { width: min(100%, 150vh); }
+  .elenco-guida { grid-template-columns: auto minmax(0, 1fr) auto minmax(0, 1fr); gap: 2vh 2.2vh; }
+  .elenco-guida .voce { font-size: 2.1vh; }
+  .elenco-guida .esempio button { font-size: 1.9vh; padding: 0.8vh 1.6vh; }
+  .elenco-guida .esempio .tessera-guida { width: 4vh; height: 4.8vh; font-size: 2.6vh; }
+
+  /* in partita */
+  .scheda-giocatore .segno-aiutino { grid-column: 1 / -1; font-size: 1.6vh; }
+  .scheda-giocatore .componenti-squadra { grid-column: 2; grid-row: 2; gap: 0.5vh; }
+  .scheda-giocatore .componenti-squadra .mini { width: 2.6vh; height: 3.2vh; font-size: 1.8vh; line-height: 3.2vh; border-radius: 0.4vh; }
+  .premio-casa { margin: 2vh -3vh -3vh; padding: 1.4vh 2vh 1.8vh; border-radius: 0 0 2vh 2vh; }
+  .premio-casa small { font-size: 2vh; }
+  .premio-casa b { font-size: 3.6vh; }
 }

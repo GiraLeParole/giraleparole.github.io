@@ -1,5 +1,5 @@
 // ============================================================================
-// CONFIGURAZIONE DEL GIOCO — GIRA LE PAROLE (versione di casa)
+// CONFIGURAZIONE DEL GIOCO — GIRA LE PAROLE
 // Tutto quello che Damiano vuole poter ritoccare giocando sta qui, in un solo
 // punto. Non serve capire il resto del codice per cambiare questi numeri.
 // ============================================================================
@@ -339,6 +339,28 @@ const GRUPPI_FRASI = [
   { valore: "esperti", nome: "Esperti" },
 ];
 const GRUPPI_DI_DEFAULT = ["famiglia"];
+
+// ----------------------------------------------------------------------------
+// L'ISCRIZIONE PER LO SCHERMO LARGO (Giro A, 29/09/2026, disegno di Chiara —
+// `design/2026-09-29-scheda-otto-idee.md`, voce A1) — tessere dei giocatori,
+// ognuno per sé o a squadre, posto vuoto che aggiunge un giocatore, i nomi
+// dell'ultima sera ricordati.
+// ----------------------------------------------------------------------------
+const MAX_GIOCATORI = 4;
+const MAX_PER_SQUADRA = 3;
+const NOMI_SQUADRE_SEGNAPOSTO = ["Genitori", "Figli"]; // se il nome resta vuoto, si usa questo
+const CHIAVE_ULTIMA_ISCRIZIONE = "giraleparole-ultima-iscrizione";
+const CHIAVE_NOVITA_VISTE = "giraleparole-novita-viste";
+const CHIAVE_FRASI_NOSTRE = "giraleparole-frasi-nostre"; // scritta dalla pagina "Le nostre frasi" (giro C, non ancora costruita)
+
+// ----------------------------------------------------------------------------
+// GIRO B E GIRO C — non ancora costruiti (round lampo, frase premio, albo
+// d'oro, le nostre frasi, sfida): un solo interruttore nasconde tutto quello
+// che li riguarda nell'iscrizione e nella mini guida — «Come si gioca» mostra
+// solo le prime 6 voci finché resta false. Giovedì, quando si costruiscono,
+// basta girare questo a true.
+// ----------------------------------------------------------------------------
+const GIRO_B_C_ATTIVO = false;
 
 // ----------------------------------------------------------------------------
 // FISICA DELLA RUOTA — "gira come una ruota vera", non a scatto

@@ -9,38 +9,119 @@
 </head>
 <body>
 
-  <!-- SCHERMATA 1: iscrizione giocatori -->
-  <section id="schermata-iscrizione" class="schermata">
-    <h1>Gira le Parole</h1>
-    <p class="sottotitolo">Un gioco da fare in famiglia e tra amici, tutti davanti allo stesso schermo</p>
+  <!-- SCHERMATA 1: iscrizione giocatori — Giro A (29/09/2026, disegno di
+       Chiara, `design/2026-09-29-scheda-otto-idee.md`, voce A1): rifatta per
+       lo schermo largo, due colonne — "Chi gioca" a sinistra, "Stasera" a
+       destra. Sotto i 1200px (non piu` il riferimento) resta leggibile in
+       colonna, "basta che non si rompa" (vedi style.css). -->
+  <section id="schermata-iscrizione" class="schermata iscrizione-larga">
+    <header class="testata-iscrizione">
+      <div class="titolo-iscrizione">
+        <h1>Gira le Parole</h1>
+        <p class="sottotitolo">Un gioco da fare in famiglia e tra amici, tutti davanti allo stesso schermo</p>
+      </div>
+      <!-- Le porte del giro C (Albo d'oro, Le nostre frasi) restano nascoste
+           finche` GIRO_B_C_ATTIVO (config.js) non passa a true: gioco.js le
+           spegne all'avvio. -->
+      <nav class="porte-iscrizione" aria-label="Altre pagine">
+        <button id="btn-albo" type="button" class="secondario">Albo d'oro</button>
+        <button id="btn-frasi-nostre" type="button" class="secondario">Le nostre frasi</button>
+        <button id="btn-guida" type="button" class="secondario">Come si gioca</button>
+      </nav>
+    </header>
 
-    <div id="lista-giocatori" class="lista-giocatori"></div>
+    <div class="corpo-iscrizione">
+      <!-- colonna sinistra: chi gioca -->
+      <section class="blocco-chi-gioca" aria-label="Chi gioca">
+        <div class="riga-titolo-blocco">
+          <h2>Chi gioca</h2>
+          <div class="segmenti" id="modo-gioco" role="radiogroup" aria-label="Da soli o a squadre">
+            <button type="button" class="segmento selezionata" data-modo="singoli" role="radio" aria-checked="true">Ognuno per sé</button>
+            <button type="button" class="segmento" data-modo="squadre" role="radio" aria-checked="false">A squadre</button>
+          </div>
+        </div>
+        <!-- gioco.js costruisce Gioco.giocatori da Iscrizione (stato in
+             memoria), MAI leggendo i figli di questo contenitore: il posto
+             vuoto vive qui dentro ma non e` un giocatore (difetto trovato da
+             Chiara, corretto in questo giro). -->
+        <div id="lista-giocatori" class="lista-giocatori tessere-iscrizione"></div>
+        <!-- Il vecchio pulsante resta nel DOM (nascosto) solo perche` non
+             costa nulla tenerlo: il posto vuoto con il "+" lo sostituisce. -->
+        <button id="btn-aggiungi-giocatore" type="button" class="nascosta" aria-hidden="true">+ Aggiungi giocatore</button>
+      </section>
 
-    <!-- Voce D, tredicesimo giro (29/09/2026, punto 64): con che frasi si
-         gioca stasera — costruita da gioco.js a partire da GRUPPI_FRASI
-         (config.js). -->
-    <div class="scelta-gruppi">
-      <p>Quali frasi?</p>
-      <div class="opzioni-gruppi" id="opzioni-gruppi" role="group" aria-label="Quali frasi"></div>
-      <p class="conta-frasi" id="conta-frasi" aria-live="polite"></p>
-    </div>
+      <!-- colonna destra: come si gioca stasera -->
+      <section class="blocco-stasera" aria-label="Stasera">
+        <h2>Stasera</h2>
 
-    <!-- Punto 38 (28/09/2026, seconda dettatura): quanti round giocare —
-         costruito da gioco.js a partire da OPZIONI_NUMERO_ROUND (config.js). -->
-    <div class="scelta-round">
-      <p>Quanti round?</p>
-      <div class="opzioni-round" id="opzioni-round"></div>
+        <!-- Voce D, tredicesimo giro (29/09/2026, punto 64): con che frasi si
+             gioca stasera — costruita da gioco.js a partire da GRUPPI_FRASI
+             (config.js). -->
+        <div class="scelta-gruppi">
+          <p>Quali frasi?</p>
+          <div class="opzioni-gruppi" id="opzioni-gruppi" role="group" aria-label="Quali frasi"></div>
+          <p class="conta-frasi" id="conta-frasi" aria-live="polite"></p>
+        </div>
+
+        <!-- Punto 38 (28/09/2026, seconda dettatura): quanti round giocare —
+             costruito da gioco.js a partire da OPZIONI_NUMERO_ROUND (config.js). -->
+        <div class="scelta-round">
+          <p>Quanti round?</p>
+          <div class="opzioni-round" id="opzioni-round"></div>
+        </div>
+
+        <div class="scelta-extra">
+          <!-- Round lampo: giro B, non ancora costruito — gioco.js nasconde
+               questa riga finche` GIRO_B_C_ATTIVO resta false. -->
+          <label class="interruttore" id="riga-lampo" for="lampo-attivo">
+            <input type="checkbox" id="lampo-attivo" />
+            <span class="leva" aria-hidden="true"></span>
+            <span class="testo-interruttore">Round lampo <small>fra un round e l'altro</small></span>
+          </label>
+          <label class="campo-premio">
+            <span>In palio stasera</span>
+            <input id="premio-casa" type="text" maxlength="40" placeholder="per esempio: sceglie il film" />
+          </label>
+        </div>
+      </section>
     </div>
 
     <div class="azioni-iscrizione">
-      <button id="btn-aggiungi-giocatore" type="button">+ Aggiungi giocatore</button>
-      <button id="btn-inizia-partita" type="button" class="primario">Inizia la partita</button>
+      <button id="btn-inizia-partita" type="button" class="primario grande">Inizia la partita</button>
     </div>
     <p id="errore-iscrizione" class="messaggio-errore" role="alert" aria-live="polite"></p>
 
-    <!-- Settimo giro, secondo compito: crediti dei brani veri, discreti. -->
-    <p class="crediti-musica">Musiche: Kevin MacLeod, incompetech.com, CC BY 4.0</p>
+    <footer class="pie-iscrizione">
+      <!-- Settimo giro, secondo compito: crediti dei brani veri, discreti. -->
+      <p class="crediti-musica">Musiche: Kevin MacLeod, incompetech.com, CC BY 4.0</p>
+      <p class="versione-e-novita">
+        <span class="versione" id="versione-gioco"></span>
+        <button id="btn-novita" type="button" class="link"><span class="pallino-nuovo" aria-hidden="true"></span>Novità</button>
+      </p>
+    </footer>
   </section>
+
+  <!-- La finestra delle novità: si apre da «Novità», la versione più recente
+       in cima. Il contenuto (NOVITA) arriva da novita.js, generato da
+       CHANGELOG.md (vedi genera-novita.mjs, pubblica.sh). -->
+  <div id="finestra-novita" class="finestra nascosta" role="dialog" aria-modal="true" aria-labelledby="titolo-novita">
+    <div class="scheda-finestra">
+      <h2 id="titolo-novita">Novità</h2>
+      <div id="elenco-novita" class="elenco-novita"></div>
+      <button id="btn-chiudi-novita" type="button" class="primario">Chiudi</button>
+    </div>
+  </div>
+
+  <!-- La mini guida «Come si gioca»: al massimo 8 voci, le prime 6 sempre
+       visibili — la 7 e la 8 (round lampo, frase premio) si accendono con
+       GIRO_B_C_ATTIVO (config.js). -->
+  <div id="finestra-guida" class="finestra nascosta" role="dialog" aria-modal="true" aria-labelledby="titolo-guida">
+    <div class="scheda-finestra guida">
+      <h2 id="titolo-guida">Come si gioca</h2>
+      <div id="elenco-guida" class="elenco-guida"></div>
+      <button id="btn-chiudi-guida" type="button" class="primario">Chiudi</button>
+    </div>
+  </div>
 
   <!-- SCHERMATA 2: partita -->
   <section id="schermata-gioco" class="schermata nascosta">
@@ -124,6 +205,9 @@
           <button id="btn-gira" type="button" class="primario">Gira la ruota</button>
           <button id="btn-compra-vocale" type="button">Vocale · 500 €</button>
           <button id="btn-risolvi" type="button">Do la soluzione</button>
+          <!-- L'aiutino (Giro A, voce A2): c'e` solo per chi ce l'ha, si
+               spegne dopo l'uso nel round (vedi Gioco.aiutinoUsato in gioco.js). -->
+          <button id="btn-aiutino" type="button" class="aiutino nascosta">Aiutino</button>
         </div>
 
         <div id="pannello-vocali" class="pannello-scelta nascosta">
@@ -141,6 +225,12 @@
           <p id="testo-jolly-domanda"></p>
           <button id="btn-jolly-si" type="button" class="primario">Sì, mi salvo</button>
           <button id="btn-jolly-no" type="button" class="secondario">No, va così</button>
+        </div>
+
+        <!-- L'aiutino, toccato: si sceglie una casella coperta sul tabellone
+             (che respira, vedi style.css), il turno continua. -->
+        <div id="pannello-aiutino" class="pannello-scelta nascosta">
+          <p>Scegli una casella</p>
         </div>
 
         <div id="pannello-soluzione" class="pannello-scelta nascosta">
@@ -198,6 +288,9 @@
       <div class="festa-testo">ha vinto la partita!</div>
       <div class="festa-cifra-wrap"><span id="finale-vincitore-cifra">0</span><span class="festa-euro"> €</span></div>
       <div class="festa-cassaforte">in cassaforte</div>
+      <!-- Il premio di casa (Giro A, voce A4): solo se all'iscrizione era
+           scritto qualcosa in "In palio stasera" (vedi Gioco.premioCasa). -->
+      <div id="finale-premio-casa" class="premio-casa nascosta"><small>e stasera</small><b id="finale-premio-testo"></b></div>
     </div>
     <p class="titolo-classifica">Classifica finale</p>
     <div id="finale-classifica" class="finale-classifica"></div>
@@ -214,6 +307,9 @@
        i due file dichiarano lo stesso `const FRASI`, quindi va caricato uno
        solo, mai insieme. -->
   <script src="frasi-nostre.js"></script>
+  <!-- Le novità e la versione (Giro A, voce A5): generato da CHANGELOG.md,
+       vedi genera-novita.mjs e pubblica.sh — non si scrive a mano. -->
+  <script src="novita.js"></script>
   <script src="audio.js"></script>
   <script src="ruota.js"></script>
   <script src="gioco.js"></script>

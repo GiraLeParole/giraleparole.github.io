@@ -1,0 +1,1562 @@
+/* ============================================================================
+   LA RUOTA DELLA FORTUNA — stile di casa. Vanilla, niente framework CSS.
+   Pensato per reggere da smartphone piccolo (375px) a schermo/TV (1280px+),
+   tutto sullo stesso schermo (nessuna vista "a specchio" per altri device).
+   ============================================================================ */
+
+/* Terzo giro (28/09/2026), punto 18: "colori meno scuri" — sfondo, pannelli
+   e bordo schiariti rispetto al blu-nero quasi illeggibile di prima. Restano
+   scuri quel poco che serve a far risaltare i colori sopra (e` un gioco da
+   guardare come una TV, non una pagina da leggere a lungo).
+   Quinto giro, punto 23: ancora "troppo scuro" — lo sfondo era un blu
+   notte (#1C2350). Ora e` un gradiente viola-blu decisamente piu` chiaro e
+   piu` vivo (luminosita` relativa calcolata circa 4 volte quella di prima),
+   ma resta abbastanza scuro perche` il testo bianco (--testo) ci si legga
+   sopra senza cambiare colore ovunque (contrasto verificato, oltre 5:1 nel
+   punto piu` chiaro del gradiente). I pannelli scuri (tabellone, schede
+   giocatore, pulsanti) restano com'erano: su uno sfondo piu` chiaro
+   risaltano ancora di piu`, non di meno. */
+/* Nono giro, punto 47 (28/09/2026): caratteri gia` installati sul computer
+   di Damiano (Linux Mint) — nessun download, il gioco resta offline.
+   - "Ubuntu" (Canonical, Ubuntu Font Licence 1.0, variable font — pesi da
+     Thin a Bold gia` presenti in un solo file) per titoli, la fascia della
+     categoria, la cifra delle feste e le LETTERE DEL TABELLONE: e` un
+     carattere geometrico e arrotondato, allegro senza essere infantile, e a
+     peso alto (700-800) resta leggibile a un paio di metri, come chiesto.
+   - "Lato" (Łukasz Dziedzic, licenza SIL Open Font License, gia` installato)
+     per il testo normale (sottotitoli, nomi/soldi dei giocatori, pulsanti,
+     pannelli): umanistico, molto leggibile anche a corpo piccolo, non
+     compete visivamente con le lettere del tabellone.
+   Entrambi hanno un fallback di sistema dopo, cosi` se un giorno il gioco
+   girasse su un computer senza questi due font non si romperebbe nulla. */
+:root {
+  --font-titoli: "Ubuntu", "Liberation Sans", Arial, sans-serif;
+  --font-testo: "Lato", "Noto Sans", "DejaVu Sans", Arial, sans-serif;
+
+  --sfondo: #5B3E96;
+  --sfondo-2: #2E6F9E;
+  --sfondo-pannello: #2A3268;
+  --bordo: #454F9C;
+  --testo: #f5f6fb;
+  --testo-attenuato: #c7cdf0;
+  --accento: #F39C12;
+  --verde: #2ECC71;
+  --rosso: #FF6B5B;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: linear-gradient(160deg, var(--sfondo), var(--sfondo-2));
+  background-attachment: fixed;
+  color: var(--testo);
+  font-family: var(--font-testo);
+  min-height: 100vh;
+}
+
+h1, .categoria, .cella-tabellone, .festa-cifra-wrap,
+button.primario {
+  font-family: var(--font-titoli);
+}
+
+.nascosta {
+  display: none !important;
+}
+
+button {
+  font-family: inherit;
+  font-size: 1rem;
+  padding: 0.7rem 1.2rem;
+  border-radius: 10px;
+  border: 2px solid var(--bordo);
+  background: var(--sfondo-pannello);
+  color: var(--testo);
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+button:hover:not(:disabled) {
+  border-color: var(--accento);
+}
+
+button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+button.primario {
+  background: var(--accento);
+  color: #1a1a1a;
+  border-color: var(--accento);
+  font-weight: 700;
+}
+
+button.secondario {
+  background: transparent;
+}
+
+/* ---------------------------------------------------------------------------
+   Schermata di iscrizione
+   --------------------------------------------------------------------------- */
+
+.schermata {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 1.2rem;
+}
+
+h1 {
+  text-align: center;
+  font-size: clamp(1.6rem, 5vw, 2.4rem);
+  margin-bottom: 0.2rem;
+}
+
+.sottotitolo {
+  text-align: center;
+  color: var(--testo-attenuato);
+  margin-top: 0;
+}
+
+/* Settimo giro, secondo compito: crediti dei brani mp3, piccoli e discreti
+   — non devono competere con nulla nella schermata di iscrizione. */
+.crediti-musica {
+  text-align: center;
+  color: var(--testo-attenuato);
+  font-size: 0.75rem;
+  opacity: 0.7;
+  margin-top: 2rem;
+}
+
+.lista-giocatori {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  margin: 1.5rem 0;
+}
+
+.riga-giocatore {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  background: var(--sfondo-pannello);
+  border: 2px solid var(--bordo);
+  border-radius: 10px;
+  padding: 0.6rem 0.8rem;
+}
+
+/* Undicesimo giro, punto 58, strada B (28/09/2026, scelta di Damiano: "la
+   tessera con l'iniziale, moooolto carina"): non piu` un pallino colorato ne`
+   un bottone che apre una scelta — la tessera bianca con la prima lettera
+   del nome (aggiornata mentre si scrive, vedi l'ascoltatore su input in
+   gioco.js) e l'anello del colore del giocatore la` dove prima c'era il
+   pallino. Niente da cliccare: e` un elemento generato dal nome. */
+.riga-giocatore .tessera-iniziale-iscrizione {
+  width: 2rem;
+  height: 2.4rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  background: #fff;
+  color: #111;
+  font: 800 1.3rem var(--font-titoli);
+  outline: 3px solid var(--bordo);
+  outline-offset: 3px;
+  flex-shrink: 0;
+}
+
+.riga-giocatore input[type="text"] {
+  flex: 1;
+  font-size: 1.05rem;
+  padding: 0.5rem 0.6rem;
+  border-radius: 8px;
+  border: 1px solid var(--bordo);
+  background: #0d1230;
+  color: var(--testo);
+}
+
+.riga-giocatore .btn-rimuovi {
+  background: transparent;
+  border: none;
+  color: var(--testo-attenuato);
+  font-size: 1.3rem;
+  padding: 0.2rem 0.5rem;
+}
+
+/* Undicesimo giro (28/09/2026): il pannello di scelta del disegnino e il suo
+   bottone rotondo (Sesto giro, punto 27) non esistono piu` — strada B,
+   niente da scegliere, vedi .tessera-iniziale-iscrizione qui sopra. */
+
+.azioni-iscrizione {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.8rem;
+  justify-content: center;
+}
+
+.messaggio-errore {
+  color: var(--rosso);
+  text-align: center;
+  min-height: 1.4em;
+  font-weight: 600;
+}
+
+/* ---------------------------------------------------------------------------
+   Schermata di gioco
+   --------------------------------------------------------------------------- */
+
+#schermata-gioco {
+  max-width: 1100px;
+}
+
+/* Nono giro, punto 43 (28/09/2026): "un gioco da PC su schermo largo — metti
+   su uno schermo un po` grande e fai tutto da li`". Da 1200px in su
+   (comodamente sotto sia 1366 sia 1920, i due schermi da verificare) il
+   contenitore smette di restare stretto — il blocco decimo giro IN FONDO A
+   QUESTO FILE (dopo la media query mobile a 900px) fa il resto: deve stare
+   li` e non qui, perche` in CSS a parita` di specificita` vince l'ULTIMA
+   regola nell'ordine del file, non quella "logicamente" piu` specifica — se
+   stesse qui, le regole base di .area-partita/.colonna-ruota piu` sotto in
+   questo file lo sovrascriverebbero silenziosamente (bug trovato in verifica,
+   28/09/2026: la griglia a tre colonne non si attivava affatto a 1366px). */
+
+.intestazione-gioco {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.pulsanti-audio {
+  display: flex;
+  gap: 0.5rem;
+  flex: 0 0 auto;
+  position: relative; /* ancora il pannello-volume qui sotto */
+}
+
+/* Punto 36 (28/09/2026): pannello dei due cursori, aperto dal pulsante
+   altoparlanti — piccolo, semplice, comodo da toccare per un bambino. */
+.pannello-volume {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  left: 0;
+  z-index: 5;
+  background: var(--sfondo-pannello);
+  border: 2px solid var(--bordo);
+  border-radius: 12px;
+  padding: 0.8rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  min-width: 220px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35);
+}
+
+.riga-volume {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  font-weight: 700;
+}
+
+.riga-volume span {
+  flex: 0 0 4.2rem;
+}
+
+.riga-volume input[type="range"] {
+  flex: 1;
+  height: 1.6rem;
+  cursor: pointer;
+}
+
+
+/* Bilancia visivamente i due pulsanti audio a sinistra, cosi` la categoria
+   (che deve essere il pezzo forte dell'intestazione, punto 13) resta
+   centrata invece di essere spinta a destra. */
+.spaziatore-intestazione {
+  flex: 0 0 auto;
+  width: 5.4rem;
+}
+
+/* Terzo giro, punto 13: "sembra un titoletto in alto a sinistra" — ora e`
+   un cartello colorato al centro dell'intestazione, come la fascia della
+   categoria in un programma TV. */
+.categoria {
+  flex: 1 1 auto;
+  text-align: center;
+  font-size: clamp(1.05rem, 3.6vw, 1.5rem);
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #1a1a1a;
+  background: linear-gradient(180deg, #ffd76a, var(--accento));
+  border-radius: 999px;
+  padding: 0.5rem 1.2rem;
+  box-shadow: 0 3px 0 rgba(0, 0, 0, 0.25);
+}
+
+.btn-muto {
+  font-size: 1.2rem;
+  padding: 0.4rem 0.6rem;
+  border-radius: 50%;
+}
+
+/* Terzo giro, punto 12: "tabellone grande e presente, come in televisione,
+   bello, colorato" — prima era piccolo, sfondo quasi nero, tono dimesso.
+   Ora e` un pannello grande con cornice dorata e sfondo a gradiente.
+   Nono giro, punto 45 (28/09/2026): "sempre rettangolare, grande, sempre
+   uguale, fatto di una griglia di rettangolini" — il tabellone non e` piu`
+   un flex che si allarga o restringe secondo la frase (vecchio
+   `.parola-frase`/`.lettera-frase`, rimossi con questo giro): e` una griglia
+   FISSA di RIGHE_TABELLONE.length righe, ognuna sempre larga
+   LARGHEZZA_FISICA_TABELLONE caselle (config.js + gioco.js), qualunque sia
+   la frase. Il max-width e` cresciuto rispetto al quarto giro (640px):
+   schermo largo, tabellone piu` grande e presente. */
+.tabellone-frase {
+  width: 100%;
+  max-width: 760px;
+  margin: 1rem auto 1.3rem;
+  background: linear-gradient(160deg, #10184a, #24306e);
+  border: 5px solid var(--accento);
+  border-radius: 16px;
+  padding: 1rem 0.8rem;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35), inset 0 0 26px rgba(255, 255, 255, 0.05);
+  display: flex;
+  flex-direction: column;
+  gap: clamp(0.25rem, 1vw, 0.5rem);
+}
+
+.riga-tabellone {
+  display: flex;
+  justify-content: center;
+  gap: clamp(0.12rem, 0.4vw, 0.3rem);
+}
+
+.cella-tabellone {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: clamp(0.85rem, 2.6vw, 2.5rem);
+  aspect-ratio: 0.8;
+  font-size: clamp(0.65rem, 2vw, 1.5rem);
+  font-weight: 800;
+  border-radius: 5px;
+  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.3);
+}
+
+/* Le caselle "vuota" sono i margini che centrano una riga piu` corta
+   dentro la larghezza fissa del tabellone, e lo spazio fra due parole —
+   "restano spente" (punto 45): nessuno sfondo, nessun bordo, nessuna
+   animazione, mai cliccabili. */
+.cella-tabellone.vuota {
+  background: transparent;
+  box-shadow: none;
+}
+
+/* Quinto giro, punto 24: "caselle come in televisione" — coperte bianche
+   vuote, accese gialle/arancioni (gia` cosi`, resta invariato: e` var(--accento)
+   con la pulsazione, vedi .accesa sotto), scoperte bianche con la lettera
+   nera. Prima "rivelata" era arancione col testo scuro: la stessa identica
+   coppia di colori dello stato "accesa", che quindi non si distinguevano fra
+   loro se non per la pulsazione. Ora coperta e scoperta sono bianche (si
+   riconoscono perche` una e` vuota e l'altra ha la lettera), e la sola
+   accesa resta colorata: e` esattamente il codice colore della ruota in TV. */
+.cella-tabellone.rivelata {
+  background: #ffffff;
+  color: #1a1a1a;
+}
+
+/* "coperta", non "nascosta": quel nome collide con l'utility globale
+   `.nascosta { display: none !important; }` qui sopra, usata per intere
+   schermate e pannelli — vedi il commento in gioco.js dove si assegna
+   questa classe. */
+.cella-tabellone.coperta {
+  background: #ffffff;
+}
+
+.cella-tabellone.non-alfabetica {
+  background: transparent;
+  box-shadow: none;
+  color: var(--testo);
+  font-weight: 400;
+}
+
+/* Terzo giro, punto 16: la casella "accesa" e` quella di una lettera gia`
+   trovata, in attesa che il giocatore ci clicchi sopra per scoprirla —
+   pulsa piano per farsi notare, ed e` chiaramente cliccabile. */
+.cella-tabellone.accesa {
+  background: var(--accento);
+  color: #1a1a1a;
+  cursor: pointer;
+  box-shadow: 0 0 0 3px #fff, 0 0 12px 2px rgba(243, 156, 18, 0.8);
+  animation: pulsa-casella-accesa 1s ease-in-out infinite;
+}
+
+.cella-tabellone.accesa:focus-visible {
+  outline: 3px solid #fff;
+  outline-offset: 2px;
+}
+
+@keyframes pulsa-casella-accesa {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.14);
+  }
+}
+
+/* Punto 45, seconda parte (28/09/2026): "quando esce la frase si accendono
+   le caselle dove andranno le lettere" — l'onda d'ingresso a inizio round
+   (animaIngresso=true in disegnaTabellone, gioco.js imposta l'
+   animation-delay cella per cella). Le caselle "vuota" non ricevono mai
+   questa classe: restano spente e ferme, come chiesto. */
+.cella-tabellone.appare {
+  animation: cella-si-accende 0.38s ease-out both;
+}
+
+@keyframes cella-si-accende {
+  0% {
+    transform: scale(0.35);
+    opacity: 0;
+  }
+  65% {
+    transform: scale(1.15);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* Undicesimo giro, punto 56 (28/09/2026): la vecchia riga verde
+   (.messaggio-gioco) è assorbita dal palco dell'annuncio (#annuncio, vedi il
+   blocco @media(min-width:1200px) in fondo a questo file) — l'elemento non
+   esiste più nel markup. */
+
+/* Nono giro, punto 43-44 (28/09/2026): tre colonne — ruota, tabellone/comandi
+   (colonna-centrale), tessere dei giocatori. Di default (sotto i 900px,
+   telefono — "non e` piu` il riferimento, basta che non si rompa") restano
+   impilate in colonna, nell'ordine del markup: ruota, poi tutto il centro,
+   poi le tessere. Da 900px la ruota e le tessere tornano fianco a fianco
+   come prima di questo giro, col centro sopra a tutta larghezza (vedi media
+   query qui sotto). Da 1200px (schermo largo, i due target 1366/1920) le
+   tre colonne stanno tutte sulla stessa riga, usando la larghezza vera
+   dello schermo invece di una fascia centrale con i lati vuoti. */
+.area-partita {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin: 1rem 0;
+}
+
+.colonna-centrale {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  min-width: 0; /* permette alla riga piu` larga del tabellone di restringersi in un flex/grid item */
+}
+
+.colonna-ruota {
+  position: relative;
+  flex: 0 0 auto;
+  width: min(420px, 90vw);
+  margin: 0 auto;
+}
+
+/* Sesto giro, punto 28: "ruota piu` grande, usando lo spazio lasciato dalle
+   tessere piu` corte" (vedi .colonna-giocatori qui sotto, ora larghezza
+   fissa invece di allargarsi). Lo spazio liberato esiste solo quando la
+   ruota e le tessere stanno sulla stessa riga — cioe` da 900px in su, la
+   stessa soglia gia` usata per `.area-partita` (in flex, sopra i 900px) qui
+   sotto. Sotto i 900px (telefono, tessere e ruota impilate) il vincolo
+   restava il 90vw di prima: quello era gia` verificato non uscire dallo
+   schermo a 375px, e allargarlo li` non avrebbe comunque spazio in piu` da
+   prendere (le tessere impilate non "liberano" nulla in orizzontale). Il
+   canvas interno e` stato portato da 420 a 620px di risoluzione vera (vedi
+   GiraLeParole.html) cosi` anche a questa taglia piu` grande resta nitido:
+   il browser puo` solo rimpicciolire un'immagine piu` grande, mai
+   ingrandirla senza sgranarla. */
+@media (min-width: 900px) {
+  .colonna-ruota {
+    width: min(560px, 90vw);
+  }
+
+  /* Livello intermedio (tablet, 900-1199px): il centro (tabellone e
+     comandi) torna sopra a tutta larghezza, ruota e tessere tornano fianco
+     a fianco sotto — la stessa disposizione che il gioco aveva prima di
+     questo giro (nono, punto 43). L'ordine visivo (`order`) e` indipendente
+     dall'ordine nel markup, che serve solo alla lettura del codice e alla
+     disposizione impilata sotto i 900px. */
+  .area-partita {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: center;
+  }
+
+  .colonna-centrale {
+    order: -1;
+    flex: 1 1 100%;
+  }
+
+  .colonna-ruota {
+    order: 0;
+  }
+
+  .colonna-giocatori {
+    order: 1;
+  }
+}
+
+/* Nono giro, punto 43-44: da 1200px in su la disposizione a tre colonne del
+   decimo giro (disegno di Chiara) prende il posto di quella qui — vedi il
+   grande blocco `@media (min-width: 1200px)` piu` in alto nel file (subito
+   dopo `#schermata-gioco`), che sostituisce per intero questa regola
+   (ruota a sinistra a piena altezza, tabellone al centro, giocatori in fila
+   sotto — non piu` tre colonne fianco a fianco). Tenerne due sarebbe una
+   seconda fonte della stessa cosa: si sarebbe rotta al primo ritocco fatto
+   solo su una delle due. */
+
+#canvas-ruota {
+  width: 100%;
+  height: auto;
+  display: block;
+  /* Punti 61-62 (29/09/2026): si afferra e si trascina, col mouse o col
+     dito. touch-action:none toglie lo scroll/zoom di default del browser
+     su schermo touch mentre si trascina la ruota (senza, un dito che
+     scorre sulla ruota scrollerebbe la pagina invece di girarla). Il
+     cursore cambia da "afferra" a "afferrata" mentre il gesto e` in corso
+     (classe aggiunta/tolta da gioco.js). */
+  touch-action: none;
+  cursor: grab;
+}
+
+#canvas-ruota.trascinando {
+  cursor: grabbing;
+}
+
+/* Quarto giro, punto 20: "una freccia piu` bella" — prima era un triangolo
+   piatto in tinta unita (il trucco dei bordi CSS). Ora e` una forma a
+   "gagliardetto" (rettangolino + punta) con un metallo dorato sfumato e
+   un'ombra sotto, piu` vicina alla freccia rossa un po' scenografica delle
+   ruote televisive; il forellino sopra imita il perno che la tiene ferma
+   al bordo della ruota. */
+.puntatore {
+  position: absolute;
+  top: -14px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 30px;
+  height: 40px;
+  background: linear-gradient(180deg, #fff2c4 0%, #f3c531 30%, #c2860a 70%, #8a5c04 100%);
+  clip-path: polygon(50% 100%, 8% 55%, 8% 12%, 92% 12%, 92% 55%);
+  border-radius: 4px 4px 0 0;
+  filter: drop-shadow(0 4px 5px rgba(0, 0, 0, 0.5));
+}
+
+.puntatore::after {
+  content: "";
+  position: absolute;
+  top: 4px;
+  left: 50%;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  transform: translateX(-50%);
+  background: radial-gradient(circle at 35% 30%, #fff8e2, #b5790a 75%);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.35);
+}
+
+/* Sesto giro, punto 26: "tessere piu` corte, larghezza fissa, circa la meta`
+   di adesso". Prima la colonna cresceva liberamente (flex: 1 1 260px, fino
+   a riempire tutto lo spazio lasciato libero dalla ruota, anche 350-400px
+   su schermi larghi): ora e` un valore fisso e non cresce piu`, e lo spazio
+   che prima prendeva va alla ruota (vedi .colonna-ruota qui sopra, punto
+   28). Quando l'area centrale va a capo (sotto i 900px, tessere sotto la
+   ruota) questa colonna non ha piu` un fratello a fianco: restando a
+   larghezza fissa invece che a tutta larghezza, si centra da sola grazie al
+   `justify-content: center` di .area-partita (nel livello intermedio, 900-1199px). */
+.colonna-giocatori {
+  flex: 0 0 170px;
+  width: 170px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+/* Terzo giro, punto 18: prima lo sfondo di ogni scheda era sempre lo stesso
+   pannello scuro, uguale per tutti i giocatori. Ora lo sfondo e il bordo a
+   sinistra vengono tinti in JS col colore del giocatore (vedi
+   aggiornaSchedeGiocatori in gioco.js): qui restano solo le proprieta` che
+   NON cambiano da persona a persona. */
+/* Sesto giro, punto 26: tessera piu` stretta (vedi .colonna-giocatori) —
+   contenuto impilato in colonna invece che in riga, cosi` il nome e i
+   numeri hanno tutta la larghezza disponibile per andare a capo invece di
+   schiacciarsi accanto all'immagine. */
+.scheda-giocatore {
+  border: 3px solid var(--bordo);
+  border-left-width: 6px;
+  border-radius: 10px;
+  padding: 0.5rem 0.6rem;
+  background: var(--sfondo-pannello);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 0.3rem;
+  transition: background-color 0.2s ease;
+}
+
+.scheda-giocatore.turno-attivo {
+  box-shadow: 0 0 0 3px #fff, 0 0 14px 2px var(--colore-giocatore, var(--accento));
+}
+
+/* Undicesimo giro, punto 58, strada B (28/09/2026, scelta di Damiano: "la
+   tessera con l'iniziale, moooolto carina"): non piu` un disegnino ma la
+   tessera bianca del tabellone con la prima lettera del nome — il colore
+   del giocatore resta visibile nell'anello (outline, tinto in JS, vedi
+   aggiornaSchedeGiocatori) e nel bordo-sinistro/sfondo della tessera qui
+   sopra. */
+.scheda-giocatore .tessera-giocatore {
+  width: 2.3rem;
+  height: 2.8rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  background: #fff;
+  color: #111;
+  font: 800 1.5rem var(--font-titoli);
+  outline: 3px solid var(--bordo);
+  outline-offset: 3px;
+  flex-shrink: 0;
+}
+
+.scheda-giocatore .info-giocatore {
+  width: 100%;
+}
+
+.scheda-giocatore .nome-giocatore {
+  font-weight: 700;
+}
+
+/* I due conti: quello del round e` il numero "in gioco adesso" (piu grande,
+   colore accento), il totale in cassaforte e` il numero "al sicuro" (piu
+   piccolo, attenuato) — cosi si legge a colpo d'occhio quale dei due conta
+   in questo momento. */
+.scheda-giocatore .soldi-round-giocatore {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--accento);
+}
+
+.scheda-giocatore .soldi-totale-giocatore {
+  font-size: 0.95rem;
+  color: var(--testo-attenuato);
+}
+
+/* Decimo giro (28/09/2026), disegno di Chiara, intervento 4: i jolly del
+   giocatore diventano carte (niente piu` l'emoji 🃏, che su Linux usciva
+   come un quadratino) — vedi .carta-jolly qui sotto. */
+.scheda-giocatore .jolly-giocatore {
+  display: flex;
+  gap: 0.2rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.scheda-giocatore .jolly-giocatore:empty {
+  display: none;
+}
+
+.carta-jolly {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.3rem;
+  height: 1.7rem;
+  border-radius: 3px;
+  background: #fff;
+  color: #d3222a;
+  border: 1.5px solid #d3222a;
+  font: 800 1rem var(--font-titoli);
+  transform: rotate(8deg);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.35);
+}
+
+.area-comandi {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.7rem;
+  justify-content: center;
+  margin: 1rem 0;
+}
+
+.pannello-scelta {
+  background: var(--sfondo-pannello);
+  border: 2px solid var(--bordo);
+  border-radius: 12px;
+  padding: 1rem;
+  margin: 1rem auto;
+  max-width: 640px;
+  text-align: center;
+}
+
+.griglia-lettere {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  justify-content: center;
+  margin: 0.6rem 0;
+}
+
+.griglia-lettere button {
+  width: 2.6rem;
+  height: 2.6rem;
+  padding: 0;
+  font-weight: 700;
+  font-size: 1.1rem;
+}
+
+#form-soluzione {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  justify-content: center;
+  margin-top: 0.6rem;
+}
+
+#input-soluzione {
+  flex: 1;
+  min-width: 220px;
+  font-size: 1.05rem;
+  padding: 0.5rem 0.7rem;
+  border-radius: 8px;
+  border: 1px solid var(--bordo);
+  background: #0d1230;
+  color: var(--testo);
+}
+
+#secondi-rimasti {
+  font-weight: 700;
+  color: var(--accento);
+}
+
+/* ---------------------------------------------------------------------------
+   Punto 30 (28/09/2026): la festa di fine round.
+   --------------------------------------------------------------------------- */
+
+.overlay-festa {
+  position: fixed;
+  inset: 0;
+  background: rgba(10, 14, 35, 0.72);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  z-index: 1000;
+}
+
+.scheda-festa {
+  position: relative;
+  overflow: hidden;
+  width: 100%;
+  max-width: 360px;
+  background: linear-gradient(160deg, #2A3268, #10184a);
+  border: 4px solid var(--accento);
+  border-radius: 20px;
+  padding: 1.6rem 1.4rem 1.4rem;
+  text-align: center;
+  box-shadow: 0 12px 34px rgba(0, 0, 0, 0.5);
+  animation: apparizione-festa 0.35s ease-out;
+}
+
+@keyframes apparizione-festa {
+  0% {
+    transform: scale(0.7);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* Undicesimo giro, punto 58, strada B (28/09/2026): la tessera con
+   l'iniziale del vincitore, invece del disegnino — anello (outline) del
+   colore del giocatore, tinto in JS (mostraFestaVittoria,
+   mostraSchermataFinale). */
+.festa-immagine {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 6rem;
+  height: 7.2rem;
+  margin: 0 auto 0.5rem;
+  border-radius: 12px;
+  background: #fff;
+  color: #111;
+  font: 800 4rem var(--font-titoli);
+  outline: 4px solid var(--accento);
+  outline-offset: 4px;
+  position: relative;
+  z-index: 1;
+}
+
+.festa-nome {
+  position: relative;
+  z-index: 1;
+  font-size: 1.4rem;
+  font-weight: 800;
+}
+
+.festa-testo {
+  position: relative;
+  z-index: 1;
+  color: var(--testo-attenuato);
+  margin: 0.2rem 0 0.7rem;
+}
+
+.festa-cifra-wrap {
+  position: relative;
+  z-index: 1;
+  font-size: clamp(2.1rem, 9vw, 3rem);
+  font-weight: 800;
+  color: var(--accento);
+  text-shadow: 0 2px 0 rgba(0, 0, 0, 0.35);
+}
+
+.festa-euro {
+  font-size: 0.55em;
+}
+
+.festa-cassaforte {
+  position: relative;
+  z-index: 1;
+  color: var(--testo-attenuato);
+  margin-bottom: 1rem;
+}
+
+/* Le monete: un contenitore a tutta scheda, sotto al testo (z-index piu`
+   basso, e pointer-events:none cosi` non intercettano il click sul
+   bottone), dentro cui gioco.js aggiunge span "volanti" generati al volo. */
+.festa-monete {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.moneta-festa {
+  position: absolute;
+  top: -2rem;
+  animation-name: cade-moneta;
+  animation-timing-function: ease-in;
+  animation-fill-mode: forwards;
+}
+
+@keyframes cade-moneta {
+  0% {
+    transform: translateY(0) rotate(0deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(340px) rotate(360deg);
+    opacity: 0;
+  }
+}
+
+/* Punto 46 (28/09/2026, nono giro): scintille che esplodono dal centro —
+   riusate sia qui (dentro .festa-monete, insieme alle monete) sia nei
+   fuochi della schermata finale (vedi .overlay-fuochi-finale piu` sotto).
+   --dx/--dy sono impostate da gioco.js (creaScintille), una direzione e una
+   distanza diverse per ogni pallino. */
+.particella-scintilla {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 8px;
+  height: 8px;
+  margin: -4px;
+  border-radius: 50%;
+  animation: esplodi-scintilla 0.9s ease-out forwards;
+}
+
+/* Undicesimo giro, voce 6 (28/09/2026): prima il pallino rimpiccioliva e
+   sfumava fin dal primo istante — ora resta pieno e a fuoco per il 70% del
+   tragitto, e solo nell'ultimo tratto si spegne: "un botto", non un
+   batuffolo che si consuma subito. */
+@keyframes esplodi-scintilla {
+  0% {
+    transform: translate(0, 0) scale(1);
+    opacity: 1;
+  }
+  70% {
+    transform: translate(var(--dx), var(--dy)) scale(0.9);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(var(--dx), var(--dy)) scale(0.5);
+    opacity: 0;
+  }
+}
+
+#btn-chiudi-festa {
+  position: relative;
+  z-index: 1;
+}
+
+/* ---------------------------------------------------------------------------
+   Punto 37 (28/09/2026, seconda dettatura) e punto 42 (nono giro): il
+   messaggio grande al centro della zona di gioco è assorbito nel palco
+   dell'annuncio, undicesimo giro (punto 56) — #overlay-messaggio-grande e
+   .testo-messaggio-grande non esistono più nel markup. Lo stile del palco è
+   nel blocco @media(min-width:1200px) in fondo a questo file.
+   --------------------------------------------------------------------------- */
+
+/* ---------------------------------------------------------------------------
+   Voce D, tredicesimo giro (29/09/2026, punto 64): con che frasi si gioca —
+   stessa famiglia di forma delle opzioni dei round, con in piu` una
+   casellina che si spunta: dice "se ne puo` scegliere piu` d'uno" senza
+   scriverlo (le opzioni dei round, una sola, non ce l'hanno).
+   --------------------------------------------------------------------------- */
+
+.scelta-gruppi {
+  text-align: center;
+  margin: 0.4rem 0 0.2rem;
+}
+
+.scelta-gruppi > p:first-child {
+  margin: 0 0 0.5rem;
+}
+
+.opzioni-gruppi {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: center;
+}
+
+.opzione-gruppo {
+  min-width: 7.5rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+}
+
+.opzione-gruppo::before {
+  content: "";
+  width: 1.05rem;
+  height: 1.05rem;
+  border-radius: 0.25rem;
+  border: 2px solid var(--testo-attenuato);
+  box-sizing: border-box;
+  flex-shrink: 0;
+}
+
+.opzione-gruppo.selezionata {
+  background: var(--accento);
+  color: #1a1a1a;
+  border-color: var(--accento);
+  font-weight: 700;
+}
+
+.opzione-gruppo.selezionata::before {
+  content: "✓";
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-color: #1a1a1a;
+  background: #1a1a1a;
+  color: var(--accento);
+  font: 900 0.75rem/1 sans-serif;
+}
+
+.opzione-gruppo.no {
+  animation: gruppo-no 260ms ease-in-out;
+}
+
+@keyframes gruppo-no {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-5px); }
+  75% { transform: translateX(5px); }
+}
+
+/* Il riquadro dell'errore, vuoto, occupava 38px: a 1366x768 con quattro
+   giocatori spingeva i crediti della musica (CC BY, vanno visti) sotto il
+   bordo dello schermo, dove non si scorre. */
+#errore-iscrizione:empty {
+  display: none;
+}
+
+.conta-frasi {
+  margin: 0.3rem 0 0;
+  font-size: 0.85rem;
+  color: var(--testo-attenuato);
+}
+
+/* ---------------------------------------------------------------------------
+   Punto 38 (28/09/2026, seconda dettatura): quanti round giocare, e
+   l'indicatore "Round X di N" sempre visibile in partita.
+   --------------------------------------------------------------------------- */
+
+.scelta-round {
+  text-align: center;
+  margin: 0.8rem 0;
+}
+
+.opzioni-round {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: center;
+}
+
+.opzione-round {
+  min-width: 3.4rem;
+}
+
+.opzione-round.selezionata {
+  background: var(--accento);
+  color: #1a1a1a;
+  border-color: var(--accento);
+  font-weight: 700;
+}
+
+.indicatore-round {
+  text-align: center;
+  font-weight: 700;
+  color: var(--testo-attenuato);
+  margin-top: 0.3rem;
+}
+
+/* Decimo giro (28/09/2026), disegno di Chiara, intervento 1/4: i round vinti
+   diventano pallini nell'intestazione, al posto del testo "Round X di N"
+   (che resta solo sotto i 1200px, vedi .indicatore-round sopra e la media
+   query piu` sotto che nasconde .round-punti li` e lo mostra da 1200px). */
+.round-punti {
+  display: flex;
+  gap: 0.4rem;
+  align-items: center;
+  justify-content: center;
+  flex: 1 1 auto;
+}
+
+.round-punti .punto {
+  width: 1.6rem;
+  height: 1.6rem;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.55);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font: 800 0.85rem var(--font-titoli);
+  color: rgba(255, 255, 255, 0.8);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.round-punti .punto.vinto {
+  border-color: transparent;
+  color: #fff;
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.35);
+}
+
+.round-punti .punto.corrente {
+  border-color: #fff;
+  color: #1a1a1a;
+  background: var(--accento);
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.25), 0 0 8px rgba(243, 156, 18, 0.7);
+}
+
+/* Punto 55 (28/09/2026, disegno di Chiara): la freccia "sbatte sui pioli"
+   mentre la ruota gira — un piccolo scatto ad ogni tic (gioco.js aggiunge e
+   toglie questa classe, vedi puntatoreTic). "-14° per 90 ms a ogni tic"
+   (`design/2026-09-28-revisione.md`, rilievo 7). transform-origin in alto,
+   come il perno della freccia vera. */
+.puntatore.tic {
+  transform-origin: 50% 0;
+  animation: tic-puntatore 90ms ease-out;
+}
+
+@keyframes tic-puntatore {
+  0% {
+    transform: translateX(-50%) rotate(0deg);
+  }
+  35% {
+    transform: translateX(-50%) rotate(-14deg);
+  }
+  100% {
+    transform: translateX(-50%) rotate(0deg);
+  }
+}
+
+/* Voce E, tredicesimo giro (29/09/2026, facoltativa): quando la ruota va
+   all'indietro (trascinamento in senso antiorario) la freccia si piega
+   dall'altra parte — stesse durate e stesso picco al 35%, solo il segno
+   dell'angolo cambia. */
+.puntatore.tic-indietro {
+  transform-origin: 50% 0;
+  animation: tic-puntatore-indietro 90ms ease-out;
+}
+
+@keyframes tic-puntatore-indietro {
+  0% {
+    transform: translateX(-50%) rotate(0deg);
+  }
+  35% {
+    transform: translateX(-50%) rotate(14deg);
+  }
+  100% {
+    transform: translateX(-50%) rotate(0deg);
+  }
+}
+
+/* Rilievo 6 (28/09/2026, disegno di Chiara): coriandoli a tutto schermo
+   dietro la scheda della festa (vedi generaCoriandoliFesta in gioco.js) —
+   base valida a qualunque larghezza, non solo da 1200px. */
+.coriandoli {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.coriandolo {
+  position: absolute;
+  top: -3rem;
+  width: 0.6rem;
+  height: 1.1rem;
+  border-radius: 2px;
+  animation-name: cade-coriandolo;
+  animation-timing-function: linear;
+  animation-fill-mode: forwards;
+}
+
+@keyframes cade-coriandolo {
+  0% {
+    transform: translateY(0) rotate(0deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(120vh) rotate(var(--giri, 720deg));
+    opacity: 0.9;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Punto 39 (28/09/2026, seconda dettatura): classifica — pulsante a destra
+   nell'intestazione, pannello a tendina come quello del volume (si apre con
+   un tocco, cosi` a 375px non spinge ruota e tabellone fuori dallo schermo).
+   --------------------------------------------------------------------------- */
+
+.pulsanti-classifica {
+  display: flex;
+  gap: 0.5rem;
+  flex: 0 0 auto;
+  position: relative;
+}
+
+.pannello-classifica {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  right: 0;
+  z-index: 5;
+  background: var(--sfondo-pannello);
+  border: 2px solid var(--bordo);
+  border-radius: 12px;
+  padding: 0.8rem 1rem;
+  min-width: 220px;
+  max-width: min(320px, 80vw);
+  max-height: 60vh;
+  overflow-y: auto;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35);
+}
+
+.titolo-classifica {
+  font-weight: 800;
+  margin: 0.6rem 0 0.3rem;
+  text-align: center;
+}
+
+.titolo-classifica:first-child {
+  margin-top: 0;
+}
+
+.riga-classifica,
+.riga-classifica-finale {
+  border-left: 4px solid var(--accento);
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 6px;
+  padding: 0.3rem 0.6rem;
+  margin: 0.25rem 0;
+  font-weight: 600;
+}
+
+.classifica-vuota {
+  color: var(--testo-attenuato);
+  text-align: center;
+  font-size: 0.9rem;
+  margin: 0.3rem 0;
+}
+
+/* ---------------------------------------------------------------------------
+   Punto 46 (28/09/2026, nono giro): i fuochi d'artificio della vittoria
+   finale — un contenitore a tutto schermo (fixed, dietro alla scheda del
+   vincitore) dentro cui gioco.js (avviaFuochiFinale) apre qualche "botto" a
+   posizioni casuali, sfalsati nel tempo, e li rimuove da solo appena finita
+   la loro animazione. La schermata resta sobria a regime: i fuochi durano
+   solo pochi secondi dopo l'arrivo qui, poi il contenitore resta vuoto.
+   --------------------------------------------------------------------------- */
+
+.overlay-fuochi-finale {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.botto-fuochi {
+  position: absolute;
+  width: 0;
+  height: 0;
+}
+
+/* ---------------------------------------------------------------------------
+   Schermata finale (punto 39): stessa scheda visiva della festa di fine
+   round, ma dentro la pagina (non un overlay) — resta finché non si tocca
+   un pulsante, non si chiude da sola.
+   --------------------------------------------------------------------------- */
+
+.scheda-finale-vincitore {
+  position: relative;
+  overflow: hidden;
+  width: 100%;
+  max-width: 360px;
+  margin: 1rem auto;
+  background: linear-gradient(160deg, #2A3268, #10184a);
+  border: 4px solid var(--accento);
+  border-radius: 20px;
+  padding: 1.6rem 1.4rem 1.4rem;
+  text-align: center;
+  box-shadow: 0 12px 34px rgba(0, 0, 0, 0.5);
+}
+
+.finale-classifica {
+  max-width: 360px;
+  margin: 0 auto 1rem;
+}
+
+/* ---------------------------------------------------------------------------
+   Responsive: da 375px (telefono) a 1280px+ (TV/monitor)
+   --------------------------------------------------------------------------- */
+
+
+@media (min-width: 1200px) {
+  html, body {
+    height: 100%;
+    overflow: hidden;
+  }
+
+  #schermata-gioco {
+    max-width: none;
+    height: 100vh;
+    padding: 1.4vh 1.6vw 1.6vh;
+    display: flex;
+    flex-direction: column;
+    gap: 1.2vh;
+  }
+
+  /* --- intestazione: volume | pallini dei round | classifica --- */
+  .intestazione-gioco { height: 6vh; flex: 0 0 auto; }
+  .btn-muto { font-size: 2.6vh; width: 5.2vh; height: 5.2vh; padding: 0; }
+  .pannello-volume, .pannello-classifica { font-size: 2.2vh; min-width: 30vh; }
+
+  .round-punti { gap: 1.2vh; }
+  .round-punti .punto {
+    width: 4.2vh; height: 4.2vh;
+    border-width: 0.35vh;
+    font-size: 2.2vh;
+  }
+  .round-punti .punto.corrente {
+    box-shadow: 0 0 0 0.4vh rgba(255, 255, 255, 0.25), 0 0 2vh rgba(243, 156, 18, 0.7);
+  }
+  .indicatore-round { display: none; } /* sostituito dai pallini nell'intestazione */
+
+  /* --- la griglia: ruota a sinistra su tutta l'altezza; a destra tabellone,
+     poi la fila dei giocatori --- */
+  .area-partita {
+    flex: 1 1 auto; min-height: 0; margin: 0;
+    display: grid;
+    grid-template-columns: 80vh minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr) auto;
+    column-gap: 2vw; row-gap: 1.6vh;
+    align-items: start;
+  }
+  .colonna-ruota { grid-column: 1; grid-row: 1 / span 2; align-self: center; width: 80vh; max-width: 80vh; margin: 0; }
+  .colonna-centrale { grid-column: 2; grid-row: 1; align-items: center; gap: 1.4vh; min-height: 0; }
+  .colonna-giocatori { grid-column: 2; grid-row: 2; width: 100%; flex-direction: row; justify-content: center; gap: 1.6vh; }
+
+  .puntatore {
+    top: -2.2vh; width: 5vh; height: 6.6vh;
+    filter: drop-shadow(0 0.5vh 0.6vh rgba(0, 0, 0, 0.5));
+  }
+  .puntatore::after { top: 0.6vh; width: 1.3vh; height: 1.3vh; }
+
+  /* --- il tabellone: griglia 12-14-14-12 su fondo magenta-viola, cornice
+     bianca, riga nera fra le caselle (punto 50). Punto 54: piu` grande del
+     prototipo di Chiara (--cella 5,6vh invece di 5vh, +12%) — verificato che
+     ci sta senza schiacciare ruota ne` giocatori a 1366×768 (vedi rapporto). */
+  .tabellone-frase {
+    --cella: 5.6vh;
+    width: auto; max-width: none; margin: 0;
+    background: #0b0b1e;
+    border: 0.55vh solid #fff;
+    border-radius: 1.4vh;
+    padding: 1.2vh 1.4vh;
+    gap: 0;
+    box-shadow: 0 0 0 0.3vh #ff3dcb, 0 0 2.6vh rgba(255, 61, 203, 0.55), 0 1.4vh 3.4vh rgba(0, 0, 0, 0.5);
+  }
+  .riga-tabellone {
+    gap: 0;
+    background: linear-gradient(90deg, #e0219f 0%, #b52bb0 45%, #7c2fb8 100%);
+    margin: 0 auto;
+    width: calc(14 * var(--cella));
+  }
+  .riga-tabellone.corta { width: calc(12 * var(--cella)); }
+  .cella-tabellone {
+    width: var(--cella); height: calc(var(--cella) * 1.28); aspect-ratio: auto;
+    border: 0.3vh solid #0b0b1e; border-radius: 0.3vh;
+    font-size: calc(var(--cella) * 0.78);
+    box-shadow: none;
+    background: transparent; /* "vuota": lascia vedere il magenta/viola della riga */
+  }
+  .cella-tabellone.vuota { background: transparent; box-shadow: none; }
+  .cella-tabellone.coperta, .cella-tabellone.rivelata, .cella-tabellone.non-alfabetica {
+    background: #fff; color: #111; font-weight: 800;
+    box-shadow: inset 0 -0.35vh 0 rgba(0, 0, 0, 0.12);
+  }
+  /* Undicesimo giro, punto 56 (28/09/2026): le caselle si accendono UNA ALLA
+     VOLTA dopo l'annuncio (come in TV, dove la valletta le tocca in fila),
+     invece che tutte d'oro nello stesso istante — la k-esima a 350+k*90 ms.
+     gioco.js numera le caselle accese con --ordine (numeraCaselleAccese()),
+     nell'ordine del documento, come gia` fa per l'onda d'ingresso. */
+  .cella-tabellone.accesa {
+    background: #fff;
+    color: #111;
+    box-shadow: inset 0 -0.35vh 0 rgba(0, 0, 0, 0.12);
+    animation:
+      casella-si-accende 260ms ease-out both,
+      pulsa-casella-accesa 1s ease-in-out infinite;
+    animation-delay: calc(350ms + var(--ordine, 0) * 90ms), calc(650ms + var(--ordine, 0) * 90ms);
+  }
+  @keyframes casella-si-accende {
+    0%   { background: #fff; box-shadow: inset 0 -0.35vh 0 rgba(0, 0, 0, 0.12); transform: scale(1); }
+    55%  { transform: scale(1.18); }
+    100% { background: #ffc233; box-shadow: 0 0 0 0.25vh #fff, 0 0 1.8vh 0.4vh rgba(255, 194, 51, 0.85); transform: scale(1); }
+  }
+
+  /* --- la categoria: sotto il tabellone, bianca, grande, a misura del testo --- */
+  .categoria {
+    flex: 0 0 auto; width: fit-content;
+    font-size: 3.2vh; letter-spacing: 0.08em;
+    padding: 0.7vh 3.2vh;
+    background: #fff; color: #111;
+    box-shadow: 0 0.4vh 0 rgba(0, 0, 0, 0.25);
+  }
+
+  /* -----------------------------------------------------------------------
+     Punto 56, undicesimo giro (28/09/2026, disegno di Chiara): L'ANNUNCIO —
+     il "palco", come se fosse Gerry Scotti a dirlo. Il posto e` la fascia
+     della colonna centrale fra la categoria e le tessere dei giocatori, dove
+     prima stavano la riga verde (.messaggio-gioco, non esiste piu`) e i tre
+     comandi: quando c'e` un annuncio, comandi e pannelli spariscono (sono
+     comunque disattivati in quel momento) e la colonna non cresce — le
+     tessere dei giocatori non si spostano. Assorbe anche il messaggio grande
+     di prima (punto 37/42): un solo posto dove guardare.
+     ----------------------------------------------------------------------- */
+  .annuncio { display: none; }
+  .colonna-centrale.con-annuncio .area-comandi,
+  .colonna-centrale.con-annuncio .pannello-scelta { display: none; }
+  .colonna-centrale.con-annuncio .annuncio {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 2.6vh;
+    min-height: 16vh;
+    padding: 0 2vh;
+    text-align: left;
+  }
+
+  /* la tessera con la lettera: la stessa tessera bianca del tabellone, ma
+     grande come una carta da gioco */
+  .annuncio-tessera {
+    flex: 0 0 auto;
+    width: 11vh; height: 14vh;
+    display: flex; align-items: center; justify-content: center;
+    background: #fff; color: #111;
+    border: 0.4vh solid #0b0b1e; border-radius: 1vh;
+    font: 800 9.4vh/1 var(--font-titoli);
+    box-shadow: inset 0 -0.7vh 0 rgba(0, 0, 0, 0.12), 0 1.2vh 2.6vh rgba(0, 0, 0, 0.45);
+  }
+  /* "non c'e`": la tessera si tinge di rosa, la lettera di rosso */
+  .annuncio.no .annuncio-tessera { background: #ffe1e1; color: #c62828; }
+
+  .annuncio-testo { display: flex; flex-direction: column; justify-content: center; min-width: 0; }
+  .annuncio-titolo {
+    font: 800 6.4vh/1.05 var(--font-titoli);
+    color: #fff;
+    letter-spacing: -0.01em;
+    text-shadow: 0 0.4vh 0 rgba(0, 0, 0, 0.35), 0 0 3vh rgba(255, 255, 255, 0.22);
+  }
+  .annuncio-sotto {
+    margin-top: 0.8vh;
+    font: 800 4.6vh/1.1 var(--font-titoli);
+    color: var(--accento);
+    text-shadow: 0 0.3vh 0 rgba(0, 0, 0, 0.35);
+  }
+  /* la riga sotto quando dice solo a chi tocca: piccola, attenuata */
+  .annuncio.no .annuncio-sotto,
+  .annuncio.scena .annuncio-sotto { font: 700 2.8vh/1.2 "Lato", sans-serif; color: var(--testo-attenuato); text-shadow: none; }
+
+  /* le "scene" senza tessera: Passa, Bancarotta, tempo scaduto, consonanti finite... */
+  .annuncio.scena { text-align: center; }
+  .annuncio.scena .annuncio-testo { align-items: center; }
+  .annuncio.scena .annuncio-titolo { font-size: 8vh; }
+  .annuncio.scena.rosso .annuncio-titolo { color: #ff6b6b; text-shadow: 0 0.4vh 0 rgba(0, 0, 0, 0.4), 0 0 3.5vh rgba(255, 80, 80, 0.5); }
+  .annuncio.scena.oro .annuncio-titolo { color: var(--accento); text-shadow: 0 0.4vh 0 rgba(0, 0, 0, 0.4), 0 0 3.5vh rgba(243, 156, 18, 0.55); }
+  /* Voce C, tredicesimo giro (29/09/2026): l'annuncio del cambio di round —
+     "Round N" in oro, sotto in bianco e piu` grande di una scena normale. */
+  .annuncio.scena.round .annuncio-sotto { font: 700 3.6vh/1.15 var(--font-titoli); color: #fff; text-shadow: 0 0.3vh 0 rgba(0,0,0,.3); }
+
+  /* --- l'entrata: la tessera cade dall'alto e rimbalza (380 ms), il testo la
+     segue da sinistra (260 ms, parte a 140 ms); le scene si gonfiano (320 ms) --- */
+  .annuncio.entra .annuncio-tessera { animation: annuncio-tessera-cade 380ms cubic-bezier(0.2, 1.5, 0.4, 1) both; }
+  @keyframes annuncio-tessera-cade {
+    0%   { transform: translateY(-5vh) scale(0.55) rotate(-10deg); opacity: 0; }
+    60%  { transform: translateY(0.4vh) scale(1.08) rotate(2deg); opacity: 1; }
+    100% { transform: none; opacity: 1; }
+  }
+  .annuncio.entra .annuncio-testo { animation: annuncio-testo-entra 260ms ease-out 140ms both; }
+  @keyframes annuncio-testo-entra {
+    from { opacity: 0; transform: translateX(-2vh); }
+    to   { opacity: 1; transform: none; }
+  }
+  .annuncio.scena.entra .annuncio-testo { animation: annuncio-scena-entra 320ms cubic-bezier(0.2, 1.5, 0.4, 1) both; }
+  @keyframes annuncio-scena-entra {
+    from { opacity: 0; transform: scale(0.7); }
+    to   { opacity: 1; transform: none; }
+  }
+  /* --- l'uscita: 220 ms, sale e sfuma --- */
+  .annuncio.esce { animation: annuncio-esce 220ms ease-in both; }
+  @keyframes annuncio-esce { to { opacity: 0; transform: translateY(-1.5vh); } }
+
+  .area-comandi { margin: 0; gap: 1.4vh; }
+  /* quando un riquadro e` aperto prende il posto dei comandi (punto 51): non
+     si impila sotto, la colonna non cresce e le tessere dei giocatori non
+     si spostano. */
+  .colonna-centrale:has(.pannello-scelta:not(.nascosta)) .area-comandi { display: none; }
+  .area-comandi button, .pannello-scelta button.primario, .pannello-scelta button.secondario, #form-soluzione button {
+    font-size: 2.6vh; padding: 1.3vh 2.8vh; border-radius: 1.2vh; border-width: 0.3vh;
+  }
+
+  /* --- il riquadro delle lettere (punto 51): stesse tessere bianche del
+     tabellone, due file (11 vocali+consonanti / 10) --- */
+  .pannello-scelta { background: transparent; border: none; padding: 0; margin: 0; max-width: none; }
+  .pannello-scelta > p { font-size: 2.6vh; font-weight: 700; margin: 0 0 1vh; }
+  /* Punto 56: la cifra dello spicchio (prima nella riga verde) va nel titolo
+     del riquadro delle consonanti — "1.000 € a lettera · scegli una
+     consonante" (gioco.js, impostaTitoloConsonanti). */
+  .pannello-scelta > p b { color: var(--accento); font-weight: 800; }
+  .griglia-lettere { gap: 0.8vh; max-width: calc(11 * 5.2vh + 10 * 0.8vh); margin: 0 auto 1vh; }
+  .griglia-lettere button {
+    width: 5.2vh; height: 6vh; border: none; border-radius: 0.7vh;
+    background: #fff; color: #111;
+    font: 800 3.4vh var(--font-titoli);
+    box-shadow: 0 0.45vh 0 #b9b9c9, 0 0.9vh 1.8vh rgba(0, 0, 0, 0.35);
+    transition: transform 90ms ease-out, box-shadow 90ms ease-out;
+  }
+  .griglia-lettere button:hover:not(:disabled) { transform: translateY(-0.3vh); box-shadow: 0 0.75vh 0 #b9b9c9, 0 1.2vh 2vh rgba(0, 0, 0, 0.4); border-color: transparent; }
+  #pannello-jolly p, #pannello-soluzione p, #pannello-fine-round p { font-size: 2.6vh; }
+  #input-soluzione { font-size: 2.6vh; padding: 1vh 1.6vh; min-width: 44vh; }
+  #secondi-rimasti { font-size: 3.4vh; }
+
+  /* --- le tessere dei giocatori: una fila, un numero grande ciascuna,
+     niente testo tagliato --- */
+  .scheda-giocatore {
+    position: relative;
+    flex: 1 1 0; max-width: 30vh; min-width: 0;
+    padding: 1.1vh 1.3vh 1vh; border-radius: 1.4vh;
+    border-width: 0.3vh; border-left-width: 0.8vh;
+    display: grid; grid-template-columns: 5.4vh minmax(0, 1fr); column-gap: 1vh; row-gap: 0.2vh;
+    align-items: center; text-align: left;
+    transition: transform 160ms ease-out, box-shadow 160ms ease-out;
+  }
+  /* Voce 4 della scheda dell'undicesimo giro: 5,4vh × 6,4vh, lettera 3,6vh. */
+  .scheda-giocatore .tessera-giocatore {
+    grid-column: 1; grid-row: 1;
+    width: 5.4vh; height: 6.4vh;
+    font-size: 3.6vh;
+    border-radius: 0.8vh;
+    outline-width: 0.35vh;
+    outline-offset: 0.35vh;
+  }
+  .scheda-giocatore .info-giocatore { display: contents; }
+  .scheda-giocatore .nome-giocatore { grid-column: 2; grid-row: 1; font-size: 2vh; line-height: 1.1; overflow-wrap: anywhere; }
+  .scheda-giocatore .soldi-round-giocatore { grid-column: 1 / -1; font: 800 3.9vh/1.05 var(--font-titoli); color: #fff; letter-spacing: -0.01em; white-space: nowrap; }
+  .scheda-giocatore .soldi-round-giocatore .euro { font-size: 0.55em; color: var(--accento); margin-left: 0.2em; }
+  .scheda-giocatore .soldi-totale-giocatore { grid-column: 1 / -1; font-size: 1.8vh; color: var(--testo-attenuato); white-space: nowrap; }
+  .scheda-giocatore .soldi-totale-giocatore b { color: var(--testo); font-weight: 700; }
+  .scheda-giocatore .jolly-giocatore { position: absolute; top: -1.2vh; right: 0.8vh; gap: 0.3vh; }
+  .carta-jolly {
+    width: 2.4vh; height: 3.2vh; border-radius: 0.35vh;
+    border-width: 0.15vh;
+    font-size: 1.8vh;
+    box-shadow: 0 0.2vh 0.4vh rgba(0, 0, 0, 0.35);
+  }
+  .scheda-giocatore.turno-attivo {
+    transform: translateY(-0.6vh);
+    box-shadow: 0 0 0 0.4vh #fff, 0 0 3vh 0.4vh var(--colore-giocatore, var(--accento)), 0 1.2vh 2.4vh rgba(0, 0, 0, 0.4);
+  }
+
+  /* --- la festa di fine round: grande quanto lo schermo merita --- */
+  .scheda-festa { max-width: 58vh; padding: 3vh 3vh 2.6vh; border-width: 0.5vh; border-radius: 2.4vh; }
+  /* Voce 4 della scheda dell'undicesimo giro: 11vh × 13,5vh, lettera 8vh. */
+  .festa-immagine { width: 11vh; height: 13.5vh; font-size: 8vh; border-radius: 1.4vh; outline-width: 0.35vh; outline-offset: 0.35vh; margin-bottom: 1vh; }
+  .festa-nome { font-size: 4.2vh; }
+  .festa-testo { font-size: 2.6vh; }
+  .festa-cifra-wrap { font-size: 9.5vh; line-height: 1.05; }
+  .festa-cassaforte { font-size: 2.4vh; margin-bottom: 1.6vh; }
+  .particella-scintilla { width: 1.5vh; height: 1.5vh; margin: -0.75vh; animation-duration: 1.4s; }
+  .moneta-festa { font-size: 3.6vh !important; }
+  #btn-chiudi-festa { font-size: 2.4vh; padding: 1.2vh 3vh; }
+
+  .coriandolo { width: 1.4vh; height: 2.6vh; top: -4vh; }
+
+  /* --- schermata finale --- */
+  #schermata-finale { height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1.6vh; max-width: none; }
+  #schermata-finale h1 { font-size: 7vh; margin: 0; }
+  .scheda-finale-vincitore { max-width: 62vh; margin: 0; padding: 3vh; border-width: 0.5vh; border-radius: 2.4vh; }
+  .titolo-classifica { font-size: 2.8vh; margin: 0.6vh 0 0; }
+  .finale-classifica { max-width: 62vh; width: 62vh; }
+  .riga-classifica-finale { font-size: 2.6vh; padding: 0.8vh 1.6vh; border-left-width: 0.7vh; }
+  #schermata-finale .azioni-iscrizione button { font-size: 2.6vh; padding: 1.3vh 3vh; }
+  #schermata-finale .particella-scintilla { width: 1.9vh; height: 1.9vh; animation-duration: 1.6s; }
+}
+
+@media (max-width: 480px) {
+  .area-comandi button {
+    flex: 1 1 100%;
+  }
+}

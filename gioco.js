@@ -536,7 +536,7 @@ const GUIDA = [
   { esempio: '<button class="primario">Gira la ruota</button>', nome: "Gira la ruota", testo: "Poi una consonante: prendi la cifra per ogni volta che c’è." },
   { esempio: "<button>Vocale · 500 €</button>", nome: "Vocale · 500 €", testo: "La paghi con i soldi del round, tutte le volte che vuoi." },
   { esempio: "<button>Do la soluzione</button>", nome: "Do la soluzione", testo: "Hai 20 secondi. Se è giusta, soldi del round in cassaforte." },
-  { esempio: '<button class="aiutino">Aiutino</button>', nome: "Aiutino", testo: "Se ce l’hai, scopri gratis la casella che vuoi. Una a round." },
+  { esempio: '<button class="aiutino">Aiutino</button>', nome: "Aiutino", testo: "Se ce l’hai, scegli una casella: si scoprono gratis tutte le sue lettere. Una a round." },
   { esempio: '<span class="tessera-guida">J</span>', nome: "Jolly", testo: "Su Bancarotta o Passa lo giochi: non perdi soldi né turno." },
   { esempio: '<button class="segmento selezionata" style="border-radius:999px">A squadre</button>', nome: "A squadre", testo: "Due squadre, e dentro la squadra si gioca un turno a testa." },
   { esempio: '<span class="interruttore"><span class="leva" style="background:var(--accento);border-color:var(--accento)"></span></span>', nome: "Round lampo", testo: "Le lettere escono da sole. La sai? Tocca il tuo nome: 500 €." },
@@ -1260,7 +1260,7 @@ function aggiornaAvvisoLettereFinite(consonantiFinite, vocaliFinite) {
 function aggiornaComandi() {
   const idle = Gioco.stato === "idle" && !Ruota.inAnimazione();
   const g = giocatoreCorrente();
-  const vocaliRimaste = VOCALI.some((v) => !Gioco.lettereUsate.has(v));
+  const vocaliRimaste = VOCALI.some((v) => !letteraGiaUscita(v));
   // Punto 33: quando in questa frase non restano consonanti (o vocali) da
   // scoprire, girare la ruota (o comprare una vocale) non serve piu` a
   // niente — vedi DISATTIVA_COMANDI_SE_LETTERE_FINITE in config.js.
@@ -1298,14 +1298,23 @@ btnAiutino.addEventListener("click", () => {
 
 function sceltaCasellaAiutino(idx) {
   if (Gioco.stato !== "scegli_casella") return;
-  Gioco.posizioniRivelate.add(idx);
-  Audio_.click();
+  // Regola del 30/09/2026 (punto 79): l'aiutino scopre TUTTE le caselle della
+  // lettera scelta, con la stessa resa di una lettera chiamata (accensione,
+  // poi scoperta), ma senza soldi. La lettera entra fra le usate: chiamarla
+  // dopo vale "è già uscita". Il turno resta a chi ha usato l'aiutino.
+  const lettera = normalizzaLettera(Gioco.fraseCorrente.testo[idx]);
+  Gioco.lettereUsate.add(lettera);
+  posizioniCoperteDellaLettera(lettera).forEach((p) => Gioco.posizioniAccese.add(p));
   tabelloneEl.classList.remove("scegli-casella");
   pannelloAiutino.classList.add("nascosta");
+  Audio_.letteraRivelata();
   disegnaTabellone();
-  Gioco.stato = "idle";
+  numeraCaselleAccese();
+  Annuncio.mostra({ lettera, titolo: quanteVolte(Gioco.posizioniAccese.size) });
+  aggiornaSchedeGiocatori();
+  Gioco.stato = "rivelando";
   aggiornaComandi();
-  if (fraseCompletamenteRivelata()) vinciRound();
+  avviaTimerAutoscoperta();
 }
 
 // ---- L'ANNUNCIO (punto 56, undicesimo giro, 28/09/2026, disegno di Chiara) -
@@ -1637,13 +1646,29 @@ function posizioniDellaLettera(lettera) {
   return posizioni;
 }
 
+// Le occorrenze della lettera che sono ANCORA coperte: ne restano fuori
+// quelle gia` rivelate o accese in attesa di un tocco.
+function posizioniCoperteDellaLettera(lettera) {
+  return posizioniDellaLettera(lettera).filter(
+    (p) => !Gioco.posizioniRivelate.has(p) && !Gioco.posizioniAccese.has(p)
+  );
+}
+
+// "Gia` uscita": chiamata prima in questo round, OPPURE presente nella frase
+// ma con tutte le occorrenze gia` scoperte (caso dell'aiutino, 30/09/2026).
+// Una lettera che nella frase non c'e` affatto non e` "gia` uscita": e` "non c'e`".
+function letteraGiaUscita(lettera) {
+  if (Gioco.lettereUsate.has(lettera)) return true;
+  return posizioniDellaLettera(lettera).length > 0 && posizioniCoperteDellaLettera(lettera).length === 0;
+}
+
 function sceltaConsonante(lettera) {
   pannelloConsonanti.classList.add("nascosta");
 
   // Punto 35 (28/09/2026): una consonante già chiamata — sul tabellone o
   // già tentata e risultata assente — fa finire il turno senza soldi.
   // Vale allo stesso modo sullo spicchio JOLLY (nessun ramo separato).
-  if (Gioco.lettereUsate.has(lettera)) {
+  if (letteraGiaUscita(lettera)) {
     Audio_.letteraGiaChiamata();
     annunciaEPassaTurno({
       lettera,
@@ -1655,7 +1680,7 @@ function sceltaConsonante(lettera) {
   }
 
   Gioco.lettereUsate.add(lettera);
-  const posizioni = posizioniDellaLettera(lettera);
+  const posizioni = posizioniCoperteDellaLettera(lettera);
 
   if (posizioni.length > 0) {
     // Scelta di Erbottega (28/09/2026, punto 16 del terzo giro): i soldi si
@@ -1800,7 +1825,7 @@ function sceltaVocale(lettera) {
   // tratta esattamente come una vocale assente — paga e perde il turno
   // (VOCALE_GIA_CHIAMATA_PERDE_TURNO in config.js), con lo stesso avviso
   // grande ed errore sonoro della consonante già chiamata.
-  if (Gioco.lettereUsate.has(lettera)) {
+  if (letteraGiaUscita(lettera)) {
     g[contoPerLaVocale] -= COSTO_VOCALE;
     Audio_.letteraGiaChiamata();
     aggiornaSchedeGiocatori();
@@ -1821,7 +1846,7 @@ function sceltaVocale(lettera) {
 
   g[contoPerLaVocale] -= COSTO_VOCALE; // si paga sempre, anche se la vocale non c'è
   Gioco.lettereUsate.add(lettera);
-  const posizioni = posizioniDellaLettera(lettera);
+  const posizioni = posizioniCoperteDellaLettera(lettera);
 
   if (posizioni.length > 0) {
     posizioni.forEach((p) => Gioco.posizioniAccese.add(p));

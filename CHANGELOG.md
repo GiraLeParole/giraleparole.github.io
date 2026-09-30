@@ -12,6 +12,11 @@ Idee già scelte ma non ancora costruite. L'ordine non è quello in cui arrivera
 - **Le frasi dei ragazzi.** Una pagina dove scrivere frasi proprie, con la loro categoria. Finiscono nel mazzo di casa, e quando escono il gioco dice chi le ha scritte.
 - **La sfida con un link.** Si scrive una frase e la si manda con un link: chi lo apre la gioca da solo.
 
+## 2.1 — 30 settembre 2026 · Niente lettere a metà
+
+- L'aiutino scopre tutta la lettera. Si sceglie una casella coperta, e con lei si accendono gratis tutte quelle con la stessa lettera, mentre il gioco annuncia quante sono. Prima se ne scopriva una sola: chi poi chiamava quella lettera veniva pagato anche per la casella regalata, e davanti a una T scoperta nessuno sapeva se sotto ce ne fossero altre.
+- Da lì quella lettera conta come già chiamata: chi la richiama si sente dire «è già uscita» e perde il turno, come succede con ogni lettera ripetuta. Il resto è come prima: il turno resta a chi ha usato l'aiutino, e l'aiutino si usa una volta per round, solo se all'iscrizione era accesa la sua levetta.
+
 ## 2.0 — 29 settembre 2026 · Genitori contro figli
 
 - Si gioca anche a squadre: due squadre, fino a tre giocatori per parte. Dentro la squadra si fa un turno per uno, e «Tocca a» chiama chi ha la mano, non la squadra. Sulla tessera della squadra ci sono le iniziali di tutti, e si accende quella di chi tocca adesso. Le squadre lasciate senza nome si chiamano Genitori e Figli.

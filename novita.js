@@ -10,6 +10,15 @@ const NOVITA = {
   ],
   "versioni": [
     {
+      "versione": "2.1",
+      "data": "30 settembre 2026",
+      "titolo": "Niente lettere a metà",
+      "voci": [
+        "L'aiutino scopre tutta la lettera. Si sceglie una casella coperta, e con lei si accendono gratis tutte quelle con la stessa lettera, mentre il gioco annuncia quante sono. Prima se ne scopriva una sola: chi poi chiamava quella lettera veniva pagato anche per la casella regalata, e davanti a una T scoperta nessuno sapeva se sotto ce ne fossero altre.",
+        "Da lì quella lettera conta come già chiamata: chi la richiama si sente dire «è già uscita» e perde il turno, come succede con ogni lettera ripetuta. Il resto è come prima: il turno resta a chi ha usato l'aiutino, e l'aiutino si usa una volta per round, solo se all'iscrizione era accesa la sua levetta."
+      ]
+    },
+    {
       "versione": "2.0",
       "data": "29 settembre 2026",
       "titolo": "Genitori contro figli",

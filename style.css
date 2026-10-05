@@ -1605,9 +1605,18 @@ h1 {
   .coriandolo { width: 1.4vh; height: 2.6vh; top: -4vh; }
 
   /* --- schermata finale --- */
-  #schermata-finale { height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1.6vh; max-width: none; }
-  #schermata-finale h1 { font-size: 7vh; margin: 0; }
-  .scheda-finale-vincitore { max-width: 62vh; margin: 0; padding: 3vh; border-width: 0.5vh; border-radius: 2.4vh; }
+  #schermata-finale { height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1.2vh; max-width: none; }
+  #schermata-finale h1 { font-size: 7vh; line-height: 1; margin: 0; }
+  .scheda-finale-vincitore { max-width: 62vh; margin: 0; padding: 3vh; border-width: 0.5vh; border-radius: 2.4vh; flex-shrink: 0; }
+  /* 05/10/2026: la scheda ha overflow:hidden, quindi in una colonna flex a
+     altezza fissa il suo minimo e` 0 e si faceva schiacciare, tagliando la
+     cifra. Non si schiaccia piu`: e` la classifica a cedere, non la cifra. */
+  /* ...e il posto che la scheda ora pretende si recupera dai vuoti sotto la
+     classifica (margini in rem pensati per la pagina che scorre), non dalla
+     scheda: a 1280x800 col premio di casa servono ~80px. */
+  .finale-classifica { margin-bottom: 0; }
+  #schermata-finale .crediti-musica { margin: 0; }
+  #schermata-finale .azioni-iscrizione { margin: 0; }
   .titolo-classifica { font-size: 2.8vh; margin: 0.6vh 0 0; }
   .finale-classifica { max-width: 62vh; width: 62vh; }
   .riga-classifica-finale { font-size: 2.6vh; padding: 0.8vh 1.6vh; border-left-width: 0.7vh; }

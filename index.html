@@ -26,7 +26,7 @@
       <nav class="porte-iscrizione" aria-label="Altre pagine">
         <button id="btn-albo" type="button" class="secondario">Albo d'oro</button>
         <button id="btn-frasi-nostre" type="button" class="secondario">Le nostre frasi</button>
-        <button id="btn-guida" type="button" class="secondario">Come si gioca</button>
+        <button id="btn-guida" type="button">Come si gioca</button>
       </nav>
     </header>
 
@@ -71,8 +71,8 @@
         </div>
 
         <div class="scelta-extra">
-          <!-- Round lampo: giro B, non ancora costruito — gioco.js nasconde
-               questa riga finche` GIRO_B_C_ATTIVO resta false. -->
+          <!-- Round lampo (giro B, voce B1, lampo.js): la leva lo accende e lo
+               spegne; gioco.js nasconde la riga se LAMPO_ATTIVO e` false. -->
           <label class="interruttore" id="riga-lampo" for="lampo-attivo">
             <input type="checkbox" id="lampo-attivo" />
             <span class="leva" aria-hidden="true"></span>
@@ -108,13 +108,16 @@
     <div class="scheda-finestra">
       <h2 id="titolo-novita">Novità</h2>
       <div id="elenco-novita" class="elenco-novita"></div>
-      <button id="btn-chiudi-novita" type="button" class="primario">Chiudi</button>
+      <div class="azioni-finestra">
+        <button id="btn-chiudi-novita" type="button" class="primario">Chiudi</button>
+        <button id="btn-tutte-novita" type="button">Tutte le novità</button>
+      </div>
     </div>
   </div>
 
   <!-- La mini guida «Come si gioca»: al massimo 8 voci, le prime 6 sempre
-       visibili — la 7 e la 8 (round lampo, frase premio) si accendono con
-       GIRO_B_C_ATTIVO (config.js). -->
+       visibili — la 7 (round lampo) si accende con LAMPO_ATTIVO, la 8 (frase
+       premio) con GIRO_B_C_ATTIVO (config.js). -->
   <div id="finestra-guida" class="finestra nascosta" role="dialog" aria-modal="true" aria-labelledby="titolo-guida">
     <div class="scheda-finestra guida">
       <h2 id="titolo-guida">Come si gioca</h2>
@@ -191,6 +194,9 @@
         <!-- Decimo giro, intervento 1/3 (28/09/2026): la categoria si sposta
              qui, sotto il tabellone, come la striscia della TV — prima
              stava nell'intestazione (vedi header sopra). -->
+        <!-- 05/10/2026: la targa mostra l'INDIZIO della frase (la categoria
+             solo se la frase non ne ha uno). L'id e la classe restano quelli
+             di prima. -->
         <div id="categoria-corrente" class="categoria"></div>
 
         <!-- Undicesimo giro, punto 56 (28/09/2026, disegno di Chiara): il
@@ -239,6 +245,17 @@
             <input id="input-soluzione" type="text" placeholder="Scrivi qui la frase intera" />
             <button type="submit" class="primario">Conferma</button>
           </form>
+        </div>
+
+        <!-- Round lampo (giro B, voce B1, lampo.js): chi e` stato scelto
+             scrive la frase, LAMPO_SECONDI secondi (config.js). -->
+        <div id="pannello-lampo" class="pannello-scelta pannello-lampo nascosta">
+          <p><b id="lampo-chi"></b>, scrivi la frase</p>
+          <form id="form-lampo" autocomplete="off">
+            <input id="input-lampo" type="text" placeholder="Scrivi qui la frase intera" />
+            <button type="submit" class="primario">Conferma</button>
+          </form>
+          <div class="barra-tempo-lampo" aria-hidden="true"><div class="riempimento"></div><span class="secondi-lampo" id="secondi-lampo">15</span></div>
         </div>
 
         <div id="pannello-fine-round" class="pannello-scelta nascosta">
@@ -311,7 +328,10 @@
        vedi genera-novita.mjs e pubblica.sh — non si scrive a mano. -->
   <script src="novita.js"></script>
   <script src="audio.js"></script>
+  <!-- La ruota pesante (05/10/2026): il motore fisico, uno solo per pulsante e mano. Va prima di ruota.js. -->
+  <script src="fisica-ruota.js"></script>
   <script src="ruota.js"></script>
   <script src="gioco.js"></script>
+  <script src="lampo.js"></script>
 </body>
 </html>

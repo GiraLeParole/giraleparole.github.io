@@ -2,13 +2,27 @@
 // cambia CHANGELOG.md e rilancia lo script (pubblica.sh lo fa da solo).
 const NOVITA = {
   "inArrivo": [
-    "<b>Il round lampo.</b> Le lettere si accendono da sole, una alla volta, e risponde chi prenota per primo. Vale poco, ma decide chi apre il round.",
     "<b>La frase premio.</b> Una frase a partita nasconde un premio, per esempio un jolly in più o la cassaforte raddoppiata. Lo si scopre solo risolvendola.",
     "<b>L'albo d'oro.</b> Il gioco si ricorderà partite e record: chi vince più spesso, la vincita più alta, la frase risolta con meno lettere.",
-    "<b>Le frasi dei ragazzi.</b> Una pagina dove scrivere frasi proprie, con la loro categoria. Finiscono nel mazzo di casa, e quando escono il gioco dice chi le ha scritte.",
-    "<b>La sfida con un link.</b> Si scrive una frase e la si manda con un link: chi lo apre la gioca da solo."
+    "<b>Le frasi dei ragazzi.</b> Una pagina dove scrivere frasi proprie, con il loro indizio. Finiscono nel mazzo di casa, e quando escono il gioco dice chi le ha scritte.",
+    "<b>La sfida con un link.</b> Si scrive una frase e la si manda con un link: chi lo apre la gioca da solo.",
+    "<b>Spicchi nuovi sulla ruota.</b> Quali, non è ancora deciso. Fra le idee: Robin Hood, che porta via 500 € a chi è in testa, e Congela, con cui scegliete chi salta il prossimo turno.",
+    "<b>Partite a tema.</b> Ci sto pensando: prima di cominciare si sceglie che serata è, e la ruota cambia qualche spicchio. In famiglia, per esempio, uno spicchio che vale una caramella vera, o uno che stasera vi libera dai piatti.",
+    "<b>I telefoni.</b> È l'idea più lontana: il telefono come pulsante per prenotarsi nel round lampo, e un giorno, forse, per giocare tutto, anche da case diverse. Prima bisogna capire se si può fare."
   ],
   "versioni": [
+    {
+      "versione": "2.2",
+      "data": "6 ottobre 2026",
+      "titolo": "Chi tocca prima",
+      "voci": [
+        "<b>La ruota pesa.</b> Parte piano, come se una mano la accompagnasse per un paio di secondi, poi rallenta a lungo: in tutto fa più o meno un giro. Ogni spicchio ha due pioli anche in mezzo: la freccia si piega su ognuno, e non resta mai a cavallo fra due spicchi. Nemmeno uno strappo con la mano la fa partire come una trottola.",
+        "<b>Il round lampo.</b> Fra un round e l'altro le lettere si accendono da sole. Chi la sa tocca lo schermo o preme un tasto: chi fa da arbitro tocca la tessera del primo, che ha 15 secondi per scrivere la frase. Chi indovina prende 500 € e apre il round; chi sbaglia, per quel lampo è fuori. Si accende con la leva «Round lampo» all'iscrizione.",
+        "<b>Il mazzo nuovo.</b> Sul tabellone, al posto della categoria, c'è un indizio che dice di cosa parla la frase: un animale, un posto e una data, una canzone. La frase, di solito, ne racconta una curiosità. Proverbi e modi di dire scendono da 65 a 28, e in una partita non escono mai due frasi dello stesso tipo.",
+        "<b>«Come si gioca»</b> adesso è un pulsante bianco, e la prima volta che aprite il gioco si apre da solo. Le Novità, invece, si aprono da sole dopo ogni aggiornamento, con solo quello che vi siete persi.",
+        "Il tabellone non esce più dallo schermo su alcuni portatili, e nella schermata finale il totale di chi vince non si taglia più."
+      ]
+    },
     {
       "versione": "2.1",
       "data": "30 settembre 2026",

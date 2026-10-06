@@ -1,5 +1,7 @@
 // ============================================================================
-// LA RUOTA — disegno su canvas + fisica dello spin.
+// LA RUOTA — disegno su canvas. La fisica (pulsante e trascinamento) e` in
+// fisica-ruota.js, un solo motore, la ruota pesante di Chiara (05/10/2026);
+// qui ci sono il disegno, i pioli, la freccia e i gesti della mano.
 // Decimo giro (28/09/2026): disegno rifatto secondo la proposta di Chiara
 // (`design/2026-09-28-revisione.md`, intervento 2, e il suo prototipo
 // `design/prototipi/2026-09-28-schermo-largo/proposta-ruota.js`) — le
@@ -48,6 +50,33 @@ const Ruota = (() => {
   const ONDA_GIRO_MS = 1000;
   const ONDA_SPICCHIO_MS = 360;
   let transizioneRound = null; // { inizio, prima: [valori del round prima] }, solo mentre l'onda e` in corso
+
+  // Ruota pesante (05/10/2026): il motore fisico, uno solo per pulsante e mano
+  let fisica = null;
+  let stratoAnello = null; // canvas in cache con anello e pioli, ridisegnato solo se cambia la misura o i pioli
+  function creaFisica() {
+    const opzioni = {
+      pioliPerSpicchio: PIOLI_PER_SPICCHIO,
+      spicchi: N,
+      inerzia: RUOTA_INERZIA,
+      attritoCuscinetto: ATTRITO_CUSCINETTO_RAD_S2,
+      lamellaResistenza: LAMELLA_RESISTENZA_RAD_S2,
+      lamellaVelocitaRif: LAMELLA_VELOCITA_RIF_RAD_S,
+      lamellaFinestraGradi: LAMELLA_FINESTRA_GRADI,
+      lamellaRestituzione: LAMELLA_RESTITUZIONE,
+      scattoVelocita: LAMELLA_SCATTO_RAD_S,
+      velocitaFermo: RUOTA_VELOCITA_FERMO_RAD_S,
+      lamellaRitornoMs: LAMELLA_RITORNO_MS,
+      spintaCorsaGradiMin: SPINTA_CORSA_GRADI_MIN,
+      spintaCorsaGradiMax: SPINTA_CORSA_GRADI_MAX,
+      lancioGiriMin: LANCIO_GIRI_MIN,
+      lancioGiriMax: LANCIO_GIRI_MAX,
+      attritoLancioNonValido: ATTRITO_LANCIO_NON_VALIDO_RAD_S2,
+    };
+    fisica = FisicaRuota.crea(opzioni);
+    fisica.imposta(rotazioneCorrente, 0);
+    stratoAnello = null;
+  }
 
   // Aggiorna le cifre della ruota per il round dato (punto 60): ogni
   // spicchio "soldi" prende il valore della sua colonna in CIFRE_PER_ROUND,
@@ -100,12 +129,15 @@ const Ruota = (() => {
     return Math.max(0, Math.min(1, t));
   }
 
-  function init(canvasEl) {
+  // Ruota pesante (05/10/2026): init riceve anche la freccia
+  function init(canvasEl, puntatore) {
     canvas = canvasEl;
     ctx = canvas.getContext("2d");
+    puntatoreEl = puntatore || null;
     for (let i = 0; i < 260; i++) {
       scintille.push({ a: Math.random(), r: Math.random(), s: 0.6 + Math.random() * 1.6 });
     }
+    creaFisica();
     disegna();
   }
 
@@ -194,6 +226,55 @@ const Ruota = (() => {
   // presa: durante la transizione si disegna la cifra, vedi disegnaJollyOCifra).
   function mostraJolly(seg) {
     return seg.jolly && jollyDisponibile;
+  }
+
+  // Ruota pesante (05/10/2026): anello dorato + pioli, disegnati una volta in uno strato
+  // trasparente grande come il canvas, in coordinate della ruota (centro in
+  // mezzo). A ogni fotogramma si appoggia con drawImage dentro la rotazione.
+  function strato(w, h, rTotale, spessoreAnello, rSpicchi) {
+    if (stratoAnello && stratoAnello.width === w && stratoAnello.height === h) return stratoAnello;
+    const c = document.createElement("canvas");
+    c.width = w; c.height = h;
+    const k = c.getContext("2d");
+    k.translate(w / 2, h / 2);
+    const anelloGrad = k.createLinearGradient(-rTotale, -rTotale, rTotale, rTotale);
+    anelloGrad.addColorStop(0, "#fff2c4");
+    anelloGrad.addColorStop(0.35, "#f3c531");
+    anelloGrad.addColorStop(0.65, "#c2860a");
+    anelloGrad.addColorStop(1, "#8a5c04");
+    k.lineWidth = spessoreAnello;
+    k.strokeStyle = anelloGrad;
+    k.beginPath();
+    k.arc(0, 0, rSpicchi + spessoreAnello / 2, 0, Math.PI * 2);
+    k.stroke();
+    k.lineWidth = 2;
+    k.strokeStyle = "#5c3c02";
+    k.beginPath(); k.arc(0, 0, rSpicchi, 0, Math.PI * 2); k.stroke();
+    k.beginPath(); k.arc(0, 0, rTotale, 0, Math.PI * 2); k.stroke();
+    // i pioli: PIOLI_PER_SPICCHIO per spicchio, tutti uguali, uno ogni
+    // ANGOLO_SPICCHIO / PIOLI_PER_SPICCHIO — i due di confine compresi. Piu`
+    // piccoli di oggi (0.16 dello spessore dell'anello, non 0.24): a 72 la
+    // distanza fra due pioli e` 42 px sul canvas da 1000, e un piolo da 17 px
+    // la mangiava quasi a meta`.
+    const totale = N * PIOLI_PER_SPICCHIO;
+    const rPioli = rSpicchi + spessoreAnello / 2;
+    const raggioPiolo = Math.max(2, spessoreAnello * 0.16);
+    for (let i = 0; i < totale; i++) {
+      const a = (i * Math.PI * 2) / totale;
+      const px = Math.cos(a) * rPioli, py = Math.sin(a) * rPioli;
+      const g = k.createRadialGradient(px - raggioPiolo * 0.3, py - raggioPiolo * 0.3, 0, px, py, raggioPiolo);
+      g.addColorStop(0, "#fff8e2");
+      g.addColorStop(1, "#8a6200");
+      k.beginPath();
+      k.arc(px, py, raggioPiolo, 0, Math.PI * 2);
+      k.fillStyle = g;
+      k.fill();
+      k.lineWidth = 1;
+      k.strokeStyle = "#4a3400";
+      k.stroke();
+    }
+    stratoAnello = c;
+    return c;
   }
 
   function disegna() {
@@ -393,47 +474,13 @@ const Ruota = (() => {
       ctx.restore();
     }
 
-    // 4. bordo esterno + anello dorato + pioli
+    // 4. bordo esterno + anello dorato + pioli — Ruota pesante (05/10/2026): dallo strato in cache
     ctx.lineWidth = 2;
     ctx.strokeStyle = "#0A0E23";
     ctx.beginPath();
     ctx.arc(0, 0, rSpicchi, 0, Math.PI * 2);
     ctx.stroke();
-    const anelloGrad = ctx.createLinearGradient(-rTotale, -rTotale, rTotale, rTotale);
-    anelloGrad.addColorStop(0, "#fff2c4");
-    anelloGrad.addColorStop(0.35, "#f3c531");
-    anelloGrad.addColorStop(0.65, "#c2860a");
-    anelloGrad.addColorStop(1, "#8a5c04");
-    ctx.lineWidth = spessoreAnello;
-    ctx.strokeStyle = anelloGrad;
-    ctx.beginPath();
-    ctx.arc(0, 0, rSpicchi + spessoreAnello / 2, 0, Math.PI * 2);
-    ctx.stroke();
-    ctx.lineWidth = 2;
-    ctx.strokeStyle = "#5c3c02";
-    ctx.beginPath();
-    ctx.arc(0, 0, rSpicchi, 0, Math.PI * 2);
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.arc(0, 0, rTotale, 0, Math.PI * 2);
-    ctx.stroke();
-    const rPioli = rSpicchi + spessoreAnello / 2,
-      raggioPiolo = Math.max(2.5, spessoreAnello * 0.24);
-    for (let i = 0; i < N; i++) {
-      const a0 = i * ANGOLO_SPICCHIO;
-      const px = Math.cos(a0) * rPioli,
-        py = Math.sin(a0) * rPioli;
-      const g = ctx.createRadialGradient(px - raggioPiolo * 0.3, py - raggioPiolo * 0.3, 0, px, py, raggioPiolo);
-      g.addColorStop(0, "#fff8e2");
-      g.addColorStop(1, "#8a6200");
-      ctx.beginPath();
-      ctx.arc(px, py, raggioPiolo, 0, Math.PI * 2);
-      ctx.fillStyle = g;
-      ctx.fill();
-      ctx.lineWidth = 1;
-      ctx.strokeStyle = "#4a3400";
-      ctx.stroke();
-    }
+    ctx.drawImage(strato(w, h, rTotale, spessoreAnello, rSpicchi), -cx, -cy);
     ctx.restore();
 
     // 5. mozzo
@@ -459,6 +506,9 @@ const Ruota = (() => {
     ctx.strokeStyle = "#fff";
     ctx.lineWidth = 1.5;
     ctx.stroke();
+
+    // Ruota pesante (05/10/2026): la freccia segue la lamella del motore: -1..1, il CSS la ruota
+    if (puntatoreEl) puntatoreEl.style.setProperty("--lamella", fisica.S.lamella.toFixed(3));
   }
 
   // ---- il jolly: disponibile/preso, con una piccola transizione ----------
@@ -490,117 +540,81 @@ const Ruota = (() => {
     requestAnimationFrame(passo);
   }
 
-  // ---- fisica della girata: parte con una spinta, rallenta con un ease-out
-  // (mai un giro a scatto secco) ---------------------------------------------
-  function easeSpinRuota(t) {
-    const rt = SPIN_FRAZIONE_SPINTA;
-    if (t <= rt) {
-      return rt * (1 - Math.cos((Math.PI / 2) * (t / rt)));
+  // ---- Ruota pesante (05/10/2026): lo spicchio sotto la freccia, risolto (triplo compreso) ----
+  function esitoSottoFreccia() {
+    const angoloFinale = ((rotazioneCorrente % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2);
+    const angoloSottoPuntatore = ((Math.PI * 1.5 - angoloFinale) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2);
+    const indice = Math.floor(angoloSottoPuntatore / ANGOLO_SPICCHIO) % N;
+    let segmento = SEGMENTI_RUOTA[indice];
+    if (segmento.tipo === "triplo") {
+      const inizioSpicchio = indice * ANGOLO_SPICCHIO;
+      const resto = angoloSottoPuntatore - inizioSpicchio;
+      const terzo = Math.min(2, Math.floor(resto / (ANGOLO_SPICCHIO / 3)));
+      segmento = terzo === 1 ? { tipo: "raddoppia" } : { tipo: "bancarotta" };
     }
-    const u = (t - rt) / (1 - rt);
-    return rt + (1 - rt) * Math.sin((Math.PI / 2) * u);
+    return { segmento, indice };
   }
 
-  // Fa girare la ruota e alla fine chiama onFine(segmentoVinto, indice).
-  // Quando la freccia si ferma sullo spicchio "triplo" (indice 12), il
-  // segmento restituito NON e` mai `{tipo:"triplo"}` — e` gia` risolto in
-  // quale dei tre quinti la freccia e` caduta: bancarotta (i due lati, 5°
-  // ciascuno) o raddoppia (il centro, 5°). gioco.js non deve sapere niente
-  // della sotto-divisione: riceve sempre un tipo che sa gia` gestire.
-  function gira(durataMs, angoloTotale, onTic, onFine) {
+  // ---- Ruota pesante (05/10/2026): la ruota lasciata a se stessa: un fotogramma dopo l'altro
+  // finche` il motore dice "ferma". Uguale per pulsante e mano.
+  let ultimoPasso = 0;
+  let lancioValido = true;
+  function animaLibera(onTic, onFine, onFermaNonValida) {
+    ultimoPasso = performance.now();
+    function frame(ora) {
+      const dt = Math.max(0.001, Math.min(0.1, (ora - ultimoPasso) / 1000));
+      ultimoPasso = ora;
+      const fermata = fisica.passo(dt, (verso) => { if (onTic) onTic(verso); });
+      rotazioneCorrente = fisica.S.theta;
+      if (!fermata) {
+        disegna();
+        requestAnimationFrame(frame);
+        return;
+      }
+      animando = false;
+      onTicGesto = null;
+      if (!lancioValido) {
+        evidenziato = null;
+        disegna();
+        // "Più forte!" e` gia` stato detto al rilascio (terminaTrascinamento).
+        // Ma i comandi dipendono da inAnimazione(), che fino a qui era vero:
+        // ora che la ruota e` ferma chi chiama deve poterli riaccendere.
+        if (onFermaNonValida) onFermaNonValida();
+        return;
+      }
+      const { segmento, indice } = esitoSottoFreccia();
+      evidenziato = indice;
+      disegna();
+      if (onFine) onFine(segmento, indice);
+    }
+    requestAnimationFrame(frame);
+  }
+
+  // Ruota pesante (05/10/2026): Fa girare la ruota con la mano finta: forza 0..1 (niente = a
+  // caso). Alla fine chiama onFine(segmentoVinto, indice), come prima.
+  function gira(forza, onTic, onFine) {
     if (animando) return;
     animando = true;
     evidenziato = null;
-    const partenza = rotazioneCorrente;
-    const inizio = performance.now();
-    let ultimoTic = -1;
-
-    function frame(ora) {
-      const t = Math.min(1, (ora - inizio) / durataMs);
-      const eased = easeSpinRuota(t);
-      rotazioneCorrente = partenza + angoloTotale * eased;
-      disegna();
-
-      const spicchiPercorsi = Math.floor((angoloTotale * eased) / ANGOLO_SPICCHIO);
-      if (spicchiPercorsi !== ultimoTic) {
-        ultimoTic = spicchiPercorsi;
-        if (onTic) onTic();
-      }
-
-      if (t < 1) {
-        requestAnimationFrame(frame);
-      } else {
-        animando = false;
-        const angoloFinale = ((rotazioneCorrente % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2);
-        // il puntatore e` fisso in alto (-PI/2 rispetto allo 0 del canvas):
-        // lo spicchio sotto e` quello il cui intervallo, ruotato, copre -PI/2.
-        const angoloSottoPuntatore = ((Math.PI * 1.5 - angoloFinale) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2);
-        const indice = Math.floor(angoloSottoPuntatore / ANGOLO_SPICCHIO) % N;
-        evidenziato = indice;
-        disegna();
-
-        let segmentoEsito = SEGMENTI_RUOTA[indice];
-        if (segmentoEsito.tipo === "triplo") {
-          const inizioSpicchio = indice * ANGOLO_SPICCHIO;
-          const resto = angoloSottoPuntatore - inizioSpicchio;
-          const terzo = Math.min(2, Math.floor(resto / (ANGOLO_SPICCHIO / 3)));
-          segmentoEsito = terzo === 1 ? { tipo: "raddoppia" } : { tipo: "bancarotta" };
-        }
-        onFine(segmentoEsito, indice);
-      }
-    }
-    requestAnimationFrame(frame);
+    lancioValido = true;
+    fisica.imposta(rotazioneCorrente, 0);
+    fisica.spingi(forza === undefined || forza === null ? Math.random() : forza);
+    animaLibera(onTic, onFine);
   }
 
   function inAnimazione() {
     return animando;
   }
 
-  // ---- trascinamento (punti 61-62, 29/09/2026): si afferra, si trascina,
-  // si lascia — la velocita` di partenza nasce dal gesto, poi si frena per
-  // attrito costante come un oggetto pesante. -------------------------------
-
+  // ---- trascinamento (punti 61-62): si afferra, si trascina, si lascia ----
   let trascinando = false;
-  let angoloCursoreGrezzoPrec = 0; // ultimo angolo (screen-space) letto dal puntatore, non "srotolato"
-  let rotazioneTargetTrascina = 0; // dove punta il dito ADESSO (srotolato): la ruota lo rincorre
-  let storiaAngoliTrascina = []; // {t, angolo} recenti, per calcolare la velocita` al rilascio
+  let angoloCursoreGrezzoPrec = 0;
+  let rotazioneTargetTrascina = 0;
+  let storiaAngoliTrascina = [];
   let rafTrascina = null;
-  let onTicGesto = null; // callback tic, valido per tutta la durata del gesto (drag + frenata)
-  // Voce B, tredicesimo giro (29/09/2026): la velocita` di rilascio si
-  // calcola sulla ruota DISEGNATA, non sul bersaglio della mano — altrimenti
-  // uno scatto secco della mano, frenato subito dal ritardo, dava uno
-  // scalino di velocita` al rilascio (la ruota sembrava frenare di colpo).
-  let storiaRuotaTrascina = []; // {t, angolo} della ruota disegnata
-  let ultimoPassoTrascina = null; // orologio in millisecondi, non in fotogrammi (uguale a ogni Hz)
-
-  // tic ("la freccia sbatte sui pioli", punto 55/62): conta quanti spicchi
-  // ha attraversato la ruota RENDERIZZATA (non il bersaglio del dito), sia
-  // durante il trascinamento sia durante la frenata — stesso principio del
-  // tic di gira() ma basato sulla distanza assoluta percorsa, perche` qui
-  // (a differenza di gira()) la direzione puo` invertirsi.
-  let rotazionePrecedenteTic = 0;
-  let distanzaPercorsaTic = 0;
-  let ultimoSpicchioTic = 0;
-
-  function resettaTicPercorso() {
-    rotazionePrecedenteTic = rotazioneCorrente;
-    distanzaPercorsaTic = 0;
-    ultimoSpicchioTic = 0;
-  }
-
-  function aggiornaTicPercorso() {
-    // Voce E, tredicesimo giro (29/09/2026, facoltativa): il verso di questo
-    // passo (positivo = orario, negativo = antiorario) passa a onTicGesto,
-    // cosi` chi ascolta puo` piegare la freccia dalla parte giusta.
-    const verso = Math.sign(rotazioneCorrente - rotazionePrecedenteTic) || 1;
-    distanzaPercorsaTic += Math.abs(rotazioneCorrente - rotazionePrecedenteTic);
-    rotazionePrecedenteTic = rotazioneCorrente;
-    const spicchi = Math.floor(distanzaPercorsaTic / ANGOLO_SPICCHIO);
-    if (spicchi !== ultimoSpicchioTic) {
-      ultimoSpicchioTic = spicchi;
-      if (onTicGesto) onTicGesto(verso);
-    }
-  }
+  let onTicGesto = null;
+  let storiaRuotaTrascina = [];
+  let ultimoPassoTrascina = null;
 
   function angoloDaPunto(clientX, clientY) {
     const rect = canvas.getBoundingClientRect();
@@ -609,8 +623,6 @@ const Ruota = (() => {
     return Math.atan2(clientY - cy, clientX - cx);
   }
 
-  // Porta (a-b) nell'intervallo (-PI, PI]: evita il "salto" di 2*PI quando
-  // l'angolo grezzo (atan2, sempre fra -PI e PI) attraversa il taglio.
   function differenzaAngolareCorta(a, b) {
     let d = a - b;
     const giro = Math.PI * 2;
@@ -619,9 +631,6 @@ const Ruota = (() => {
     return d;
   }
 
-  // true se si puo` cominciare un trascinamento adesso (ruota gia` ferma e
-  // non gia` in mano) — gioco.js chiama questo prima di ascoltare il resto
-  // del gesto, cosi` un pointerdown a meta` di un'altra girata non fa nulla.
   function puoIniziareTrascinamento() {
     return !animando && !trascinando;
   }
@@ -629,15 +638,16 @@ const Ruota = (() => {
   function iniziaTrascinamento(clientX, clientY, onTic) {
     if (!puoIniziareTrascinamento()) return false;
     trascinando = true;
-    animando = true; // blocca il pulsante e un secondo trascinamento, come durante gira()
+    animando = true;
     evidenziato = null;
     onTicGesto = onTic || null;
     angoloCursoreGrezzoPrec = angoloDaPunto(clientX, clientY);
     rotazioneTargetTrascina = rotazioneCorrente;
     storiaAngoliTrascina = [{ t: performance.now(), angolo: rotazioneTargetTrascina }];
-    storiaRuotaTrascina = [{ t: performance.now(), angolo: rotazioneCorrente }]; // Voce B
-    ultimoPassoTrascina = performance.now(); // Voce B
-    resettaTicPercorso();
+    storiaRuotaTrascina = [{ t: performance.now(), angolo: rotazioneCorrente }];
+    ultimoPassoTrascina = performance.now();
+    fisica.inMano(true);
+    fisica.imposta(rotazioneCorrente, 0);
     if (!rafTrascina) rafTrascina = requestAnimationFrame(passoTrascinamento);
     return true;
   }
@@ -650,24 +660,21 @@ const Ruota = (() => {
     rotazioneTargetTrascina += delta;
     const ora = performance.now();
     storiaAngoliTrascina.push({ t: ora, angolo: rotazioneTargetTrascina });
-    // tiene solo un po' piu` della finestra che serve al calcolo della
-    // velocita` (TRASCINA_FINESTRA_VELOCITA_MS, config.js): il resto si
-    // scarta, cosi` la lista non cresce senza limite durante un
-    // trascinamento lungo.
     const soglia = ora - TRASCINA_FINESTRA_VELOCITA_MS * 3;
     while (storiaAngoliTrascina.length > 2 && storiaAngoliTrascina[0].t < soglia) {
       storiaAngoliTrascina.shift();
     }
   }
 
-  // Ad ogni fotogramma, mentre si trascina: la ruota rincorre il dito con
-  // un po' di inerzia (punto 62, "non e` incollata al cursore"), non ci si
-  // scatta sopra di colpo. Voce B, tredicesimo giro (29/09/2026): il
-  // rincorrere e` calcolato sul TEMPO trascorso (TRASCINA_RITARDO_MS), non
-  // piu` a frazione fissa per fotogramma — cosi` il ritardo e` lo stesso a
-  // 60, 120 o 144 Hz. Il passo e` anche limitato a TRASCINA_VELOCITA_MAX_RAD_S,
-  // e se la mano corre via troppo il bersaglio scivola (TRASCINA_STACCO_MAX_RAD)
-  // invece di restare agganciato a distanza illimitata.
+  // Ruota pesante (05/10/2026): in mano: la ruota rincorre il dito con il ritardo di una
+  // ruota pesante — TRASCINA_RITARDO_MS per la massa (secondo giro: 300 ms
+  // a inerzia 1, 390 a 1,3; era 220, e prima ancora 95) — e non supera mai
+  // la velocita` della girata piu` forte (il tetto lo da` il motore). Lo
+  // stacco massimo fra dito e ruota non e` piu` una costante: e` quello che
+  // si ha andando al tetto con questo ritardo (tetto x ritardo), cosi` la
+  // mano che corre scivola sulla ruota, e la ruota in mano non va mai oltre
+  // il tetto. I tic in mano si contano sui pioli, con fisica.tic.
+  function ritardoMano() { return TRASCINA_RITARDO_MS * fisica.P.inerzia; }
   function passoTrascinamento() {
     if (!trascinando) {
       rafTrascina = null;
@@ -676,112 +683,67 @@ const Ruota = (() => {
     const ora = performance.now();
     const dt = Math.max(1, Math.min(50, ora - ultimoPassoTrascina));
     ultimoPassoTrascina = ora;
-    let passo = (rotazioneTargetTrascina - rotazioneCorrente) * (1 - Math.exp(-dt / TRASCINA_RITARDO_MS));
-    const passoMax = (TRASCINA_VELOCITA_MAX_RAD_S * dt) / 1000;
+    const ritardo = ritardoMano();
+    let passo = (rotazioneTargetTrascina - rotazioneCorrente) * (1 - Math.exp(-dt / ritardo));
+    const tetto = fisica.velocitaTetto();
+    const passoMax = (tetto * dt) / 1000;
     passo = Math.max(-passoMax, Math.min(passoMax, passo));
+    const prima = rotazioneCorrente;
     rotazioneCorrente += passo;
     const stacco = rotazioneTargetTrascina - rotazioneCorrente;
-    if (Math.abs(stacco) > TRASCINA_STACCO_MAX_RAD) {
-      rotazioneTargetTrascina = rotazioneCorrente + Math.sign(stacco) * TRASCINA_STACCO_MAX_RAD;
+    const staccoMax = (tetto * ritardo) / 1000;
+    if (Math.abs(stacco) > staccoMax) {
+      rotazioneTargetTrascina = rotazioneCorrente + Math.sign(stacco) * staccoMax;
     }
     storiaRuotaTrascina.push({ t: ora, angolo: rotazioneCorrente });
     while (storiaRuotaTrascina.length > 2 && storiaRuotaTrascina[0].t < ora - TRASCINA_FINESTRA_VELOCITA_MS * 3) {
       storiaRuotaTrascina.shift();
     }
+    fisica.imposta(rotazioneCorrente, passo / (dt / 1000));
+    // la lamella si piega anche in mano (il motore la aggiorna senza muovere la ruota)
+    fisica.S.lamella = lamellaInMano();
     disegna();
-    aggiornaTicPercorso();
+    const t = fisica.tic(prima, rotazioneCorrente);
+    if (t && onTicGesto) onTicGesto(t);
     rafTrascina = requestAnimationFrame(passoTrascinamento);
   }
 
-  // Fine del gesto (rilascio): calcola la velocita` dell'ultimo istante
-  // (finestra TRASCINA_FINESTRA_VELOCITA_MS), poi frena per attrito
-  // costante (ATTRITO_RUOTA_RAD_S2). Se il giro fatto DAL RILASCIO e` sotto
-  // GIRO_MINIMO_VALIDO_TURNI chiama onNonValido() (la ruota resta ferma
-  // dov'e`, il lancio non conta); altrimenti chiama onFine(segmento,
-  // indice), stessa forma di gira().
-  function terminaTrascinamento(onFine, onNonValido) {
+  // Ruota pesante (05/10/2026): deflessione della lamella mentre la ruota e` in mano: segue il
+  // piolo nella finestra, nel verso in cui la ruota si sta muovendo.
+  function lamellaInMano() {
+    const p = fisica.fase(rotazioneCorrente);
+    const W = fisica.FINESTRA / fisica.PASSO_PIOLO;
+    const verso = fisica.S.omega >= 0 ? 1 : -1;
+    if (verso > 0 && p > 0 && p <= W) return (W - p) / W;
+    if (verso < 0 && p >= 1 - W && p < 1) return -((p - (1 - W)) / W);
+    return fisica.S.lamella * 0.6; // ritorno rapido, un fotogramma alla volta
+  }
+
+  // Ruota pesante (05/10/2026): Fine del gesto: la velocita` di rilascio e` quella della ruota
+  // disegnata (finestra TRASCINA_FINESTRA_VELOCITA_MS); poi la ruota e` del
+  // motore. Se il lancio non vale (sotto GIRO_MINIMO_VALIDO_TURNI) si dice
+  // SUBITO (onNonValido al rilascio), mentre la ruota si pianta.
+  function terminaTrascinamento(onFine, onNonValido, onFermaNonValida) {
     if (!trascinando) return;
     trascinando = false;
-
     const ora = performance.now();
-    // Voce B: la velocita` di rilascio e` quella della ruota DISEGNATA
-    // (storiaRuotaTrascina), non quella del bersaglio della mano — cosi` non
-    // c'e` nessuno scalino fra "mentre si trascina" e "appena rilasciata".
     const recenti = storiaRuotaTrascina.filter((c) => ora - c.t <= TRASCINA_FINESTRA_VELOCITA_MS);
     const riferimento =
       recenti.length >= 2 ? recenti[0] : storiaRuotaTrascina[Math.max(0, storiaRuotaTrascina.length - 2)];
     const ultimo = storiaRuotaTrascina[storiaRuotaTrascina.length - 1];
-
     let velocita = 0;
     if (riferimento && ultimo && ultimo.t > riferimento.t) {
       velocita = (ultimo.angolo - riferimento.angolo) / ((ultimo.t - riferimento.t) / 1000);
     }
-    velocita = Math.max(-TRASCINA_VELOCITA_MAX_RAD_S, Math.min(TRASCINA_VELOCITA_MAX_RAD_S, velocita));
-
-    const direzione = velocita >= 0 ? 1 : -1;
-    const velocitaAbs = Math.abs(velocita);
-    // Voce B: il lancio vale se, con l'attrito normale, farebbe almeno
-    // GIRO_MINIMO_VALIDO_TURNI; se non vale, frena con l'attrito debole e si
-    // pianta in meno di 0,6s invece di scorrere a lungo prima di scoprire
-    // che non contava.
-    const vSoglia = Math.sqrt(2 * ATTRITO_RUOTA_RAD_S2 * GIRO_MINIMO_VALIDO_TURNI * Math.PI * 2);
-    const valido = velocitaAbs >= vSoglia;
-    const attrito = valido ? ATTRITO_RUOTA_RAD_S2 : ATTRITO_LANCIO_NON_VALIDO_RAD_S2;
-    const durataFrenataSec = velocitaAbs / attrito; // T = v0 / a (attrito costante)
-    const angoloTotale = (velocitaAbs * velocitaAbs) / (2 * attrito); // s = v0^2 / (2a)
-
-    const partenza = rotazioneCorrente;
-    const inizio = performance.now();
-    const durataMs = Math.max(1, durataFrenataSec * 1000);
-
-    function frame(ora2) {
-      const t = Math.min(1, (ora2 - inizio) / durataMs);
-      const tSec = t * durataFrenataSec;
-      // v(t) = v0 - a*t ; s(t) = v0*t - 1/2*a*t^2 (attrito costante, punto 62)
-      const s = velocitaAbs * tSec - 0.5 * attrito * tSec * tSec;
-      rotazioneCorrente = partenza + direzione * s;
-      disegna();
-      aggiornaTicPercorso();
-
-      if (t < 1) {
-        requestAnimationFrame(frame);
-        return;
-      }
-
-      animando = false;
-      onTicGesto = null;
-
-      if (!valido) {
-        evidenziato = null;
-        disegna();
-        if (onNonValido) onNonValido();
-        return;
-      }
-
-      const angoloFinale = ((rotazioneCorrente % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2);
-      const angoloSottoPuntatore = ((Math.PI * 1.5 - angoloFinale) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2);
-      const indice = Math.floor(angoloSottoPuntatore / ANGOLO_SPICCHIO) % N;
-      evidenziato = indice;
-      disegna();
-
-      let segmentoEsito = SEGMENTI_RUOTA[indice];
-      if (segmentoEsito.tipo === "triplo") {
-        const inizioSpicchio = indice * ANGOLO_SPICCHIO;
-        const resto = angoloSottoPuntatore - inizioSpicchio;
-        const terzo = Math.min(2, Math.floor(resto / (ANGOLO_SPICCHIO / 3)));
-        segmentoEsito = terzo === 1 ? { tipo: "raddoppia" } : { tipo: "bancarotta" };
-      }
-      if (onFine) onFine(segmentoEsito, indice);
-    }
-    requestAnimationFrame(frame);
+    fisica.imposta(rotazioneCorrente, 0);
+    lancioValido = fisica.lascia(velocita, GIRO_MINIMO_VALIDO_TURNI);
+    if (!lancioValido && onNonValido) onNonValido();
+    animaLibera(onTicGesto, onFine, onFermaNonValida);
   }
 
-  // Il dito solleva il tocco fuori dallo schermo, o il gesto viene
-  // interrotto (pointercancel): stesso esito di un rilascio, cosi` il gioco
-  // non resta bloccato con "animando" vero per sempre.
-  function annullaTrascinamento(onNonValido) {
+  function annullaTrascinamento(onNonValido, onFermaNonValida) {
     if (!trascinando) return;
-    terminaTrascinamento(null, onNonValido);
+    terminaTrascinamento(null, onNonValido, onFermaNonValida);
   }
 
   return {

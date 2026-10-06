@@ -4,13 +4,23 @@ Versione per versione, la più recente in cima. Si gioca su https://giraleparole
 
 ## In arrivo
 
-Idee già scelte ma non ancora costruite. L'ordine non è quello in cui arriveranno, e qualcuna può cambiare strada facendo.
+Le prime quattro sono idee già scelte ma non ancora costruite; le ultime tre sono ancora solo idee, e possono cambiare o non arrivare. L'ordine non è quello in cui arriveranno.
 
-- **Il round lampo.** Le lettere si accendono da sole, una alla volta, e risponde chi prenota per primo. Vale poco, ma decide chi apre il round.
 - **La frase premio.** Una frase a partita nasconde un premio, per esempio un jolly in più o la cassaforte raddoppiata. Lo si scopre solo risolvendola.
 - **L'albo d'oro.** Il gioco si ricorderà partite e record: chi vince più spesso, la vincita più alta, la frase risolta con meno lettere.
-- **Le frasi dei ragazzi.** Una pagina dove scrivere frasi proprie, con la loro categoria. Finiscono nel mazzo di casa, e quando escono il gioco dice chi le ha scritte.
+- **Le frasi dei ragazzi.** Una pagina dove scrivere frasi proprie, con il loro indizio. Finiscono nel mazzo di casa, e quando escono il gioco dice chi le ha scritte.
 - **La sfida con un link.** Si scrive una frase e la si manda con un link: chi lo apre la gioca da solo.
+- **Spicchi nuovi sulla ruota.** Quali, non è ancora deciso. Fra le idee: Robin Hood, che porta via 500 € a chi è in testa, e Congela, con cui scegliete chi salta il prossimo turno.
+- **Partite a tema.** Ci sto pensando: prima di cominciare si sceglie che serata è, e la ruota cambia qualche spicchio. In famiglia, per esempio, uno spicchio che vale una caramella vera, o uno che stasera vi libera dai piatti.
+- **I telefoni.** È l'idea più lontana: il telefono come pulsante per prenotarsi nel round lampo, e un giorno, forse, per giocare tutto, anche da case diverse. Prima bisogna capire se si può fare.
+
+## 2.2 — 6 ottobre 2026 · Chi tocca prima
+
+- **La ruota pesa.** Parte piano, come se una mano la accompagnasse per un paio di secondi, poi rallenta a lungo: in tutto fa più o meno un giro. Ogni spicchio ha due pioli anche in mezzo: la freccia si piega su ognuno, e non resta mai a cavallo fra due spicchi. Nemmeno uno strappo con la mano la fa partire come una trottola.
+- **Il round lampo.** Fra un round e l'altro le lettere si accendono da sole. Chi la sa tocca lo schermo o preme un tasto: chi fa da arbitro tocca la tessera del primo, che ha 15 secondi per scrivere la frase. Chi indovina prende 500 € e apre il round; chi sbaglia, per quel lampo è fuori. Si accende con la leva «Round lampo» all'iscrizione.
+- **Il mazzo nuovo.** Sul tabellone, al posto della categoria, c'è un indizio che dice di cosa parla la frase: un animale, un posto e una data, una canzone. La frase, di solito, ne racconta una curiosità. Proverbi e modi di dire scendono da 65 a 28, e in una partita non escono mai due frasi dello stesso tipo.
+- **«Come si gioca»** adesso è un pulsante bianco, e la prima volta che aprite il gioco si apre da solo. Le Novità, invece, si aprono da sole dopo ogni aggiornamento, con solo quello che vi siete persi.
+- Il tabellone non esce più dallo schermo su alcuni portatili, e nella schermata finale il totale di chi vince non si taglia più.
 
 ## 2.1 — 30 settembre 2026 · Niente lettere a metà
 

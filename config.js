@@ -354,128 +354,88 @@ const CHIAVE_NOVITA_VISTE = "giraleparole-novita-viste";
 const CHIAVE_FRASI_NOSTRE = "giraleparole-frasi-nostre"; // scritta dalla pagina "Le nostre frasi" (giro C, non ancora costruita)
 
 // ----------------------------------------------------------------------------
-// GIRO B E GIRO C — non ancora costruiti (round lampo, frase premio, albo
-// d'oro, le nostre frasi, sfida): un solo interruttore nasconde tutto quello
-// che li riguarda nell'iscrizione e nella mini guida — «Come si gioca» mostra
-// solo le prime 6 voci finché resta false. Giovedì, quando si costruiscono,
-// basta girare questo a true.
+// GIRO B (frase premio) E GIRO C (albo d'oro, le nostre frasi, sfida) — non
+// ancora costruiti: un solo interruttore nasconde tutto quello che li
+// riguarda nell'iscrizione e nella mini guida — «Come si gioca» mostra solo
+// le prime 6 voci finche` resta false. Il round lampo (giro B, B1) NON
+// dipende piu` da questo: ha il suo interruttore qui sotto (LAMPO_ATTIVO), che
+// accende anche la voce 7 della guida (riscritta il 05/10/2026, vedi GUIDA in
+// gioco.js). Quando si costruisce la frase premio, questo si gira a true e la
+// guida mostra anche la voce 8.
 // ----------------------------------------------------------------------------
 const GIRO_B_C_ATTIVO = false;
 
 // ----------------------------------------------------------------------------
-// FISICA DELLA RUOTA — "gira come una ruota vera", non a scatto
+// IL ROUND LAMPO (giro B, voce B1 — disegno di Chiara, 05/10/2026, con le
+// modifiche di Damiano dello stesso giorno: la prenotazione e` un tocco o un
+// tasto QUALUNQUE, poi chi fa da arbitro tocca la tessera di chi ha toccato
+// per primo; 15 secondi per rispondere, non 10; quando appare e` deciso da
+// LAMPO_QUANDO). Le lettere si accendono da sole una alla volta, chi indovina
+// la frase porta a casa il premio e apre il round dopo. Nessun suono: la
+// scheda non lo prevede.
 // ----------------------------------------------------------------------------
-// Quarto giro, punto 21 (28/09/2026): "gira molto piu` lentamente, come se
-// fosse una persona a farla girare — un giro e mezzo, forse tre, e una
-// frenata lunga e naturale". Prima erano 4-7 giri in 4.2-6 secondi: la
-// girata sembrava un motore che frena, non una spinta di mano.
-//
-// GIRI_MINIMI + GIRI_EXTRA_CASUALI decidono i giri INTERI (1 o 2, a caso);
-// la frazione random si aggiunge sotto (ANGOLO_EXTRA_MIN/MAX_TURNI, usata
-// in gioco.js). Combinati, il totale di ogni girata cade sempre fra 1,5 e
-// 3 giri pieni, mai fuori da quella forchetta:
-//  - 1,5-2,0 giri se esce il giro intero piu` basso (1);
-//  - 2,5-3,0 giri se esce quello piu` alto (2).
-const GIRI_MINIMI = 1;          // giri completi minimi, prima della frazione extra
-const GIRI_EXTRA_CASUALI = 1;   // giri completi aggiuntivi, scelti a caso (0 o 1)
+const LAMPO_ATTIVO = true;           // false = il lampo sparisce del tutto (leva dell'iscrizione compresa)
+const LAMPO_INTERVALLO_MS = 1200;    // una lettera si accende ogni 1,2 s
+const LAMPO_SECONDI = 15;            // chi risponde ha 15 s, contati dal tocco sulla sua tessera (non da quello che ferma le lettere)
+const LAMPO_PREMIO = 500;            // in cassaforte, a chi indovina
+const LAMPO_MAX_LETTERE = 22;        // «frase breve»: al massimo 22 lettere (spazi esclusi)
+const DURATA_ANNUNCIO_LAMPO_MS = 2400;
 
-// La frazione di giro "extra" che si somma sempre ai giri interi qui sopra:
-// fra mezzo giro e un giro intero, mai meno, mai di piu`.
-const ANGOLO_EXTRA_MIN_TURNI = 0.5;
-const ANGOLO_EXTRA_MAX_TURNI = 1.0;
-
-const DURATA_SPIN_MS_MIN = 7000; // durata minima di una girata, in millisecondi
-const DURATA_SPIN_MS_MAX = 9000; // durata massima di una girata, in millisecondi
-
-// Terzo giro, punto 14: "la partenza e` troppo veloce, il rallentamento va
-// bene". La curva di prima (easeOutCubic pura) partiva gia` alla velocita`
-// massima e da li` decelerava soltanto: non c'era mai stata una vera spinta
-// iniziale, era gia` tutta frenata.
-// Ora la girata ha due tratti, uno che sale e uno che scende (due quarti di
-// onda sinusoidale, saldati dove si incontrano): prima una SPINTA che parte
-// da ferma e acquista velocita` piano, poi una FRENATA che rallenta piano
-// fino a fermarsi — proprio come una ruota vera. I due tratti si uniscono
-// senza scatti (la velocita` nel punto di saldatura e` la stessa arrivando
-// da un lato e partendo dall'altro, per costruzione: e` la ragione per cui
-// la formula usa lo stesso numero come ampiezza di entrambi i tratti).
-// Un solo numero da ritoccare: quanto dura la spinta iniziale, in frazione
-// del tempo totale della girata. Piu` piccolo = spinta piu` breve e brusca,
-// piu` grande = partenza piu` lunga e dolce.
-//
-// Quarto giro, punto 21: portato da 0.15 a 0.45. Con una spinta cosi` lunga
-// la velocita` resta bassa per buona parte del primo secondo (misurato: nel
-// caso piu` lento del primo secondo si vedono ~1,1 spicchi, nel caso piu`
-// veloce ~4 spicchi su 24 totali — mai un lampo indistinguibile), e la
-// frenata che segue occupa il restante 55% della durata: piu` lunga della
-// spinta, come chiesto.
-const SPIN_FRAZIONE_SPINTA = 0.45;
+// Dopo quale round si puo` fare il lampo, per numero di round della partita
+// (Damiano, 05/10/2026: «non solo una volta a partita... tre round due volte,
+// cinque round tre volte, sette round quattro o cinque volte, tanto e`
+// veloce»). `dopo` = i round dopo la cui fine puo` apparire; `quanti` = quanti
+// di quelli se ne estraggono a caso a ogni partita: un numero fisso, oppure
+// [min, max] (allora anche il numero si estrae a caso).
+//  - 3 round: dopo il primo e dopo il secondo (2 su 2: tutti e due, ogni
+//    partita), non dopo il terzo;
+//  - 5 round: 3 volte, a caso fra i 4 posti dopo il 1, 2, 3 e 4 (Damiano,
+//    05/10: «per il lampo a caso a partire dal primo»). Mai dopo l'ultimo;
+//  - 7 round: 4 o 5 volte, a caso, sempre senza lampo dopo il primo round:
+//    fra i 5 posti dopo il 2, 3, 4, 5 e 6 (lettura di Erbottega/Alfred: per i
+//    7 round Damiano non si e` espresso).
+// Un numero di round che non sta qui non ha lampo.
+const LAMPO_QUANDO = {
+  3: { dopo: [1, 2], quanti: 2 },
+  5: { dopo: [1, 2, 3, 4], quanti: 3 },
+  7: { dopo: [2, 3, 4, 5, 6], quanti: [4, 5] },
+};
 
 // ----------------------------------------------------------------------------
-// TRASCINAMENTO DELLA RUOTA (punti 61-62, 29/09/2026)
+// LA RUOTA PESANTE (05/10/2026, disegno di Chiara, design/2026-10-05-ruota-pesante.md)
+// Un solo motore (fisica-ruota.js) per il pulsante e per la mano: cambia solo
+// da dove arriva la velocita` di partenza. Damiano: «dovremmo trovare un modo
+// per simulare BENE una ruota vera, grossa e pesante». Provata e scelta da
+// lui il 05/10 sul prototipo: posizione «Più pesante», 72 pioli («la ruota
+// cosi` e` BELLISSIMA, ora il movimento e` moooolto piu` naturale»).
+// Sostituisce i vecchi blocchi «FISICA DELLA RUOTA» (punto 21, giri e durata
+// fissi con easing) e «TRASCINAMENTO DELLA RUOTA» (punti 61-62).
 // ----------------------------------------------------------------------------
-// "Girare davvero la ruota, trascinandola col mouse o col dito... la si
-// afferra, la si trascina e la si lascia: la velocita` di partenza nasce da
-// quella del gesto nel momento del rilascio." Mentre si trascina la ruota
-// rincorre la mano con un po' di inerzia, non incollata al cursore ("in TV
-// dal vivo non pesa poco" — punto 62); dopo il rilascio frena per attrito
-// come un oggetto pesante. Il pulsante "Gira la ruota" resta INVARIATO (la
-// fisica di GIRI_MINIMI/DURATA_SPIN_MS_MIN-MAX/SPIN_FRAZIONE_SPINTA qui
-// sopra, gia` approvata — "la ruota ora gira bene"): questi numeri governano
-// SOLO il trascinamento, un motore fisico separato (vedi ruota.js).
+const PIOLI_PER_SPICCHIO = 3;             // 3 intervalli per spicchio = un piolo ogni 5°, 72 in tutto (TV: foto 01 e 04 di riferimento/tv-gerry-scotti)
+const RUOTA_INERZIA = 1.3;                // la massa: 1 = la ruota del primo giro («troppo leggera»), 1,3 = pesa un terzo in piu`. Divide le due frenate qui sotto
+const ATTRITO_CUSCINETTO_RAD_S2 = 0.05;   // la ruota frena sempre un po', costante (a massa 1)
+const LAMELLA_RESISTENZA_RAD_S2 = 0.2;    // quanto frena un piolo mentre piega la lamella, a velocita` quasi zero (a massa 1)
+const LAMELLA_VELOCITA_RIF_RAD_S = 0.8;   // a questa velocita` la resistenza raddoppia: un urto forte costa piu` di uno lento
+const LAMELLA_FINESTRA_GRADI = 1.8;       // gradi di corsa in cui il piolo piega la lamella prima di scappare via
+const LAMELLA_RESTITUZIONE = 0.5;         // energia che la lamella restituisce nel rimbalzo (0..1)
+const LAMELLA_SCATTO_RAD_S = 0.08;        // scatto minimo in avanti quando la lamella scappa dal piolo: mai ferma SUL piolo
+const RUOTA_VELOCITA_FERMO_RAD_S = 0.05;  // sotto questa velocita`, fuori dalla lamella, la ruota e` ferma
+const LAMELLA_RITORNO_MS = 30;            // costante di tempo con cui la freccia torna dritta dopo un piolo
+const SPINTA_CORSA_GRADI_MIN = 60;        // la corsa della mano nella spinta piu` debole: tira il bordo per 60°
+const SPINTA_CORSA_GRADI_MAX = 90;        // ...e nella piu` forte: un quarto di giro, da sopra al fianco. Quanto dura lo decide la ruota (2 – 2,25 s)
+const LANCIO_GIRI_MIN = 0.8;              // giri della girata piu` debole del pulsante, spinta compresa (era 1,0)
+const LANCIO_GIRI_MAX = 1.25;             // giri della girata piu` forte del pulsante; e` anche il tetto della mano vera (era 1,6)
+const ATTRITO_LANCIO_NON_VALIDO_RAD_S2 = 1.2; // un lancio a mano sotto il mezzo giro si pianta cosi` (regola di gioco, non fisica)
+const TRASCINA_RITARDO_MS = 300;          // in mano, quanto la ruota ritarda sul dito a massa 1; si moltiplica per RUOTA_INERZIA (390 ms). Era 220, e prima 95
+const TRASCINA_FINESTRA_VELOCITA_MS = 120; // quanti ms di storia recente si guardano per la velocita` di rilascio
 
-// Voce B, tredicesimo giro (29/09/2026, controllo di Chiara,
-// `design/2026-09-29-scheda-dodicesimo-giro.md`): il ritardo della mano si
-// misura in millisecondi, non piu` "per fotogramma" — TRASCINA_SMORZAMENTO
-// (0.16 a ogni fotogramma) valeva circa 95ms a 60Hz ma meno della meta` su
-// uno schermo a 144Hz, e la ruota sembrava piu` leggera a seconda dello
-// schermo. Con un tempo in millisecondi il ritardo e` lo stesso ovunque.
-const TRASCINA_RITARDO_MS = 95;
-
-// Quanti millisecondi di storia recente si guardano per calcolare la
-// velocita` di rilascio: un rallentamento della mano appena prima di
-// lasciare la presa conta, un campione troppo vecchio no.
-const TRASCINA_FINESTRA_VELOCITA_MS = 120;
-
-// Tetto alla velocita` di rilascio misurata, in radianti al secondo — un
-// trascinamento irregolare (piu` facile su schermo touch, dove due eventi
-// possono arrivare a distanza di un salto grande) non lancia la ruota oltre
-// questo. Voce B, tredicesimo giro: prima erano 6,5 rad/s (25 spicchi/s), e
-// il lancio piu` forte durava 13s e faceva 6,7 giri (non 5,4 come diceva
-// erroneamente questo commento) — troppo, e sopra la girata col pulsante.
-// Ora il tetto e` lo stesso della girata piu` veloce del pulsante, 4,2 rad/s
-// = 16 spicchi/s: nessun lancio a mano va piu` veloce del pulsante.
-const TRASCINA_VELOCITA_MAX_RAD_S = 4.2;
-
-// Decelerazione costante dopo il rilascio, in radianti al secondo quadro —
-// attrito vero (velocita` che scende in linea retta fino a fermarsi, mai
-// uno scatto): "un oggetto pesante", punto 62. Voce B, tredicesimo giro: da
-// 0.5 a 0.47 — con il nuovo tetto di velocita` (4,2 rad/s) il lancio piu`
-// forte possibile frena in circa 8,9s e fa circa 3 giri, come il pulsante al
-// massimo.
-const ATTRITO_RUOTA_RAD_S2 = 0.47;
-
-// Voce B, tredicesimo giro (nuova): quando il lancio non raggiunge la
-// soglia di GIRO_MINIMO_VALIDO_TURNI, la ruota frena con QUESTO attrito
-// (molto piu` forte di quello normale) e si pianta in meno di 0,6s, invece
-// di scorrere fino a 3,5s prima che comparisse "Più forte!" — un bambino
-// non fa in tempo a leggere una cifra che non conta.
-const ATTRITO_LANCIO_NON_VALIDO_RAD_S2 = 3;
-
-// Punto 62, scelta PROVVISORIA di Alfred (non dettata da Damiano, "questa
-// ultima parte e` una scelta di Alfred"): il lancio conta solo se la ruota,
-// DAL RILASCIO, fa almeno questa frazione di giro (0.5 = mezzo giro). Sotto
-// soglia il lancio non conta: la ruota si pianta subito (vedi
-// ATTRITO_LANCIO_NON_VALIDO_RAD_S2), un annuncio sul palco dice di
-// rilanciare, e il turno non passa — si puo` riprovare subito. Un solo
-// numero da ritoccare se in prova sembra troppo severo o troppo permissivo.
+// Punto 62, scelta PROVVISORIA di Alfred (non dettata da Damiano): il lancio
+// a mano conta solo se la ruota, DAL RILASCIO, fa almeno questa frazione di
+// giro (0.5 = mezzo giro). Sotto soglia la ruota si pianta (vedi
+// ATTRITO_LANCIO_NON_VALIDO_RAD_S2), un annuncio sul palco dice di rilanciare
+// e il turno non passa. Se in prova i lanci validi sono pochi si puo` portare
+// a 0,4 (raccomandazione di Chiara): e` una regola di gioco, non di fisica.
 const GIRO_MINIMO_VALIDO_TURNI = 0.5;
-
-// Voce B, tredicesimo giro (nuova): quanto puo` allontanarsi il bersaglio
-// del dito dalla ruota disegnata, in radianti — se il dito corre piu` veloce
-// di quanto la ruota riesca a rincorrerlo (TRASCINA_RITARDO_MS), il
-// bersaglio si riporta a questa distanza: e` la mano che scivola sulla
-// ruota, non un elastico che si tende all'infinito.
-const TRASCINA_STACCO_MAX_RAD = 0.5;
 
 // ----------------------------------------------------------------------------
 // IMMAGINI GIOCATORI (sesto giro, punto 27 — 28/09/2026)

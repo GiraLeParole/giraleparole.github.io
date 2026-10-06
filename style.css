@@ -298,6 +298,12 @@ h1 {
   border-radius: 999px;
   padding: 0.5rem 1.2rem;
   box-shadow: 0 3px 0 rgba(0, 0, 0, 0.25);
+  /* 05/10/2026: la targa mostra l'indizio della frase, fino a ~40 caratteri
+     (prima una categoria, poche parole). Non si tronca mai: se non sta su una
+     riga va su due, bilanciate, dentro la colonna. */
+  max-width: 100%;
+  text-wrap: balance;
+  overflow-wrap: anywhere;
 }
 
 .btn-muto {
@@ -726,7 +732,7 @@ h1 {
   font-size: 1.1rem;
 }
 
-#form-soluzione {
+#form-soluzione, #form-lampo {
   display: flex;
   flex-wrap: wrap;
   gap: 0.6rem;
@@ -734,7 +740,7 @@ h1 {
   margin-top: 0.6rem;
 }
 
-#input-soluzione {
+#input-soluzione, #input-lampo {
   flex: 1;
   min-width: 220px;
   font-size: 1.05rem;
@@ -1078,47 +1084,15 @@ h1 {
   box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.25), 0 0 8px rgba(243, 156, 18, 0.7);
 }
 
-/* Punto 55 (28/09/2026, disegno di Chiara): la freccia "sbatte sui pioli"
-   mentre la ruota gira — un piccolo scatto ad ogni tic (gioco.js aggiunge e
-   toglie questa classe, vedi puntatoreTic). "-14° per 90 ms a ogni tic"
-   (`design/2026-09-28-revisione.md`, rilievo 7). transform-origin in alto,
-   come il perno della freccia vera. */
-.puntatore.tic {
+/* Ruota pesante (05/10/2026, voce D della scheda di Chiara). La freccia e` la
+   lamella: ruota attorno al perno di quanto e` piegata (--lamella, da -1 a 1,
+   scritta da ruota.js a ogni fotogramma). +14° perche` la ruota gira in senso
+   orario e i pioli, passando sotto, la spingono a destra. Prima (punto 55,
+   28/09) il verso era -14°, cioe` CONTRO i pioli: un difetto in produzione.
+   Sostituisce .puntatore.tic, .puntatore.tic-indietro e i due @keyframes. */
+.puntatore {
   transform-origin: 50% 0;
-  animation: tic-puntatore 90ms ease-out;
-}
-
-@keyframes tic-puntatore {
-  0% {
-    transform: translateX(-50%) rotate(0deg);
-  }
-  35% {
-    transform: translateX(-50%) rotate(-14deg);
-  }
-  100% {
-    transform: translateX(-50%) rotate(0deg);
-  }
-}
-
-/* Voce E, tredicesimo giro (29/09/2026, facoltativa): quando la ruota va
-   all'indietro (trascinamento in senso antiorario) la freccia si piega
-   dall'altra parte — stesse durate e stesso picco al 35%, solo il segno
-   dell'angolo cambia. */
-.puntatore.tic-indietro {
-  transform-origin: 50% 0;
-  animation: tic-puntatore-indietro 90ms ease-out;
-}
-
-@keyframes tic-puntatore-indietro {
-  0% {
-    transform: translateX(-50%) rotate(0deg);
-  }
-  35% {
-    transform: translateX(-50%) rotate(14deg);
-  }
-  100% {
-    transform: translateX(-50%) rotate(0deg);
-  }
+  transform: translateX(-50%) rotate(calc(var(--lamella, 0) * 14deg));
 }
 
 /* Rilievo 6 (28/09/2026, disegno di Chiara): coriandoli a tutto schermo
@@ -1322,8 +1296,15 @@ h1 {
      bianca, riga nera fra le caselle (punto 50). Punto 54: piu` grande del
      prototipo di Chiara (--cella 5,6vh invece di 5vh, +12%) — verificato che
      ci sta senza schiacciare ruota ne` giocatori a 1366×768 (vedi rapporto). */
+  /* 05/10/2026: --cella era solo in vh, ma la colonna centrale e` quello che
+     resta della larghezza dopo la ruota (80vh) e i margini: a 1280x800 (16:10)
+     restano 574px e il tabellone ne chiedeva 658, usciva di 22px a destra e
+     finiva 16px sopra la ruota. Ora la cella e` la piu` piccola fra la misura
+     in vh di prima e quella che ci sta in larghezza (94vw - ruota - cornice,
+     diviso 14): dove prima ci stava (1366x768, 1920x1080) non cambia di un
+     pixel. */
   .tabellone-frase {
-    --cella: 5.6vh;
+    --cella: min(5.6vh, calc((94vw - 80vh - 3.9vh) / 14));
     width: auto; max-width: none; margin: 0;
     background: #0b0b1e;
     border: 0.55vh solid #fff;
@@ -1499,7 +1480,7 @@ h1 {
      si impila sotto, la colonna non cresce e le tessere dei giocatori non
      si spostano. */
   .colonna-centrale:has(.pannello-scelta:not(.nascosta)) .area-comandi { display: none; }
-  .area-comandi button, .pannello-scelta button.primario, .pannello-scelta button.secondario, #form-soluzione button {
+  .area-comandi button, .pannello-scelta button.primario, .pannello-scelta button.secondario, #form-soluzione button, #form-lampo button {
     font-size: 2.6vh; padding: 1.3vh 2.8vh; border-radius: 1.2vh; border-width: 0.3vh;
   }
 
@@ -1520,8 +1501,8 @@ h1 {
     transition: transform 90ms ease-out, box-shadow 90ms ease-out;
   }
   .griglia-lettere button:hover:not(:disabled) { transform: translateY(-0.3vh); box-shadow: 0 0.75vh 0 #b9b9c9, 0 1.2vh 2vh rgba(0, 0, 0, 0.4); border-color: transparent; }
-  #pannello-jolly p, #pannello-soluzione p, #pannello-fine-round p { font-size: 2.6vh; }
-  #input-soluzione { font-size: 2.6vh; padding: 1vh 1.6vh; min-width: 44vh; }
+  #pannello-jolly p, #pannello-soluzione p, #pannello-fine-round p, #pannello-lampo p { font-size: 2.6vh; }
+  #input-soluzione, #input-lampo { font-size: 2.6vh; padding: 1vh 1.6vh; min-width: 44vh; }
   #secondi-rimasti { font-size: 3.4vh; }
 
   /* --- le tessere dei giocatori: una fila, un numero grande ciascuna,
@@ -1646,6 +1627,26 @@ h1 {
 .testata-iscrizione h1 { text-align: left; margin: 0; }
 .testata-iscrizione .sottotitolo { text-align: left; margin: 0; }
 .porte-iscrizione { display: flex; gap: 0.6rem; }
+/* «Come si gioca» (05/10/2026, disegno di Chiara — design/2026-10-05-scheda-novita-e-guida.md):
+   pillola bianca piena con il «?» in un cerchio scuro. L'id vince su .porte-iscrizione button. */
+#btn-guida {
+  display: inline-flex; align-items: center; gap: 0.55em;
+  background: #ffffff; color: #1a1a1a;
+  border: none; border-radius: 999px;
+  font-weight: 700; white-space: nowrap;
+  padding: 0.55em 1.1em 0.55em 0.6em;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.28);
+  transition: transform 140ms ease-out, box-shadow 140ms ease-out;
+}
+#btn-guida::before {
+  content: "?";
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 1.5em; height: 1.5em; border-radius: 50%;
+  background: var(--sfondo-pannello); color: #ffffff;
+  font: 800 1em var(--font-titoli); line-height: 1;
+}
+#btn-guida:hover:not(:disabled) { border-color: transparent; transform: translateY(-2px); box-shadow: 0 7px 20px rgba(0, 0, 0, 0.34); }
+#btn-guida:focus-visible { outline: 3px solid #ffffff; outline-offset: 3px; }
 .corpo-iscrizione { display: grid; gap: 1.2rem; margin: 1rem 0; }
 .blocco-chi-gioca h2, .blocco-stasera h2 { font: 700 1.1rem var(--font-titoli); margin: 0 0 0.6rem; color: var(--testo-attenuato); letter-spacing: 0.04em; text-transform: uppercase; }
 .riga-titolo-blocco { display: flex; align-items: center; justify-content: flex-start; gap: 1.4rem; margin-bottom: 0.6rem; }
@@ -1749,6 +1750,31 @@ button.link:hover { color: #fff; }
 .elenco-novita .novita-in-arrivo { margin-top: 1rem; padding-top: 0.8rem; border-top: 1px dashed var(--bordo); }
 .elenco-novita .novita-in-arrivo h3 { color: var(--testo-attenuato); }
 .elenco-novita .novita-in-arrivo li { color: var(--testo-attenuato); }
+
+/* Le finestre arrivano (220 ms) invece di apparire: l'animazione riparte da sola
+   ogni volta che la finestra passa da nascosta a visibile (apertura da sola o clic). */
+.scheda-finestra { animation: arriva-finestra 220ms ease-out both; }
+@keyframes arriva-finestra {
+  from { opacity: 0; transform: translateY(1.2vh) scale(0.97); }
+  to   { opacity: 1; transform: none; }
+}
+@media (prefers-reduced-motion: reduce) { .scheda-finestra { animation: none; } }
+
+/* Novità aperte da sole: solo le versioni non ancora viste (classe messa da gioco.js),
+   «Tutte le novità» le riporta. Scorre solo l'elenco: titolo e pulsanti stanno fermi,
+   «Chiudi» è sempre in vista. */
+.elenco-novita .versione-novita.gia-vista { display: none; }
+#finestra-novita .scheda-finestra { display: flex; flex-direction: column; overflow: hidden; }
+#finestra-novita .elenco-novita { flex: 1 1 auto; min-height: 0; overflow: auto; padding-right: 0.6rem; scrollbar-color: var(--bordo) transparent; }
+/* il rientro dei pallini segue il carattere della voce (1.1rem fissi li tagliavano a 1080p) */
+#finestra-novita .elenco-novita ul { padding-left: 0; }
+#finestra-novita .elenco-novita li { margin-left: 1.25em; }
+#finestra-novita .azioni-finestra { flex: 0 0 auto; padding-top: 1rem; border-top: 1px solid var(--bordo); }
+.azioni-finestra { display: flex; align-items: center; gap: 1.4rem; margin-top: 1rem; }
+.azioni-finestra .primario { margin-top: 0; }
+#btn-tutte-novita { display: none; margin: 0.6rem 0 0; padding: 0; background: none; border: none; color: var(--testo-attenuato); font: inherit; text-decoration: underline; text-underline-offset: 0.2em; cursor: pointer; }
+#btn-tutte-novita.visibile { display: inline-block; }
+#btn-tutte-novita:hover { color: #fff; border-color: transparent; }
 .elenco-guida { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 0.7rem 1rem; align-items: center; }
 .elenco-guida .esempio { justify-self: stretch; display: flex; justify-content: center; }
 .elenco-guida .esempio button, .elenco-guida .esempio .tessera-guida { pointer-events: none; font-size: 0.85rem; padding: 0.4rem 0.8rem; }
@@ -1846,6 +1872,11 @@ button.aiutino:disabled { opacity: 0.35; }
   .elenco-novita h3 small { font-size: 1.8vh; }
   .elenco-novita li, .elenco-guida .voce { font-size: 2.2vh; }
   .scheda-finestra.guida { width: min(100%, 150vh); }
+  #btn-guida { font-size: 2.7vh; padding: 1.15vh 2.6vh 1.15vh 1.3vh; gap: 1.2vh; box-shadow: 0 0.5vh 1.6vh rgba(0, 0, 0, 0.28); }
+  #btn-guida::before { width: 3.9vh; height: 3.9vh; font-size: 2.6vh; }
+  #btn-guida:hover:not(:disabled) { transform: translateY(-0.25vh); box-shadow: 0 0.8vh 2.2vh rgba(0, 0, 0, 0.34); }
+  .azioni-finestra { gap: 3vh; margin-top: 2vh; }
+  #btn-tutte-novita { font-size: 2vh; margin: 0; }
   .elenco-guida { grid-template-columns: auto minmax(0, 1fr) auto minmax(0, 1fr); gap: 2vh 2.2vh; }
   .elenco-guida .voce { font-size: 2.1vh; }
   .elenco-guida .esempio button { font-size: 1.9vh; padding: 0.8vh 1.6vh; }
@@ -1858,4 +1889,40 @@ button.aiutino:disabled { opacity: 0.35; }
   .premio-casa { margin: 2vh -3vh -3vh; padding: 1.4vh 2vh 1.8vh; border-radius: 0 0 2vh 2vh; }
   .premio-casa small { font-size: 2vh; }
   .premio-casa b { font-size: 3.6vh; }
+}
+
+/* ---------------------------------------------------------------------------
+   4. IL ROUND LAMPO (giro B, voce B1, 05/10/2026) — disegno di Chiara
+   (design/2026-09-29-scheda-otto-idee.md), senza il tasto numerato sulla
+   tessera: dal 05/10 ci si prenota con un tocco o un tasto qualunque (Damiano).
+   --------------------------------------------------------------------------- */
+.area-partita.lampo .colonna-ruota { opacity: 0.35; filter: saturate(0.6); transition: opacity 300ms ease-out; pointer-events: none; }
+.area-partita.lampo .area-comandi { display: none; }
+
+/* Nessuno e` di turno: le tessere tornano tutte allo stato normale. Piu`
+   specifico di .scheda-giocatore:not(.turno-attivo) del blocco da 1200px. */
+.area-partita.lampo .scheda-giocatore:not(.turno-attivo) { opacity: 1; transform: none; }
+/* ferme le lettere, tocca all'arbitro: le tessere chiamano */
+.area-partita.lampo-scelta .scheda-giocatore:not(.fuori) { cursor: pointer; animation: tessera-chiama 1.4s ease-in-out infinite; }
+@keyframes tessera-chiama { 50% { transform: translateY(-0.3vh); } }
+.area-partita.lampo .scheda-giocatore.prenotato { animation: none; transform: translateY(-0.6vh); box-shadow: 0 0 0 3px #fff, 0 0 22px 4px var(--colore-giocatore), 0 8px 18px rgba(0, 0, 0, 0.4); }
+.area-partita.lampo .scheda-giocatore.fuori { animation: none; opacity: 0.4; filter: grayscale(0.7); cursor: default; }
+.area-partita.lampo .scheda-giocatore.fuori .nome-giocatore::after { content: " ✕"; color: #ff8a8a; }
+
+/* la lettera che si accende da sola: la casella salta */
+.cella-tabellone.lampo-accesa { animation: lampo-lettera 320ms cubic-bezier(0.2, 1.4, 0.4, 1) both; }
+@keyframes lampo-lettera { 0% { transform: scale(0.6); background: #ffc233; } 100% { transform: none; } }
+
+/* chi risponde: la casella e la barra del tempo che si consuma (la durata la
+   scrive lampo.js da LAMPO_SECONDI) */
+.pannello-lampo p { margin: 0 0 0.6rem; }
+.barra-tempo-lampo { position: relative; height: 0.8rem; margin: 0.7rem auto 0; max-width: min(44vh, calc(100% - 7rem)); background: #0d1230; border-radius: 999px; overflow: visible; }
+.barra-tempo-lampo .riempimento { height: 100%; width: 100%; border-radius: 999px; background: var(--accento); transform-origin: left center; animation: consuma-tempo 15s linear forwards; }
+.barra-tempo-lampo .secondi-lampo { position: absolute; right: -2.8rem; top: 50%; transform: translateY(-50%); font: 800 1.4rem var(--font-titoli); color: var(--accento); }
+@keyframes consuma-tempo { to { transform: scaleX(0); } }
+
+@media (min-width: 1200px) {
+  .area-partita.lampo .scheda-giocatore.prenotato { box-shadow: 0 0 0 0.4vh #fff, 0 0 3vh 0.4vh var(--colore-giocatore), 0 1.2vh 2.4vh rgba(0, 0, 0, 0.4); }
+  .barra-tempo-lampo { height: 1.6vh; margin-top: 1.6vh; max-width: 44vh; }
+  .barra-tempo-lampo .secondi-lampo { right: -6vh; font-size: 3.4vh; }
 }

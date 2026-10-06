@@ -96,7 +96,13 @@ const Gioco = {
   giocatori: [],           // { nome, colore, soldiRound, soldiTotale, jolly }
   indiceCorrente: 0,
   frasiRimaste: [],        // coda mescolata delle frasi non ancora usate in questa partita
-  fraseCorrente: null,     // { testo, categoria }
+  fraseCorrente: null,     // { testo, categoria, difficolta, gruppi, indizio }
+  // 05/10/2026 (Damiano): mai due frasi della stessa categoria nella stessa
+  // partita, round lampo compresi. La categoria e` solo dietro le quinte;
+  // sul tabellone si vede l'indizio (vedi testoTarga).
+  categorieUsate: [],      // categorie gia` uscite in questa partita, la meno recente per prima
+  frasiDellaPartita: new Set(), // le frasi gia` uscite in questa partita (round e lampi)
+  ripieghiDiCategoria: 0,  // quante volte le categorie non sono bastate (serve alla prova, non al gioco)
   posizioniRivelate: new Set(),
   // Terzo giro, punto 16: lettere gia` trovate ma non ancora "scoperte" col
   // click del giocatore — accese sul tabellone, in attesa di un tocco.
@@ -127,6 +133,11 @@ const Gioco = {
   // all'iscrizione.
   aiutinoUsato: [],
   premioCasa: "",
+  // Giro B, voce B1 (round lampo, lampo.js): se la partita lo prevede, e dopo
+  // la fine di quali round (LAMPO_QUANDO, config.js) — estratti a ogni partita
+  // da Lampo.pianifica().
+  lampoAttivo: false,
+  lampoDopo: new Set(),
 };
 
 function mescola(array) {
@@ -198,11 +209,61 @@ function disegnaGruppi() {
 }
 disegnaGruppi();
 
-function prossimaFrase() {
-  if (Gioco.frasiRimaste.length === 0) {
-    Gioco.frasiRimaste = mescola(frasiDeiGruppi());
+// Cosa si legge sulla targa sotto il tabellone: l'indizio della frase. Se la
+// frase non ce l'ha, la categoria (05/10/2026, Damiano).
+function testoTarga(frase) {
+  const indizio = typeof frase.indizio === "string" ? frase.indizio.trim() : "";
+  return indizio || frase.categoria;
+}
+
+// Una partita nuova riparte senza categorie ne' frasi gia` uscite.
+function azzeraCategorieDellaPartita() {
+  Gioco.categorieUsate = [];
+  Gioco.frasiDellaPartita = new Set();
+  Gioco.ripieghiDiCategoria = 0;
+}
+
+// Sceglie la frase del round (o del lampo, con `filtro` = «breve»). La regola
+// (Damiano, 05/10/2026): MAI due frasi della stessa categoria nella stessa
+// partita, contando round e lampi. In ordine:
+//  1. una frase del mazzo che resta, di una categoria non ancora uscita;
+//  2. se il mazzo non ne ha, una di quelle dei gruppi scelti (puo` essere gia`
+//     uscita in una partita di prima, mai in questa);
+//  3. RIPIEGO, solo se le categorie dei gruppi scelti sono finite: si
+//     ricomincia dalla categoria uscita MENO di recente, con una frase non
+//     ancora uscita in questa partita (e, se c'e`, ancora nel mazzo).
+// Nessuna frase esce due volte nella stessa partita. Ritorna null solo se
+// il filtro non lascia niente (il chiamante allora riprova senza filtro).
+function scegliFraseDellaPartita(filtro) {
+  const tutte = frasiDeiGruppi();
+  if (Gioco.frasiRimaste.length === 0) Gioco.frasiRimaste = mescola(tutte);
+  const buona = (f) => (!filtro || filtro(f)) && !Gioco.frasiDellaPartita.has(f);
+  const nuova = (f) => !Gioco.categorieUsate.includes(f.categoria);
+  const delMazzo = Gioco.frasiRimaste.filter(buona);
+  const dellaPartita = tutte.filter(buona);
+  let candidate = delMazzo.filter(nuova);
+  if (!candidate.length) candidate = dellaPartita.filter(nuova);
+  if (!candidate.length && dellaPartita.length) {
+    Gioco.ripieghiDiCategoria += 1;
+    const eta = (f) => Gioco.categorieUsate.indexOf(f.categoria);
+    const menoRecente = Math.min(...dellaPartita.map(eta));
+    candidate = dellaPartita.filter((f) => eta(f) === menoRecente);
+    const ancoraNelMazzo = candidate.filter((f) => delMazzo.includes(f));
+    if (ancoraNelMazzo.length) candidate = ancoraNelMazzo;
   }
-  return Gioco.frasiRimaste.pop();
+  if (!candidate.length) return null;
+  const frase = candidate[Math.floor(Math.random() * candidate.length)];
+  Gioco.frasiRimaste = Gioco.frasiRimaste.filter((f) => f !== frase);
+  Gioco.frasiDellaPartita.add(frase);
+  Gioco.categorieUsate = Gioco.categorieUsate.filter((c) => c !== frase.categoria);
+  Gioco.categorieUsate.push(frase.categoria); // l'ultima uscita sta in fondo
+  return frase;
+}
+
+function prossimaFrase() {
+  // Se anche senza filtro non resta nulla (non succede: servono piu` frasi
+  // di quanti round e lampi ci siano) si pesca comunque dal mazzo.
+  return scegliFraseDellaPartita() || mescola(frasiDeiGruppi()).pop();
 }
 
 // ----------------------------------------------------------------------------
@@ -458,12 +519,15 @@ disegnaIscrizione();
   opzioniGruppiEl.appendChild(b);
 })();
 
-// ---- Le porte del giro C, e la leva del round lampo (giro B): finche`
-// GIRO_B_C_ATTIVO (config.js) resta false, non si vedono — un solo
-// interruttore per riaccenderle giovedì, senza toccare il markup. ----------
+// ---- Le porte del giro C: finche` GIRO_B_C_ATTIVO (config.js) resta false,
+// non si vedono — un solo interruttore per riaccenderle giovedì, senza
+// toccare il markup. La leva del round lampo (giro B, costruito il
+// 05/10/2026) ha il suo, LAMPO_ATTIVO. --------------------------------------
 if (!GIRO_B_C_ATTIVO) {
   document.getElementById("btn-albo")?.classList.add("nascosta");
   document.getElementById("btn-frasi-nostre")?.classList.add("nascosta");
+}
+if (!LAMPO_ATTIVO) {
   document.getElementById("riga-lampo")?.classList.add("nascosta");
 }
 
@@ -519,19 +583,70 @@ costruisciOpzioniRound();
   }
 
   const fin = document.getElementById("finestra-novita");
-  document.getElementById("btn-novita")?.addEventListener("click", () => {
-    fin.classList.remove("nascosta");
+  const finGuida = document.getElementById("finestra-guida");
+  const btnTutte = document.getElementById("btn-tutte-novita");
+  const segnaVista = () => {
     try { window.localStorage.setItem(CHIAVE_NOVITA_VISTE, ultima.versione); } catch (e) {}
     if (pallino) pallino.classList.remove("acceso");
+  };
+  const blocchi = () => [...elenco.querySelectorAll(".versione-novita")];
+  // «Tutte le novità»: via il filtro, via il pulsante. Dal piede si vede sempre tutto.
+  const mostraTutte = () => {
+    blocchi().forEach((b) => b.classList.remove("gia-vista"));
+    if (btnTutte) btnTutte.classList.remove("visibile");
+  };
+  // Le versioni stanno già nell'ordine di NOVITA.versioni (la più recente prima), poi «In arrivo»:
+  // le prime `quante` sono quelle che mancano, le altre (compreso «In arrivo») si nascondono.
+  const mostraSoloNuove = (quante) => {
+    blocchi().forEach((b, i) => b.classList.toggle("gia-vista", i >= quante));
+    if (btnTutte) btnTutte.classList.add("visibile");
+  };
+  document.getElementById("btn-novita")?.addEventListener("click", () => {
+    mostraTutte();
+    fin.classList.remove("nascosta");
+    segnaVista();
   });
+  btnTutte?.addEventListener("click", mostraTutte);
   document.getElementById("btn-chiudi-novita")?.addEventListener("click", () => fin.classList.add("nascosta"));
   fin.addEventListener("click", (ev) => { if (ev.target === fin) fin.classList.add("nascosta"); });
+  // Esc chiude la finestra aperta, Novità o «Come si gioca».
+  document.addEventListener("keydown", (ev) => {
+    if (ev.key !== "Escape") return;
+    fin.classList.add("nascosta");
+    if (finGuida) finGuida.classList.add("nascosta");
+  });
+
+  // APERTURA DA SOLA (05/10/2026, scheda di Chiara, scelte decise da Damiano). Gira una
+  // volta, all'avvio, sulla schermata di iscrizione: mai in partita. Prima si vede la
+  // pagina per mezzo secondo, poi la finestra arriva sopra. La versione conta come vista
+  // all'apertura. Se il browser non lascia scrivere (navigazione privata, file bloccato)
+  // non si apre niente da soli, come prima: resta il pallino.
+  const RITARDO_APERTURA_MS = 500;
+  let memoriaOk = true;
+  try {
+    window.localStorage.setItem(CHIAVE_NOVITA_VISTE + "-prova", "1");
+    window.localStorage.removeItem(CHIAVE_NOVITA_VISTE + "-prova");
+  } catch (e) { memoriaOk = false; }
+  if (!memoriaOk) return;
+  if (viste === null) {
+    // Prima visita in assoluto: a chi non conosce il gioco «cosa c'è di nuovo» non dice
+    // niente. Si apre «Come si gioca»; la versione di oggi conta come vista.
+    window.setTimeout(() => { finGuida?.classList.remove("nascosta"); segnaVista(); }, RITARDO_APERTURA_MS);
+  } else if (viste !== ultima.versione) {
+    // Versione nuova: le Novità con solo le versioni uscite dopo quella vista; se quella
+    // vista non c'è più nell'elenco, tutte.
+    const indice = NOVITA.versioni.findIndex((v) => v.versione === viste);
+    mostraSoloNuove(indice < 0 ? NOVITA.versioni.length : indice);
+    window.setTimeout(() => { fin.classList.remove("nascosta"); segnaVista(); }, RITARDO_APERTURA_MS);
+  }
 })();
 
 // La mini guida «Come si gioca» — voce = il pezzo vero in piccolo (a
 // sinistra) + nome e riga (a destra). Testi di Penna, da usare cosi` come
-// sono (brief del 29/09/2026). Le voci 7-8 (round lampo, frase premio)
-// arrivano col giro B: stessa impostazione GIRO_B_C_ATTIVO.
+// sono (brief del 29/09/2026). Le voci 7-8 hanno ciascuna la sua leva: la 7
+// (round lampo) segue LAMPO_ATTIVO, la 8 (frase premio) GIRO_B_C_ATTIVO
+// (config.js). La 7 e` stata riscritta da Penna il 05/10/2026 con la regola
+// nuova (un tocco o un tasto ferma le lettere, l'arbitro tocca la tessera).
 const GUIDA = [
   { esempio: '<button class="primario">Gira la ruota</button>', nome: "Gira la ruota", testo: "Poi una consonante: prendi la cifra per ogni volta che c’è." },
   { esempio: "<button>Vocale · 500 €</button>", nome: "Vocale · 500 €", testo: "La paghi con i soldi del round, tutte le volte che vuoi." },
@@ -539,12 +654,13 @@ const GUIDA = [
   { esempio: '<button class="aiutino">Aiutino</button>', nome: "Aiutino", testo: "Se ce l’hai, scegli una casella: si scoprono gratis tutte le sue lettere. Una a round." },
   { esempio: '<span class="tessera-guida">J</span>', nome: "Jolly", testo: "Su Bancarotta o Passa lo giochi: non perdi soldi né turno." },
   { esempio: '<button class="segmento selezionata" style="border-radius:999px">A squadre</button>', nome: "A squadre", testo: "Due squadre, e dentro la squadra si gioca un turno a testa." },
-  { esempio: '<span class="interruttore"><span class="leva" style="background:var(--accento);border-color:var(--accento)"></span></span>', nome: "Round lampo", testo: "Le lettere escono da sole. La sai? Tocca il tuo nome: 500 €." },
+  { esempio: '<span class="interruttore"><span class="leva" style="background:var(--accento);border-color:var(--accento)"></span></span>', nome: "Round lampo", testo: "Le lettere escono da sole. La sai? Tocca lo schermo o un tasto, l’arbitro tocca la tua tessera: 15 secondi per scriverla, 500 € se è giusta." },
   { esempio: '<span class="tessera-guida">★</span>', nome: "Frase premio", testo: "Una sola a partita: se la risolvi, vinci una sorpresa." },
 ];
 (function guida() {
   const elenco = document.getElementById("elenco-guida");
-  const voci = GIRO_B_C_ATTIVO ? GUIDA : GUIDA.slice(0, 6);
+  // la 7 (round lampo) segue LAMPO_ATTIVO, la 8 (frase premio) GIRO_B_C_ATTIVO
+  const voci = GUIDA.filter((_, i) => i < 6 || (i === 6 && LAMPO_ATTIVO) || (i === 7 && GIRO_B_C_ATTIVO));
   voci.forEach((v) => {
     const es = document.createElement("div");
     es.className = "esempio";
@@ -615,11 +731,13 @@ btnIniziaPartita.addEventListener("click", () => {
   // Voce D: una partita nuova non pesca dal mazzo dei gruppi scelti l'ultima
   // volta, che potevano essere diversi.
   Gioco.frasiRimaste = [];
+  azzeraCategorieDellaPartita();
   // Voce A2/A4: l'aiutino usato si azzera round per round (vedi nuovoRound);
   // il premio di casa e il round lampo restano quelli scelti stasera.
   Gioco.aiutinoUsato = [];
   Gioco.premioCasa = premioCasaEl.value.trim();
-  Gioco.lampoAttivo = GIRO_B_C_ATTIVO && lampoAttivoEl.checked;
+  Gioco.lampoAttivo = LAMPO_ATTIVO && lampoAttivoEl.checked;
+  Lampo.pianifica(); // dopo Gioco.numeroRoundTotale, qui sopra
   erroreIscrizioneEl.textContent = "";
   iniziaPartita();
 });
@@ -828,7 +946,8 @@ let contestoJollyPendente = null; // "passa" | "bancarotta"
 function iniziaPartita() {
   schermataIscrizione.classList.add("nascosta");
   schermataGioco.classList.remove("nascosta");
-  Ruota.init(canvasRuota);
+  // la freccia va alla ruota: la piega a ogni fotogramma secondo la lamella (ruota pesante, 05/10/2026)
+  Ruota.init(canvasRuota, document.querySelector(".puntatore"));
   Gioco.indiceCorrente = Math.floor(Math.random() * Gioco.giocatori.length);
   nuovoRound();
   aggiornaSchedeGiocatori();
@@ -908,7 +1027,7 @@ function nuovoRound() {
   } else {
     Annuncio.nascondi();
   }
-  categoriaEl.textContent = Gioco.fraseCorrente.categoria;
+  categoriaEl.textContent = testoTarga(Gioco.fraseCorrente); // l'indizio; la categoria solo se manca
   if (indicatoreRoundEl) indicatoreRoundEl.textContent = `Round ${Gioco.numeroRoundCorrente} di ${Gioco.numeroRoundTotale}`;
   disegnaPuntiRound();
   disegnaTabellone(true); // punto 45: le caselle-lettera si accendono con un'onda, solo all'apertura del round
@@ -1066,11 +1185,15 @@ let ultimoIndiceDisegnato = -1;
 // non piu` un'emoji che su Linux esce come un quadratino.
 function aggiornaSchedeGiocatori() {
   colonnaGiocatoriEl.innerHTML = "";
-  const indiceCambiato = ultimoIndiceDisegnato !== Gioco.indiceCorrente;
-  ultimoIndiceDisegnato = Gioco.indiceCorrente;
+  // Giro B, voce B1: durante il round lampo nessuno e` di turno, quindi
+  // nessuna tessera e` piena e nessuna sbiadita (e il «balzo» di chi entra in
+  // turno non si consuma: resta per quando il round parte davvero).
+  const inLampo = Gioco.stato === "lampo";
+  const indiceCambiato = !inLampo && ultimoIndiceDisegnato !== Gioco.indiceCorrente;
+  if (!inLampo) ultimoIndiceDisegnato = Gioco.indiceCorrente;
   Gioco.giocatori.forEach((g, i) => {
     const div = document.createElement("div");
-    const inTurno = i === Gioco.indiceCorrente;
+    const inTurno = !inLampo && i === Gioco.indiceCorrente;
     // Punto 69, voce 1: il giocatore di turno e` l'unica tessera piena, al
     // 55% del suo colore (OPACITA_GIOCATORE_NON_DI_TURNO governa lo
     // sbiadimento delle altre, in CSS — qui resta lo sfondo del turno).
@@ -1448,24 +1571,12 @@ btnGira.addEventListener("click", () => {
   Audio_.inizioSpin();
   Annuncio.nascondi();
 
-  // Quarto giro, punto 21: la frazione extra non e` piu` "un punto a caso
-  // sull'intero giro" (0-360°), ma sempre fra mezzo giro e un giro intero
-  // (ANGOLO_EXTRA_MIN/MAX_TURNI, config.js) — cosi il totale resta sempre
-  // nella forchetta 1,5-3 giri chiesta da Damiano, mai sotto ne` sopra.
-  const giriTotali = GIRI_MINIMI + Math.floor(Math.random() * (GIRI_EXTRA_CASUALI + 1));
-  const frazioneExtra =
-    ANGOLO_EXTRA_MIN_TURNI + Math.random() * (ANGOLO_EXTRA_MAX_TURNI - ANGOLO_EXTRA_MIN_TURNI);
-  const angoloExtra = frazioneExtra * Math.PI * 2;
-  const angoloTotale = giriTotali * Math.PI * 2 + angoloExtra;
-  const durata = DURATA_SPIN_MS_MIN + Math.random() * (DURATA_SPIN_MS_MAX - DURATA_SPIN_MS_MIN);
-
+  // Ruota pesante (05/10/2026): niente piu` giri e durata decisi qui. La
+  // ruota riceve una forza a caso (nessun argomento) e la fisica decide
+  // quanti giri fa e quanto dura (config.js, LANCIO_GIRI_MIN/MAX).
   Ruota.gira(
-    durata,
-    angoloTotale,
-    () => {
-      Audio_.tic();
-      puntatoreTic();
-    },
+    undefined,
+    () => Audio_.tic(),
     (segmentoVinto, indice) => gestisciEsitoRuota(segmentoVinto, indice)
   );
 });
@@ -1478,21 +1589,29 @@ btnGira.addEventListener("click", () => {
 // pulsante: non mentre si sceglie una lettera o c'e` un annuncio aperto.
 let pointerIdTrascinamento = null;
 
-function ticRuotaTrascinamento(verso) {
+// Ruota pesante: un tic per piolo. La freccia non si muove piu` da qui, la
+// piega ruota.js a ogni fotogramma (lamella).
+function ticRuotaTrascinamento() {
   Audio_.tic();
-  puntatoreTic(verso);
 }
 
 function onTrascinamentoNonValido() {
-  // Punto 62: sotto mezzo giro il lancio non conta. La ruota e` gia` ferma
-  // dove l'attrito l'ha lasciata (niente da riportare indietro): un
-  // annuncio breve sul palco chiede di rilanciare, e si torna "idle" subito
-  // — il turno non passa, si puo` riprovare all'istante.
-  Gioco.stato = "idle";
-  aggiornaComandi();
+  // Punto 62: sotto mezzo giro il lancio non conta. Ruota pesante
+  // (05/10/2026): questa funzione ora si chiama AL RILASCIO, non a ruota
+  // ferma — la ruota si pianta da sola in meno di un secondo
+  // (ATTRITO_LANCIO_NON_VALIDO_RAD_S2) e intanto «Più forte!» e` gia` sul
+  // palco. Lo stato resta "girando" e i comandi spenti finche` la ruota si
+  // muove (Ruota.inAnimazione): li riaccende onRuotaFermaNonValida.
   // Voce B, tredicesimo giro (29/09/2026): "Più forte!" dice cosa fare
   // invece di dare un giudizio a chi ha tirato.
   Annuncio.mostra({ stile: "scena", titolo: "Più forte!", sotto: "rilancia la ruota", durata: DURATA_ANNUNCIO_MS });
+}
+
+// A ruota ferma dopo un lancio non valido: il turno non passa, si puo`
+// riprovare all'istante.
+function onRuotaFermaNonValida() {
+  Gioco.stato = "idle";
+  aggiornaComandi();
 }
 
 canvasRuota.addEventListener("pointerdown", (ev) => {
@@ -1519,36 +1638,13 @@ function finisceTrascinamento(ev) {
   canvasRuota.classList.remove("trascinando");
   Ruota.terminaTrascinamento(
     (segmentoVinto, indice) => gestisciEsitoRuota(segmentoVinto, indice),
-    onTrascinamentoNonValido
+    onTrascinamentoNonValido,
+    onRuotaFermaNonValida
   );
 }
 
 canvasRuota.addEventListener("pointerup", finisceTrascinamento);
 canvasRuota.addEventListener("pointercancel", finisceTrascinamento);
-
-// Decimo giro, punto 55 (28/09/2026): la freccia "sbatte sui pioli" mentre
-// la ruota gira — un piccolo scatto ad ogni tic (uno spicchio attraversato),
-// che rallenta insieme alla ruota perche` i tic diventano piu` radi verso la
-// fine della girata (vedi Ruota.gira in ruota.js). Chiara: "-14° per 90 ms a
-// ogni tic" (`design/2026-09-28-revisione.md`, rilievo 7).
-const puntatoreEl = document.querySelector(".puntatore");
-let timerPuntatoreTic = null;
-// Voce E, tredicesimo giro (29/09/2026, facoltativa): con verso negativo
-// (la ruota trascinata all'indietro) la freccia si piega dall'altra parte
-// (classe "tic-indietro" invece di "tic"). Il pulsante "Gira la ruota" non
-// passa mai un verso: gira sempre in avanti, quindi resta "tic".
-function puntatoreTic(verso) {
-  if (!puntatoreEl) return;
-  const classe = verso < 0 ? "tic-indietro" : "tic";
-  puntatoreEl.classList.remove("tic", "tic-indietro");
-  // force reflow cosi` l'animazione riparte anche se il tic precedente non
-  // e` ancora finito (i tic possono arrivare piu` fitti dei 90ms all'inizio
-  // della girata, quando la ruota e` ancora veloce).
-  void puntatoreEl.offsetWidth;
-  puntatoreEl.classList.add(classe);
-  if (timerPuntatoreTic) clearTimeout(timerPuntatoreTic);
-  timerPuntatoreTic = setTimeout(() => puntatoreEl.classList.remove(classe), 90);
-}
 
 // Il titolo del riquadro delle consonanti porta la cifra dello spicchio
 // (prima stava nella riga verde, ora assorbita dal palco dell'annuncio):
@@ -2026,7 +2122,11 @@ function vinciRound() {
   if (Gioco.ultimoRoundFinito) {
     btnRoundSuccessivo.textContent = "Vedi la classifica finale";
   } else {
-    btnRoundSuccessivo.textContent = "Prossimo round · comincia " + Gioco.giocatori[Gioco.indiceProssimoRound].nome;
+    // Giro B, voce B1: se fra questo round e il prossimo c'e` il lampo, a
+    // aprire il round sara` chi lo vince, non chi verrebbe comunque.
+    btnRoundSuccessivo.textContent = Lampo.dovuto(Gioco.numeroRoundCorrente)
+      ? "Round lampo · tutti pronti" // testo di Penna 05/10/2026, da rivedere quando Damiano prova il gioco
+      : "Prossimo round · comincia " + Gioco.giocatori[Gioco.indiceProssimoRound].nome;
   }
   // Il pannello resta pronto SOTTO alla festa animata (punto 30): quando la
   // festa si chiude (tocco o timeout) lo si trova gia` li`, pronto col
@@ -2042,9 +2142,20 @@ btnRoundSuccessivo.addEventListener("click", () => {
     mostraSchermataFinale();
     return;
   }
-  Gioco.indiceCorrente = Gioco.indiceProssimoRound;
-  Gioco.numeroRoundCorrente += 1;
-  nuovoRound();
+  // Giro B, voce B1: fra questo round e il prossimo puo` esserci il lampo
+  // (lampo.js). A lampo finito il round parte comunque da qui: apre chi ha
+  // vinto il lampo, o chi verrebbe comunque (indiceProssimoRound) se non l'ha
+  // vinto nessuno.
+  const apriRound = (indice) => {
+    Gioco.indiceCorrente = indice;
+    Gioco.numeroRoundCorrente += 1;
+    nuovoRound();
+  };
+  if (Lampo.dovuto(Gioco.numeroRoundCorrente)) {
+    Lampo.avvia(apriRound);
+    return;
+  }
+  apriRound(Gioco.indiceProssimoRound);
 });
 
 // ---- SCHERMATA FINALE (punto 39, 28/09/2026, seconda dettatura) -----------
@@ -2131,6 +2242,8 @@ btnGiocaAncora.addEventListener("click", () => {
   Gioco.numeroRoundCorrente = 1;
   Gioco.storicoRound = [];
   Gioco.ultimoRoundFinito = false;
+  Lampo.pianifica(); // una partita nuova, un lampo estratto di nuovo
+  azzeraCategorieDellaPartita(); // e di nuovo tutte le categorie a disposizione
   schermataFinale.classList.add("nascosta");
   schermataGioco.classList.remove("nascosta");
   Gioco.indiceCorrente = Math.floor(Math.random() * Gioco.giocatori.length);

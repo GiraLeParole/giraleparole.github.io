@@ -36,12 +36,19 @@ const Audio_ = (() => {
   }
 
   let volumeEffetti = leggiVolumeSalvato(CHIAVE_VOLUME_EFFETTI, VOLUME_EFFETTI_CURSORE_INIZIALE);
-  let volumeMusicaCursore = leggiVolumeSalvato(CHIAVE_VOLUME_MUSICA, VOLUME_MUSICA_CURSORE_INIZIALE);
+  // 06/10/2026, Damiano: la musica parte SEMPRE dal 15 (VOLUME_MUSICA_CURSORE_INIZIALE);
+  // chi vuole la alza durante la visita, ma non si ricorda piu` da una visita
+  // all'altra. La chiave vecchia, se c'e`, si cancella: niente valore orfano.
+  try { window.localStorage.removeItem(CHIAVE_VOLUME_MUSICA); } catch (e) {}
+  let volumeMusicaCursore = VOLUME_MUSICA_CURSORE_INIZIALE;
 
   // Il volume "vero" della musica di sottofondo (file o groove): il cursore
   // (0-1) moltiplica il livello massimo gia` mixato in config.js.
-  function volumeMusicaEffettivo() {
-    return VOLUME_MUSICA_FILE * volumeMusicaCursore;
+  // `file` e` il brano di cui si chiede il volume; senza, quello che suona ora.
+  // La musica del lampo vale un fattore (MUSICA_LAMPO_FATTORE) di quella dei round.
+  function volumeMusicaEffettivo(file) {
+    const f = file || (entroInRiproduzione && entroInRiproduzione.file);
+    return VOLUME_MUSICA_FILE * volumeMusicaCursore * (f === MUSICA_LAMPO_FILE ? MUSICA_LAMPO_FATTORE : 1);
   }
 
   function impostaVolumeEffetti(v) {
@@ -52,7 +59,6 @@ const Audio_ = (() => {
   function impostaVolumeMusica(v) {
     const eraAcceso = volumeMusicaCursore > 0;
     volumeMusicaCursore = Math.max(0, Math.min(1, v));
-    scriviVolumeSalvato(CHIAVE_VOLUME_MUSICA, volumeMusicaCursore);
     if (volumeMusicaCursore <= 0) {
       if (eraAcceso) dissolviInUscita();
       return;
@@ -179,7 +185,11 @@ const Audio_ = (() => {
     }, intervalloMs);
   }
 
+  // Durante il lampo suona la musica del lampo, al posto di quella del round.
+  let inLampo = false;
+
   function fileCorrente() {
+    if (inLampo) return MUSICA_LAMPO_FILE;
     if (indiceMusicaFile < 0) return SEQUENZA_MUSICA_FILE[0];
     return SEQUENZA_MUSICA_FILE[indiceMusicaFile % SEQUENZA_MUSICA_FILE.length];
   }
@@ -592,8 +602,16 @@ const Audio_ = (() => {
   // brano con una dissolvenza; se il cursore e` a zero, si limita a segnare
   // la scelta — suonera` quando/se il cursore tornera` sopra zero.
   function musicaProssimoRound() {
+    inLampo = false; // il lampo e` finito: torna la musica dei round
     indiceMusicaFile = (indiceMusicaFile + 1) % SEQUENZA_MUSICA_FILE.length;
     if (musicaEAccesa()) suonaSelezioneCorrente();
+  }
+
+  // Il round lampo comincia: parte la sua musica (se la musica e` accesa).
+  // Quando finisce, nuovoRound() chiama musicaProssimoRound() e tornano i round.
+  function musicaLampo() {
+    inLampo = true;
+    if (musicaEAccesa() && indiceMusicaFile >= 0) suonaSelezioneCorrente();
   }
 
   function getCtx() {
@@ -628,8 +646,30 @@ const Audio_ = (() => {
   // Audio API sa fare. Sostituita con un'onda triangolare (piu` morbida
   // della sinusoide sola, ma senza gli spigoli della quadra), un filo piu`
   // grave e un volume piu` basso: un "tock" leggero, non un buzz.
+  //
+  // 06/10/2026, Damiano: il rumore dei pioli e` «uno dei rumori caratteristici
+  // del gioco» e deve sentirsi chiaramente sopra la musica. Prima: un solo
+  // tono triangolare 500 Hz, 35 ms, picco 0.08. Ora un «clac» secco: un corpo
+  // triangolare a 480 Hz (60 ms, picco 0.264, dopo il ritocco) e sopra uno scatto brevissimo a
+  // 1500 Hz (12 ms, picco 0.12): sempre un tic di pioli, ma con piu` corpo.
+  //
+  // La ruota pesante ha 72 pioli. Misurato con fisica-ruota.js: nel lancio
+  // piu` forte (forza 1, e` anche il tetto della mano vera) la velocita` di
+  // rilascio e` 1,29 rad/s, cioe` al massimo ~15 tic al secondo, uno ogni
+  // ~66 ms: i clac restano separati, niente ronzio. Per sicurezza, se
+  // qualcosa li facesse arrivare piu` fitti: sotto i 16 ms dal precedente il
+  // tic si salta (massimo ~60 al secondo), e sotto i 70 ms volume e durata
+  // scendono (35% e 40 ms a 16 ms di distanza), cosi` la somma di picco di
+  // 2-3 tic sovrapposti resta sotto 0,4 e non satura.
+  let ultimoTic = 0;
   function tic() {
-    tono(500, "triangle", 0.035, 0.08);
+    const ora = performance.now();
+    const dt = ora - ultimoTic;
+    if (dt < 16) return;
+    ultimoTic = ora;
+    const s = Math.max(0.35, Math.min(1, dt / 70));
+    tono(480, "triangle", 0.03 + 0.03 * s, 0.264 * s); // +20% il 06/10/2026 (era 0.22)
+    tono(1500, "triangle", 0.012, 0.12 * s); // +20% (era 0.10)
   }
 
   function letteraRivelata() {
@@ -638,8 +678,9 @@ const Audio_ = (() => {
   }
 
   function letteraAssente() {
-    tono(200, "square", 0.25, 0.2);
-    tono(150, "square", 0.3, 0.2, 0.15);
+    // 06/10/2026: picco 0.2 -> 0.12 (-40%), dettatura di Damiano
+    tono(200, "square", 0.25, 0.12);
+    tono(150, "square", 0.3, 0.12, 0.15);
   }
 
   // Punto 37 (28/09/2026, seconda dettatura): "un suono di errore breve e
@@ -731,6 +772,41 @@ const Audio_ = (() => {
     tono(800, "sine", 0.06, 0.12);
   }
 
+  // Jingle della vittoria del round lampo (06/10/2026): piccolo, una fraschetta
+  // di quattro note che salgono veloci e una stella in cima, mezzo secondo.
+  // Volutamente diverso dall'arpeggio piu` lungo del round (festaVittoria) e
+  // dalla fanfara finale (jingleFinale). Rispetta il cursore degli effetti.
+  function jingleLampo() {
+    duckMusicaPerFesta();
+    [784, 988, 1175, 1568].forEach((f, i) => tono(f, "triangle", 0.14, 0.18, i * 0.07));
+    tono(2093, "sine", 0.45, 0.14, 0.3);
+    tono(2637, "sine", 0.35, 0.08, 0.34);
+  }
+
+  // Jingle della vittoria finale (06/10/2026), per la schermata delle
+  // classifiche: una piccola fanfara, «ta-ta-ta TAAA» — tre note staccate
+  // sulla stessa altezza, poi un accordo pieno e tenuto con una stella sopra.
+  // Piu` lungo (circa 2 s) e piu` pieno degli altri due.
+  function jingleFinale() {
+    duckMusicaPerFesta();
+    [523.25, 523.25, 523.25].forEach((f, i) => tono(f, "triangle", 0.16, 0.22, i * 0.17));
+    tono(659.25, "triangle", 0.2, 0.22, 0.51);
+    [523.25, 659.25, 783.99, 1046.5].forEach((f) => tono(f, "triangle", 1.3, 0.2, 0.75));
+    tono(130.81, "sine", 1.3, 0.2, 0.75);
+    tono(2093, "sine", 0.9, 0.1, 0.95);
+  }
+
+  // Round lampo (06/10/2026, dettatura di Damiano): il «bling» a ogni lettera
+  // che si accende da sola. Due note alte e sottili (sine, quinta sopra
+  // l'altra, la seconda un soffio dopo) con una coda corta e volume basso:
+  // brilla ma si ripete ogni 1,2 s senza stancare. Passa da tono(), quindi
+  // rispetta il cursore degli effetti.
+  function bling() {
+    // 06/10/2026: alzato (era 0.07/0.06) perche` ora ci suona sotto la musica del lampo
+    tono(1760, "sine", 0.16, 0.14);
+    tono(2637, "sine", 0.22, 0.11, 0.045);
+  }
+
   function inizioSpin() {
     tono(300, "sine", 0.2, 0.15);
     tono(450, "sine", 0.2, 0.15, 0.1);
@@ -741,6 +817,9 @@ const Audio_ = (() => {
     letteraRivelata,
     letteraAssente,
     letteraGiaChiamata,
+    bling,
+    jingleLampo,
+    jingleFinale,
     bancarotta,
     passa,
     jolly,
@@ -757,6 +836,7 @@ const Audio_ = (() => {
     musicaFerma,
     isMusicaAttiva,
     musicaProssimoRound,
+    musicaLampo,
     // Solo per verifica/debug (console, test): non usata dal gioco stesso.
     statoMusica: () => {
       const s = entroInRiproduzione && !entroInRiproduzione.groove

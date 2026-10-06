@@ -135,6 +135,8 @@
              pannello coi due cursori di volume (assorbe i vecchi
              interruttori sì/no separati per musica ed effetti). -->
         <button id="btn-volume" type="button" class="btn-muto" aria-label="Apri i controlli del volume" aria-expanded="false" aria-controls="pannello-volume">🔊</button>
+        <!-- 06/10/2026, dettatura di Damiano: la X per finire la partita e tornare alla schermata iniziale -->
+        <button id="btn-esci" type="button" class="btn-muto" aria-label="Finisci la partita">✕</button>
         <div id="pannello-volume" class="pannello-volume nascosta">
           <label class="riga-volume">
             <span>Musica</span>
@@ -245,6 +247,8 @@
             <input id="input-soluzione" type="text" placeholder="Scrivi qui la frase intera" />
             <button type="submit" class="primario">Conferma</button>
           </form>
+          <!-- la stessa barra del round lampo (06/10/2026); i secondi sono gia` scritti sopra -->
+          <div class="barra-tempo-lampo" aria-hidden="true"><div class="riempimento" id="riempimento-soluzione"></div></div>
         </div>
 
         <!-- Round lampo (giro B, voce B1, lampo.js): chi e` stato scelto
@@ -287,6 +291,17 @@
     </div>
 
   </section>
+
+  <!-- Conferma della X (06/10/2026): «No» e` il pulsante grande e col fuoco, perche` un tocco per sbaglio non butti via la partita -->
+  <div id="overlay-esci" class="overlay-festa nascosta" role="dialog" aria-modal="true" aria-labelledby="titolo-esci">
+    <div class="scheda-esci">
+      <p id="titolo-esci">Vuoi finire la partita?</p>
+      <div class="azioni-iscrizione">
+        <button id="btn-esci-no" type="button" class="primario">No</button>
+        <button id="btn-esci-si" type="button" class="secondario">Sì</button>
+      </div>
+    </div>
+  </div>
 
   <!-- SCHERMATA 3 (punto 39, 28/09/2026): fine partita, dopo l'ultimo round.
        Non si chiude da sola (Damiano, seconda dettatura): resta finché non

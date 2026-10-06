@@ -104,6 +104,7 @@ const Lampo = (() => {
     fase = "annuncio";
     fermaTimerAutoscoperta();
     chiudiFestaVittoria();
+    Audio_.musicaLampo(); // la musica del lampo, al posto di quella dei round
     nascondiTuttiIPannelli();
     pannelloLampoEl.classList.add("nascosta");
 
@@ -144,6 +145,7 @@ const Lampo = (() => {
     const posizione = [...Gioco.fraseCorrente.testo].slice(0, idx).filter((c) => c !== " ").length;
     const celle = tabelloneEl.querySelectorAll(".cella-tabellone:not(.vuota)");
     if (celle[posizione]) celle[posizione].classList.add("lampo-accesa");
+    Audio_.bling();
     timerLettere = setTimeout(prossimaLettera, LAMPO_INTERVALLO_MS);
   }
 
@@ -163,7 +165,13 @@ const Lampo = (() => {
     });
   }
 
+  // il pulsante X e la sua conferma (gioco.js, 06/10/2026) non sono un «tocco» di prenotazione
+  function dellUscita(ev) {
+    return !!(ev.target.closest && ev.target.closest("#btn-esci, #overlay-esci"));
+  }
+
   function suPuntatore(ev) {
+    if (dellUscita(ev)) return;
     if (fase === "lettere") {
       fermaLeLettere();
     } else if (fase === "scelta") {
@@ -177,6 +185,7 @@ const Lampo = (() => {
   }
 
   function suTasto(ev) {
+    if (!document.getElementById("overlay-esci").classList.contains("nascosta")) return;
     if (fase !== "lettere" || ev.repeat) return;
     // un modificatore da solo, o una scorciatoia del browser (Ctrl+R...), non e` «un tasto»
     if (ev.ctrlKey || ev.metaKey || ev.altKey) return;
@@ -269,6 +278,8 @@ const Lampo = (() => {
     disegnaTabellone();
     aggiornaSchedeGiocatori();
     segnaTessere();
+    Audio_.jingleLampo();
+    festeggiaTessera(i);
     Annuncio.mostra({
       stile: "scena oro",
       titolo: g.nome + "!",
@@ -276,6 +287,21 @@ const Lampo = (() => {
       durata: DURATA_ANNUNCIO_LAMPO_MS,
     });
     timerLettere = setTimeout(() => fine(i), DURATA_ANNUNCIO_LAMPO_MS + 200);
+  }
+
+  // La festa piccola del lampo (06/10/2026): un botto di scintille sulla
+  // tessera di chi ha indovinato, e basta. Niente finestra, niente monete,
+  // niente coriandoli: quelli restano al round e alla schermata finale.
+  function festeggiaTessera(i) {
+    const tessera = colonnaGiocatoriEl.children[i];
+    if (!tessera) return;
+    const r = tessera.getBoundingClientRect();
+    const botto = document.createElement("div");
+    botto.style.cssText = "position:fixed;width:0;height:0;pointer-events:none;z-index:900;left:" +
+      (r.left + r.width / 2) + "px;top:" + (r.top + r.height / 2) + "px";
+    document.body.appendChild(botto);
+    creaScintille(botto, 14, Math.round(Math.min(innerHeight * 0.14, 130)));
+    setTimeout(() => botto.remove(), 1500);
   }
 
   // Lettere finite senza che nessuno abbia indovinato, o tutti fuori: la frase

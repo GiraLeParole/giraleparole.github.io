@@ -317,7 +317,11 @@ const Iscrizione = {
     const v = JSON.parse(window.localStorage.getItem(CHIAVE_ULTIMA_ISCRIZIONE));
     if (v && (v.modo === "singoli" || v.modo === "squadre")) {
       Iscrizione.modo = v.modo;
-      if (Array.isArray(v.giocatori) && v.giocatori.length) Iscrizione.giocatori = v.giocatori;
+      if (Array.isArray(v.giocatori) && v.giocatori.length) {
+        Iscrizione.giocatori = v.giocatori;
+        // una partita salvata da soli (prima del 06/10/2026) riparte con due posti
+        while (Iscrizione.giocatori.length < 2) Iscrizione.giocatori.push({ nome: "", aiutino: false });
+      }
       if (Array.isArray(v.squadre) && v.squadre.length === 2) Iscrizione.squadre = v.squadre;
       if (typeof v.premioCasa === "string") Iscrizione.premioCasa = v.premioCasa;
       if (typeof v.lampoAttivo === "boolean") Iscrizione.lampoAttivo = v.lampoAttivo;
@@ -403,7 +407,7 @@ function disegnaIscrizione() {
       card.appendChild(t);
       card.appendChild(campoNome(g, `Giocatore ${i + 1}`, t));
       card.appendChild(interruttoreAiutino(g));
-      if (Iscrizione.giocatori.length > 1) {
+      if (Iscrizione.giocatori.length > 2) {
         const x = document.createElement("button");
         x.type = "button";
         x.className = "btn-rimuovi";
@@ -681,8 +685,11 @@ btnIniziaPartita.addEventListener("click", () => {
   erroreIscrizioneEl.textContent = "";
 
   if (Iscrizione.modo === "singoli") {
-    if (Iscrizione.giocatori.length < 1) {
-      erroreIscrizioneEl.textContent = "Serve almeno un giocatore.";
+    // 06/10/2026, decisione di Damiano: da soli il turno non passa mai e non
+    // c'e` niente in gioco, quindi «ognuno per se`» parte da 2 giocatori.
+    // (A squadre le squadre sono sempre due: anche da un giocatore l'una, sono due.)
+    if (Iscrizione.giocatori.length < 2) {
+      erroreIscrizioneEl.textContent = "Per giocare servono almeno due giocatori. Tocca il «+» per aggiungerne uno.";
       return;
     }
     Gioco.giocatori = Iscrizione.giocatori.map((g, i) => {
@@ -939,6 +946,35 @@ btnChiudiFesta.addEventListener("click", chiudiFestaVittoria);
 // piccolo per un bambino che vuole solo "andare avanti".
 overlayFesta.addEventListener("click", (ev) => {
   if (ev.target === overlayFesta) chiudiFestaVittoria();
+});
+
+// ---- LA X: finire la partita (06/10/2026, dettatura di Damiano) --------------
+// Dalla partita non si tornava indietro se non ricaricando il sito. Ora la X in
+// alto chiede «Vuoi finire la partita?»: con «No» (il pulsante col fuoco) non
+// cambia niente; con «Sì» si ricarica la pagina. Si ricarica apposta: in una
+// partita ci sono una decina di timer sparsi (soluzione, lampo, annunci, ruota,
+// autoscoperta, festa, musica) e il modo sicuro di non lasciarne appeso nessuno
+// e` ripartire pulito. I nomi, i premi e la leva del lampo sono salvati
+// in localStorage (salvaIscrizione) e tornano scritti; il volume anche.
+// Mentre la conferma e` aperta il gioco NON si ferma (timer e lettere vanno).
+const overlayEsciEl = document.getElementById("overlay-esci");
+const btnEsciNoEl = document.getElementById("btn-esci-no");
+function apriConfermaEsci() {
+  overlayEsciEl.classList.remove("nascosta");
+  btnEsciNoEl.focus();
+}
+function chiudiConfermaEsci() {
+  overlayEsciEl.classList.add("nascosta");
+}
+document.getElementById("btn-esci").addEventListener("click", apriConfermaEsci);
+btnEsciNoEl.addEventListener("click", chiudiConfermaEsci);
+document.getElementById("btn-esci-si").addEventListener("click", () => {
+  Audio_.musicaFerma();
+  salvaIscrizione();
+  window.location.reload();
+});
+document.addEventListener("keydown", (ev) => {
+  if (ev.key === "Escape" && !overlayEsciEl.classList.contains("nascosta")) chiudiConfermaEsci();
 });
 
 let contestoJollyPendente = null; // "passa" | "bancarotta"
@@ -2034,6 +2070,13 @@ btnRisolvi.addEventListener("click", () => {
 
 function avviaTimerSoluzione() {
   let secondi = SECONDI_PER_LA_SOLUZIONE;
+  // la barra riparte da piena e si consuma in SECONDI_PER_LA_SOLUZIONE secondi
+  // (stessa barra del round lampo, 06/10/2026): il tempo resta quello del timer
+  const barra = document.getElementById("riempimento-soluzione");
+  barra.style.animation = "none";
+  void barra.offsetWidth;
+  barra.style.animation = "";
+  barra.style.animationDuration = SECONDI_PER_LA_SOLUZIONE + "s";
   secondiRimastiEl.textContent = String(secondi);
   fermaTimerSoluzione();
   Gioco.timerSoluzione = setInterval(() => {
@@ -2169,7 +2212,7 @@ function mostraSchermataFinale() {
 
   const classificati = [...Gioco.giocatori].sort((a, b) => b.soldiTotale - a.soldiTotale);
   const vincitore = classificati[0];
-  Audio_.festaVittoria();
+  Audio_.jingleFinale(); // 06/10/2026: un jingle suo, diverso da quello della festa del round e da quello del lampo
 
   finaleVincitoreImmagineEl.textContent = vincitore.iniziale;
   finaleVincitoreImmagineEl.style.outlineColor = vincitore.colore;

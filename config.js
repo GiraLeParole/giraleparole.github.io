@@ -278,7 +278,20 @@ const VOCALE_GIA_CHIAMATA_PERDE_TURNO = true;
 // Damiano: il cursore parte quindi a meta`, cosi` il volume vero di partenza
 // e` la META` di adesso (0.3 * 0.5 = 0.15), non lo stesso livello con in piu`
 // un cursore per abbassarlo dopo.
-const VOLUME_MUSICA_CURSORE_INIZIALE = 0.5;
+//
+// 06/10/2026, Damiano: «durante il round dovremmo abbassare le varie musiche,
+// livello massimo accettabilmente basso, con la possibilita` di alzarlo, ma di
+// base basso, cosi` i vari effetti sonori risaltano». Il cursore di partenza
+// scende da 0.5 a 0.25: round 0.3 * 0.25 = 0.075 (prima 0.15), lampo
+// 0.075 * 0.3 = 0.0225 (prima 0.045). Gli effetti hanno picchi di 0.12-0.22
+// (tic fino a 0.264 + 0.12 di scatto, lettera trovata 0.2, lettera assente 0.12, bancarotta 0.18, festa 0.22, bling 0.14). Chi vuole
+// piu` musica alza il cursore: a fondo corsa il round arriva a 0.3.
+// CORREZIONE (06/10/2026, sera): Damiano chiede il 15%: il cursore parte a 0.15
+// e si legge 15 (il cursore e` 0-100). Il volume vero e` 0.3 * 0.15 = 0.045,
+// perche` 0.3 e` il tetto gia` mixato dei file (VOLUME_MUSICA_FILE). Scelta la
+// lettura «15% sul cursore», quella che vede chi gioca.
+// Dal 06/10/2026 (sera) parte SEMPRE da qui: il volume della musica non si ricorda piu` fra una visita e l'altra.
+const VOLUME_MUSICA_CURSORE_INIZIALE = 0.15;
 // Gli effetti (tic della ruota, lettera trovata, bancarotta, jolly, festa...)
 // non erano mai stati segnalati come troppo alti: il cursore parte pieno.
 const VOLUME_EFFETTI_CURSORE_INIZIALE = 1.0;
@@ -521,6 +534,17 @@ const SEQUENZA_MUSICA_FILE = [
 // (headless non ha uscita audio) — da ritoccare qui se in prova risulta
 // troppo alto o troppo basso.
 const VOLUME_MUSICA_FILE = 0.3;
+
+// La musica del round lampo (06/10/2026, scelta di Damiano: "Rocket Power").
+// Suona solo durante il lampo, al posto della musica dei round. Deve stare
+// bassa, «per non rimbambire chi gioca e far sentire bene i bling». E` un
+// FATTORE sul volume dei round (ora 1: stesso livello, scelta di Damiano la
+// sera del 06/10/2026; era 0.3), quindi resta in proporzione quando si
+// sposta il cursore della musica. Col cursore di partenza (0.15): round e
+// lampo 0.045. Il bling (audio.js) vale 0.14 + 0.11 sul cursore degli
+// effetti: circa tre volte il picco della musica. Non provato ad orecchio.
+const MUSICA_LAMPO_FILE = "Rocket-Power.mp3";
+const MUSICA_LAMPO_FATTORE = 1; // 06/10/2026 sera: Damiano la vuole allo stesso livello dei round (era 0.3)
 
 // Durata della dissolvenza fra un brano e il successivo a inizio round —
 // "non uno stacco" (richiesta di Damiano). In secondi.

@@ -2,6 +2,7 @@
 // cambia CHANGELOG.md e rilancia lo script (pubblica.sh lo fa da solo).
 const NOVITA = {
   "inArrivo": [
+    "<b>L'avversario finto.</b> Un giocatore della macchina, con nome e tessera come gli altri: chiama le lettere più frequenti, ogni tanto sbaglia, e tenta la soluzione quando ha scoperto abbastanza. Così si potrà tornare a giocare da soli: arriva in un prossimo aggiornamento, nei prossimi giorni.",
     "<b>La frase premio.</b> Una frase a partita nasconde un premio, per esempio un jolly in più o la cassaforte raddoppiata. Lo si scopre solo risolvendola.",
     "<b>L'albo d'oro.</b> Il gioco si ricorderà partite e record: chi vince più spesso, la vincita più alta, la frase risolta con meno lettere.",
     "<b>Le frasi dei ragazzi.</b> Una pagina dove scrivere frasi proprie, con il loro indizio. Finiscono nel mazzo di casa, e quando escono il gioco dice chi le ha scritte.",
@@ -11,6 +12,23 @@ const NOVITA = {
     "<b>I telefoni.</b> È l'idea più lontana: il telefono come pulsante per prenotarsi nel round lampo, e un giorno, forse, per giocare tutto, anche da case diverse. Prima bisogna capire se si può fare."
   ],
   "versioni": [
+    {
+      "versione": "2.3",
+      "data": "6 ottobre 2026",
+      "titolo": "Si sente il gioco",
+      "voci": [
+        "<b>La musica del lampo.</b> Durante il round lampo suona un brano tutto suo, «Rocket Power», tenuto basso quanto quello dei round perché il «bling» di ogni lettera si senta bene. Quando il lampo finisce tornano le musiche dei round. Il cursore della musica li sposta insieme.",
+        "<b>Il rumore dei pioli si sente di più.</b> Il «tic» della ruota è più forte e più pieno, ancora un po' più alto dopo la prima prova, un clac secco che si riconosce anche senza guardare. Quando la ruota gira veloce e i pioli passano fitti, ogni tic si abbassa un poco, così non diventa un ronzio.",
+        "<b>Il suono della lettera sbagliata è più basso.</b> Quando chiami una lettera che nella frase non c'è, il suono scende del 40%, per non coprire il resto.",
+        "<b>La musica parte sempre al 15.</b> In tutto il gioco la musica di sottofondo, lampo compreso, parte ogni volta dal 15 sul cursore (prima era al 50), così ruota, lettere, bancarotta, festa e jingle risaltano. Chi vuole più musica alza il cursore dell'altoparlante, ma il gioco non se lo ricorda: alla prossima apertura si riparte da 15.",
+        "<b>Non si gioca più da soli.</b> Con «Ognuno per sé» servono almeno due giocatori: da soli il turno non passa mai e non c'è niente in gioco. Se ne tocchi uno solo, il gioco te lo dice. A squadre non cambia niente: due squadre, anche da un giocatore l'una, sono comunque due.",
+        "<b>Il «bling» del lampo.</b> Ogni lettera che si accende da sola nel round lampo fa un suono breve e brillante. Segue il cursore degli effetti.",
+        "<b>La barra del tempo anche nei round normali.</b> Quando si dà la soluzione, sotto la casella compare la stessa barra del lampo, che si accorcia fino a zero. I secondi restano 20, le regole non cambiano.",
+        "<b>La X per finire la partita.</b> In alto, accanto all'altoparlante, c'è una X. La si tocca, il gioco chiede «Vuoi finire la partita?» e, se si dice Sì, si torna alla schermata iniziale, coi nomi dell'ultima volta già scritti. Il No è il pulsante in evidenza, perché un tocco per sbaglio non butti via la partita.",
+        "<b>Un festeggiamento piccolo per chi vince il lampo.</b> Un botto di scintille sulla tessera di chi ha indovinato e un jingle breve: niente a che vedere con la festa del round.",
+        "<b>Il jingle della vittoria finale.</b> Nella schermata delle classifiche suona una piccola fanfara, diversa da quella del lampo e dalla musichetta del round."
+      ]
+    },
     {
       "versione": "2.2",
       "data": "6 ottobre 2026",

@@ -4,8 +4,9 @@ Versione per versione, la più recente in cima. Si gioca su https://giraleparole
 
 ## In arrivo
 
-Le prime quattro sono idee già scelte ma non ancora costruite; le ultime tre sono ancora solo idee, e possono cambiare o non arrivare. L'ordine non è quello in cui arriveranno.
+Le prime cinque sono idee già scelte ma non ancora costruite; le ultime tre sono ancora solo idee, e possono cambiare o non arrivare. L'ordine non è quello in cui arriveranno.
 
+- **L'avversario finto.** Un giocatore della macchina, con nome e tessera come gli altri: chiama le lettere più frequenti, ogni tanto sbaglia, e tenta la soluzione quando ha scoperto abbastanza. Così si potrà tornare a giocare da soli: arriva in un prossimo aggiornamento, nei prossimi giorni.
 - **La frase premio.** Una frase a partita nasconde un premio, per esempio un jolly in più o la cassaforte raddoppiata. Lo si scopre solo risolvendola.
 - **L'albo d'oro.** Il gioco si ricorderà partite e record: chi vince più spesso, la vincita più alta, la frase risolta con meno lettere.
 - **Le frasi dei ragazzi.** Una pagina dove scrivere frasi proprie, con il loro indizio. Finiscono nel mazzo di casa, e quando escono il gioco dice chi le ha scritte.
@@ -13,6 +14,19 @@ Le prime quattro sono idee già scelte ma non ancora costruite; le ultime tre so
 - **Spicchi nuovi sulla ruota.** Quali, non è ancora deciso. Fra le idee: Robin Hood, che porta via 500 € a chi è in testa, e Congela, con cui scegliete chi salta il prossimo turno.
 - **Partite a tema.** Ci sto pensando: prima di cominciare si sceglie che serata è, e la ruota cambia qualche spicchio. In famiglia, per esempio, uno spicchio che vale una caramella vera, o uno che stasera vi libera dai piatti.
 - **I telefoni.** È l'idea più lontana: il telefono come pulsante per prenotarsi nel round lampo, e un giorno, forse, per giocare tutto, anche da case diverse. Prima bisogna capire se si può fare.
+
+## 2.3 — 6 ottobre 2026 · Si sente il gioco
+
+- **La musica del lampo.** Durante il round lampo suona un brano tutto suo, «Rocket Power», tenuto basso quanto quello dei round perché il «bling» di ogni lettera si senta bene. Quando il lampo finisce tornano le musiche dei round. Il cursore della musica li sposta insieme.
+- **Il rumore dei pioli si sente di più.** Il «tic» della ruota è più forte e più pieno, ancora un po' più alto dopo la prima prova, un clac secco che si riconosce anche senza guardare. Quando la ruota gira veloce e i pioli passano fitti, ogni tic si abbassa un poco, così non diventa un ronzio.
+- **Il suono della lettera sbagliata è più basso.** Quando chiami una lettera che nella frase non c'è, il suono scende del 40%, per non coprire il resto.
+- **La musica parte sempre al 15.** In tutto il gioco la musica di sottofondo, lampo compreso, parte ogni volta dal 15 sul cursore (prima era al 50), così ruota, lettere, bancarotta, festa e jingle risaltano. Chi vuole più musica alza il cursore dell'altoparlante, ma il gioco non se lo ricorda: alla prossima apertura si riparte da 15.
+- **Non si gioca più da soli.** Con «Ognuno per sé» servono almeno due giocatori: da soli il turno non passa mai e non c'è niente in gioco. Se ne tocchi uno solo, il gioco te lo dice. A squadre non cambia niente: due squadre, anche da un giocatore l'una, sono comunque due.
+- **Il «bling» del lampo.** Ogni lettera che si accende da sola nel round lampo fa un suono breve e brillante. Segue il cursore degli effetti.
+- **La barra del tempo anche nei round normali.** Quando si dà la soluzione, sotto la casella compare la stessa barra del lampo, che si accorcia fino a zero. I secondi restano 20, le regole non cambiano.
+- **La X per finire la partita.** In alto, accanto all'altoparlante, c'è una X. La si tocca, il gioco chiede «Vuoi finire la partita?» e, se si dice Sì, si torna alla schermata iniziale, coi nomi dell'ultima volta già scritti. Il No è il pulsante in evidenza, perché un tocco per sbaglio non butti via la partita.
+- **Un festeggiamento piccolo per chi vince il lampo.** Un botto di scintille sulla tessera di chi ha indovinato e un jingle breve: niente a che vedere con la festa del round.
+- **Il jingle della vittoria finale.** Nella schermata delle classifiche suona una piccola fanfara, diversa da quella del lampo e dalla musichetta del round.
 
 ## 2.2 — 6 ottobre 2026 · Chi tocca prima
 

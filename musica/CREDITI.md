@@ -18,4 +18,8 @@ https://creativecommons.org/licenses/by/4.0/
 Licensed under Creative Commons: By Attribution 4.0
 https://creativecommons.org/licenses/by/4.0/
 
+"Rocket Power" Kevin MacLeod (incompetech.com)
+Licensed under Creative Commons: By Attribution 4.0
+https://creativecommons.org/licenses/by/4.0/
+
 Nota: fonti di terzi indicano per alcuni brani più vecchi la versione 3.0 della stessa licenza. Il testo qui sopra è quello che il sito genera oggi. La versione esatta per ogni brano non è stata verificata.

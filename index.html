@@ -199,7 +199,12 @@
         <!-- 05/10/2026: la targa mostra l'INDIZIO della frase (la categoria
              solo se la frase non ne ha uno). L'id e la classe restano quelli
              di prima. -->
-        <div id="categoria-corrente" class="categoria"></div>
+        <!-- 2.4.1 (Damiano 07/10): «Cambia frase» sta accanto alla targa, piccolo, e si vede
+             solo prima che sia uscita qualsiasi lettera del round (vedi cambiaFrasePossibile in gioco.js). -->
+        <div class="riga-targa">
+          <div id="categoria-corrente" class="categoria"></div>
+          <button id="btn-cambia-frase" type="button" class="cambia-frase nascosta" title="Un’altra frase: il round resta lo stesso">Cambia frase</button>
+        </div>
 
         <!-- Undicesimo giro, punto 56 (28/09/2026, disegno di Chiara): il
              "palco" dell'annuncio, come se fosse Gerry Scotti a dirlo —

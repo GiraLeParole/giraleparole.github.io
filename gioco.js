@@ -63,6 +63,10 @@ function escHtml(testo) {
 // Una fonte sola per i colori: config.js (COLORE_SPECIALE*), qui passati al CSS.
 document.documentElement.style.setProperty("--speciale", COLORE_SPECIALE);
 document.documentElement.style.setProperty("--speciale-scuro", COLORE_SPECIALE_SCURO);
+// 2.4.1: i tempi della pedina di Robin Hood, anche loro da config.js
+document.documentElement.style.setProperty("--robin-pedina-ms", ROBIN_HOOD_PEDINA_MS + "ms");
+document.documentElement.style.setProperty("--robin-pedina-ritardo", ROBIN_HOOD_PEDINA_RITARDO_MS + "ms");
+document.documentElement.style.setProperty("--mistero-gira-ms", DURATA_MISTERO_GIRA_MS + "ms");
 
 // ----------------------------------------------------------------------------
 // TABELLONE — griglia fissa (nono giro, punto 45, 28/09/2026)
@@ -130,6 +134,13 @@ const Gioco = {
   categorieUsate: [],      // categorie gia` uscite in questa partita, la meno recente per prima
   frasiDellaPartita: new Set(), // le frasi gia` uscite in questa partita (round e lampi)
   ripieghiDiCategoria: 0,  // quante volte le categorie non sono bastate (serve alla prova, non al gioco)
+  // 2.4.1: lo storico delle frasi uscite nelle ultime partite, nel browser (CHIAVE_STORICO_FRASI).
+  // Una lista di liste di testi, la piu` vecchia per prima; l'ultima e` la partita in corso.
+  storicoFrasi: [],
+  quattroPartiteCadute: 0, // quante volte la regola delle 4 partite ha dovuto cedere (serve alla prova, non al gioco)
+  categorieUsatePrima: null, // le categorie uscite prima dell'ultima frase estratta: «Cambia frase» le rimette
+  quante: null,            // 2.5, Quante?: null oppure { lettera } mentre si aspetta il numero (lettera null = ancora da scegliere)
+  robinInAttesa: false,    // 2.4.1: la consonante di Robin Hood c'e`: il furto parte a lettere scoperte
   posizioniRivelate: new Set(),
   // Terzo giro, punto 16: lettere gia` trovate ma non ancora "scoperte" col
   // click del giocatore — accese sul tabellone, in attesa di un tocco.
@@ -255,33 +266,81 @@ function testoTarga(frase) {
   return indizio || frase.categoria;
 }
 
-// Una partita nuova riparte senza categorie ne' frasi gia` uscite.
-function azzeraCategorieDellaPartita() {
-  Gioco.categorieUsate = [];
-  Gioco.frasiDellaPartita = new Set();
-  Gioco.ripieghiDiCategoria = 0;
+// Lo storico delle frasi uscite, nel browser (2.4.1, Damiano 07/10: «una frase uscita
+// non deve tornare per almeno 4 partite»). Non c'e` un server: vale per questo
+// dispositivo e questo browser, e si perde se si cancellano i dati del sito.
+// Si tengono le ultime PARTITE_SENZA_RIPETIZIONI partite piu` quella in corso.
+function leggiStoricoFrasi() {
+  try {
+    const v = JSON.parse(window.localStorage.getItem(CHIAVE_STORICO_FRASI));
+    if (!Array.isArray(v)) return [];
+    return v.filter(Array.isArray).map((p) => p.filter((t) => typeof t === "string")).slice(-PARTITE_SENZA_RIPETIZIONI);
+  } catch (e) {
+    return [];
+  }
+}
+function scriviStoricoFrasi() {
+  try { window.localStorage.setItem(CHIAVE_STORICO_FRASI, JSON.stringify(Gioco.storicoFrasi)); } catch (e) { /* senza memoria nel browser, niente storico: il gioco va avanti */ }
+}
+// Quante partite fa e` uscita la frase (1 = l'ultima partita), Infinity se non e`
+// uscita in nessuna delle precedenti. La partita in corso non conta: ci pensa frasiDellaPartita.
+function etaNelloStorico(frase) {
+  const prima = Gioco.storicoFrasi.slice(0, -1);
+  for (let i = prima.length - 1; i >= 0; i--) {
+    if (prima[i].includes(frase.testo)) return prima.length - i;
+  }
+  return Infinity;
 }
 
-// Sceglie la frase del round (o del lampo, con `filtro` = «breve»). La regola
-// (Damiano, 05/10/2026): MAI due frasi della stessa categoria nella stessa
-// partita, contando round e lampi. In ordine:
-//  1. una frase del mazzo che resta, di una categoria non ancora uscita;
-//  2. se il mazzo non ne ha, una di quelle dei gruppi scelti (puo` essere gia`
-//     uscita in una partita di prima, mai in questa);
-//  3. RIPIEGO, solo se le categorie dei gruppi scelti sono finite: si
-//     ricomincia dalla categoria uscita MENO di recente, con una frase non
-//     ancora uscita in questa partita (e, se c'e`, ancora nel mazzo).
-// Nessuna frase esce due volte nella stessa partita. Ritorna null solo se
-// il filtro non lascia niente (il chiamante allora riprova senza filtro).
+// Una partita nuova riparte senza categorie ne' frasi gia` uscite, e apre la sua riga nello storico.
+// Una partita lasciata a meta` conta comunque come una partita: le frasi che ha mostrato sono state viste.
+function azzeraCategorieDellaPartita() {
+  Gioco.categorieUsate = [];
+  Gioco.categorieUsatePrima = null;
+  Gioco.frasiDellaPartita = new Set();
+  Gioco.ripieghiDiCategoria = 0;
+  Gioco.quattroPartiteCadute = 0;
+  Gioco.storicoFrasi = leggiStoricoFrasi();
+  Gioco.storicoFrasi.push([]);
+  Gioco.storicoFrasi = Gioco.storicoFrasi.slice(-(PARTITE_SENZA_RIPETIZIONI + 1));
+  scriviStoricoFrasi();
+}
+
+// Sceglie la frase del round (o del lampo, con `filtro` = «breve»). Le regole,
+// dalla piu` forte alla piu` debole:
+//  - nessuna frase esce due volte nella stessa partita (round e lampi);
+//  - mai due frasi della stessa categoria nella stessa partita (Damiano, 05/10/2026);
+//  - una frase uscita non torna per almeno PARTITE_SENZA_RIPETIZIONI partite (Damiano, 07/10/2026);
+//  - le frasi sono solo quelle dei gruppi scelti all'iscrizione.
+// Se le frasi non bastano per tutte, cade per PRIMA la regola delle 4 partite:
+//  1. una frase del mazzo che resta, di una categoria non ancora uscita e non uscita nelle ultime 4 partite
+//     (poi lo stesso fra tutte quelle dei gruppi scelti);
+//  2. se non c'e`, la stessa cosa senza la regola delle 4 partite, e fra le frasi uscite si prende
+//     la meno recente nello storico;
+//  3. RIPIEGO di categoria, solo se le categorie dei gruppi scelti sono finite: si ricomincia dalla
+//     categoria uscita MENO di recente, con una frase non ancora uscita in questa partita (di
+//     preferenza fuori dalle ultime 4 partite).
+// Ritorna null solo se il filtro non lascia niente (il chiamante allora riprova senza filtro).
 function scegliFraseDellaPartita(filtro) {
   const tutte = frasiDeiGruppi();
   if (Gioco.frasiRimaste.length === 0) Gioco.frasiRimaste = mescola(tutte);
   const buona = (f) => (!filtro || filtro(f)) && !Gioco.frasiDellaPartita.has(f);
   const nuova = (f) => !Gioco.categorieUsate.includes(f.categoria);
+  const lontana = (f) => etaNelloStorico(f) === Infinity;
+  const menoRecenti = (lista) => {
+    const m = Math.max(...lista.map(etaNelloStorico));
+    return lista.filter((f) => etaNelloStorico(f) === m);
+  };
   const delMazzo = Gioco.frasiRimaste.filter(buona);
   const dellaPartita = tutte.filter(buona);
-  let candidate = delMazzo.filter(nuova);
-  if (!candidate.length) candidate = dellaPartita.filter(nuova);
+  let candidate = delMazzo.filter(nuova).filter(lontana);
+  if (!candidate.length) candidate = dellaPartita.filter(nuova).filter(lontana);
+  if (!candidate.length) {
+    // la regola delle 4 partite cede: si prende la frase uscita meno di recente
+    candidate = delMazzo.filter(nuova);
+    if (!candidate.length) candidate = dellaPartita.filter(nuova);
+    if (candidate.length) candidate = menoRecenti(candidate);
+  }
   if (!candidate.length && dellaPartita.length) {
     Gioco.ripieghiDiCategoria += 1;
     const eta = (f) => Gioco.categorieUsate.indexOf(f.categoria);
@@ -289,13 +348,20 @@ function scegliFraseDellaPartita(filtro) {
     candidate = dellaPartita.filter((f) => eta(f) === menoRecente);
     const ancoraNelMazzo = candidate.filter((f) => delMazzo.includes(f));
     if (ancoraNelMazzo.length) candidate = ancoraNelMazzo;
+    const lontane = candidate.filter(lontana);
+    candidate = lontane.length ? lontane : menoRecenti(candidate);
   }
   if (!candidate.length) return null;
   const frase = candidate[Math.floor(Math.random() * candidate.length)];
+  if (!lontana(frase)) Gioco.quattroPartiteCadute += 1;
   Gioco.frasiRimaste = Gioco.frasiRimaste.filter((f) => f !== frase);
   Gioco.frasiDellaPartita.add(frase);
+  Gioco.categorieUsatePrima = Gioco.categorieUsate.slice(); // per «Cambia frase»
   Gioco.categorieUsate = Gioco.categorieUsate.filter((c) => c !== frase.categoria);
   Gioco.categorieUsate.push(frase.categoria); // l'ultima uscita sta in fondo
+  // lo storico: la frase e` uscita in questa partita, anche se poi viene cambiata
+  const inCorso = Gioco.storicoFrasi[Gioco.storicoFrasi.length - 1];
+  if (inCorso) { inCorso.push(frase.testo); scriviStoricoFrasi(); }
   return frase;
 }
 
@@ -700,7 +766,7 @@ const GUIDA = [
   { esempio: '<span class="interruttore"><span class="leva" style="background:var(--accento);border-color:var(--accento)"></span></span>', nome: "Round lampo", testo: "Le lettere escono da sole. La sai? Tocca lo schermo o un tasto, l’arbitro tocca la tua tessera: 15 secondi per scriverla, 500 € se è giusta." },
   { esempio: '<span class="tessera-guida">★</span>', nome: "Frase premio", testo: "Una sola a partita: se la risolvi, vinci una sorpresa." },
   // 2.4, voce C8 della scheda di Chiara (06/10/2026): sempre mostrata. Testo del disegno, da confermare a Penna (punto 74).
-  { esempio: '<span class="pillole-guida">' + ["express", "robinhood", "mistero", "scudo"].map(pillola).join("") + '</span>', nome: "Spicchi speciali", testo: "Dal secondo round, due a round, e cambiano. Express: consonanti a raffica, 500 € l’una, ma se sbagli una lettera è bancarotta; o lo lasci, e prendi 200 €. Robin Hood: 500 € da chi è in testa. Mistero: sotto c’è 1.000 €, Passa o 500 € da regalare al secondo. Scudo: ti salva da una lettera sbagliata, da solo. Uno per volta." },
+  { esempio: '<span class="pillole-guida">' + SPECIALI_TUTTI.map(pillola).join("") + '</span>', nome: "Spicchi speciali", testo: "Dal secondo round, due a round, e cambiano. Express: consonanti a raffica, 500 € l’una, ma se sbagli una lettera è bancarotta; o lo lasci, e prendi 200 €. Robin Hood: se la consonante che chiami c’è, 500 € da chi è in testa. Mistero: sotto c’è 1.000 €, Passa o 500 € da regalare al secondo. Scudo: ti salva da una lettera sbagliata, da solo. Uno per volta. Quante?: di’ anche quante volte c’è la lettera: se indovini, 1.000 € l’una." },
 ];
 (function guida() {
   const elenco = document.getElementById("elenco-guida");
@@ -801,6 +867,7 @@ const schermataIscrizione = document.getElementById("schermata-iscrizione");
 const schermataGioco = document.getElementById("schermata-gioco");
 const schermataFinale = document.getElementById("schermata-finale");
 const categoriaEl = document.getElementById("categoria-corrente");
+const btnCambiaFrase = document.getElementById("btn-cambia-frase"); // 2.4.1, vedi «Cambia frase» sotto aggiornaComandi
 const indicatoreRoundEl = document.getElementById("indicatore-round");
 const tabelloneEl = document.getElementById("tabellone-frase");
 const colonnaCentraleEl = document.querySelector(".colonna-centrale");
@@ -1075,6 +1142,7 @@ function avanzaManoSquadra(g) {
 function nuovoRound() {
   fermaTimerAutoscoperta();
   Gioco.express = null; // un Express non si porta da un round all'altro
+  Gioco.robinInAttesa = false;
   // Giro A, voce A2: l'aiutino si usa al massimo una volta per round.
   Gioco.aiutinoUsato = Gioco.giocatori.map(() => false);
   if (tabelloneEl) tabelloneEl.classList.remove("scegli-casella");
@@ -1425,7 +1493,18 @@ function aggiornaPannelloClassifica() {
     });
 }
 
+// Quante? (2.5): il pannello delle consonanti torna quello di sempre (classe, fila dei numeri, griglia).
+function pulisciPannelloQuante() {
+  Gioco.quante = null;
+  pannelloConsonanti.classList.remove("quante");
+  const fila = pannelloConsonanti.querySelector(".scelta-quante");
+  if (fila) fila.remove();
+  grigliaConsonanti.classList.remove("via");
+  grigliaConsonanti.style.display = "";
+}
+
 function nascondiTuttiIPannelli() {
+  pulisciPannelloQuante();
   [pannelloVocali, pannelloConsonanti, pannelloExpress, pannelloJolly, pannelloSoluzione, pannelloFineRound, pannelloAiutino].forEach((p) =>
     p.classList.add("nascosta")
   );
@@ -1501,7 +1580,48 @@ function aggiornaComandi() {
   btnAiutino.classList.toggle("nascosta", !haAiutino);
   btnAiutino.disabled = !idle || usato;
   aggiornaAvvisoLettereFinite(consonantiFinite, vocaliFinite);
+  aggiornaCambiaFrase();
 }
+
+// ---- CAMBIA FRASE (2.4.1, Damiano 07/10) -----------------------------------
+// «Fai un'altra frase», ma il round resta lo stesso: stesso numero, stessi
+// speciali, stessi soldi, stesso turno. Il pulsante c'e` solo prima che sia
+// uscita qualsiasi lettera del round (round lampo compreso: li` solo mentre
+// l'annuncio «Round lampo!» e le lettere non sono ancora partite).
+// La frase nuova segue le stesse regole di ogni altra (scegliFraseDellaPartita):
+// gruppi scelti, categoria non ancora uscita, storico delle ultime partite.
+// La frase lasciata resta «uscita»: non torna in questa partita e conta nello
+// storico (e` stata vista), ma la sua categoria torna libera.
+function cambiaFrasePossibile() {
+  if (Gioco.stato === "lampo") return Lampo.puoCambiareFrase();
+  return Gioco.stato === "idle" && !Ruota.inAnimazione() &&
+    Gioco.lettereUsate.size === 0 && Gioco.posizioniRivelate.size === 0 && Gioco.posizioniAccese.size === 0;
+}
+function aggiornaCambiaFrase() {
+  if (btnCambiaFrase) btnCambiaFrase.classList.toggle("nascosta", !cambiaFrasePossibile());
+}
+// Estrae un'altra frase al posto di quella in corso. Ritorna la frase nuova, o null se
+// non ce n'e` un'altra che rispetti le regole (allora non cambia niente).
+function sostituisciFrase(filtro) {
+  const categorieDopo = Gioco.categorieUsate;
+  if (Gioco.categorieUsatePrima) Gioco.categorieUsate = Gioco.categorieUsatePrima.slice();
+  const nuova = scegliFraseDellaPartita(filtro);
+  if (!nuova) Gioco.categorieUsate = categorieDopo;
+  return nuova;
+}
+if (btnCambiaFrase) btnCambiaFrase.addEventListener("click", () => {
+  if (!cambiaFrasePossibile()) return;
+  if (Gioco.stato === "lampo") { Lampo.cambiaFrase(); return; }
+  const nuova = sostituisciFrase(null);
+  if (!nuova) return;
+  Audio_.click();
+  Gioco.fraseCorrente = nuova;
+  categoriaEl.textContent = testoTarga(nuova);
+  Gioco.consonantiFiniteAvvisate = false;
+  Gioco.vocaliFiniteAvvisate = false;
+  disegnaTabellone(true);
+  aggiornaComandi();
+});
 
 // L'aiutino, toccato: si sceglie una casella coperta (Giro A, voce A2). Il
 // turno NON passa — resta a chi ha appena scoperto la casella gratis.
@@ -1787,6 +1907,7 @@ function impostaTitoloConsonanti(html) {
 
 function gestisciEsitoRuota(segmento, indice) {
   const g = giocatoreCorrente();
+  Gioco.quante = null; // 2.5: un Quante? lasciato a meta` (Scudo, partita chiusa) non si porta al giro dopo
   Gioco.spicchioIndice = indice;
   if (segmento.tipo === "soldi") {
     // Punto 53 (28/09/2026): il jolly e` uno spicchio intero, sullo stesso
@@ -1870,11 +1991,13 @@ function gestisciSpeciale(chiave, g) {
   if (chiave === "express") {
     apriPannelloExpress();
   } else if (chiave === "robinhood") {
-    spicchioRobinHood(g);
+    apriPannelloRobinHood();
   } else if (chiave === "mistero") {
     spicchioMistero(g);
   } else if (chiave === "scudo") {
     spicchioScudo(g);
+  } else if (chiave === "quante") {
+    spicchioQuante();
   }
 }
 
@@ -1981,6 +2104,18 @@ function expressGiaUscita(lettera) {
 }
 
 // ---- Robin Hood ----
+// 2.4.1 (Damiano, 07/10: «si attiva non quando ci arriva la ruota sopra, ma quando uno chiama la
+// consonante giusta»): chi ci cade chiama una consonante come su uno spicchio normale. Se c'e`,
+// scatta Robin Hood (a lettere scoperte) e si gira ancora, come dopo una lettera giusta; se non
+// c'e` (o e` gia` uscita) e` un errore normale: il turno passa, e lo Scudo salva come sempre.
+// Lo spicchio non ha una cifra, quindi la lettera giusta non da` soldi propri: il premio e` il furto.
+function apriPannelloRobinHood() {
+  impostaTitoloConsonanti(`<b>Robin Hood!</b> Se la consonante c’è, ${euro(ROBIN_HOOD_VALORE)} da chi è in testa`);
+  Gioco.spicchioValore = 0;
+  Gioco.spicchioTipo = "robinhood";
+  apriPannelloConsonanti();
+}
+
 // Chi e` in testa e` chi ha piu` soldi in CASSAFORTE (la classifica). Pari merito in
 // testa: i 500 € si dividono a multipli di 50 €, il resto si perde (come il regalo del Mistero).
 function dividiA50(importo, quanti) {
@@ -2002,7 +2137,7 @@ function spicchioRobinHood(g) {
       sotto: massimo === 0 ? "nessuno ha ancora soldi in cassaforte · gira ancora" : "sei tu in testa: niente da prendere · gira ancora",
       durata: DURATA_ROBIN_HOOD_MS,
     });
-    giraAncoraDopo(DURATA_ROBIN_HOOD_MS);
+    dopoRobinHood();
     return;
   }
   const quota = dividiA50(Math.min(ROBIN_HOOD_VALORE, massimo), inTesta.length);
@@ -2018,9 +2153,20 @@ function spicchioRobinHood(g) {
     sottoHtml: `${euro(presi)} da ${nomi}, ${inTesta.length === 1 ? "che è" : "che sono"} in testa · gira ancora`,
     durata: DURATA_ROBIN_HOOD_MS,
   });
-  // le tessere della fila si aggiornano quando la pedina e` arrivata (1000 ms)
-  setTimeout(aggiornaSchedeGiocatori, 1000);
-  giraAncoraDopo(DURATA_ROBIN_HOOD_MS);
+  // le tessere della fila si aggiornano quando la pedina e` arrivata
+  setTimeout(aggiornaSchedeGiocatori, ROBIN_HOOD_PEDINA_RITARDO_MS + ROBIN_HOOD_PEDINA_MS);
+  dopoRobinHood();
+}
+// Finito il cartello si gira ancora; se la lettera che ha fatto scattare Robin Hood
+// era l'ultima della frase, il round si chiude (con i soldi presi gia` in tasca).
+function dopoRobinHood() {
+  Gioco.stato = "in_annuncio";
+  aggiornaComandi();
+  setTimeout(() => {
+    if (fraseCompletamenteRivelata()) { vinciRound(); return; }
+    Gioco.stato = "idle";
+    aggiornaComandi();
+  }, DURATA_ROBIN_HOOD_MS);
 }
 
 // ---- Mistero ----
@@ -2093,6 +2239,50 @@ function svelaMistero(g, sotto) {
   }
 }
 
+// ---- Quante? (2.5, disegno di Chiara 07/10/2026: design/2026-10-07-quante.md) ----
+// Chi ci cade dice una consonante E quante volte pensa che compaia. Lettera e numero giusti:
+// il valore raddoppia; lettera giusta e numero sbagliato: vale come sempre (500 € a lettera,
+// nessuna penale); lettera che non c'e` (o gia` uscita): errore normale, e lo Scudo salva.
+// «6+» vale sei o piu`. Nessuna scelta di Erbottega sui valori: sono quelli della scheda.
+function spicchioQuante() {
+  Gioco.stato = "in_annuncio";
+  aggiornaComandi();
+  Audio_.click();
+  Annuncio.mostra({ stile: "speciale", simbolo: "quante", titolo: "Quante?", sotto: "una consonante, e quante volte c’è: col numero giusto vale il doppio", durata: DURATA_QUANTE_CADE_MS });
+  setTimeout(() => {
+    Gioco.spicchioValore = QUANTE_VALORE_LETTERA;
+    Gioco.spicchioTipo = "quante";
+    Gioco.quante = { lettera: null };
+    apriPannelloConsonanti();
+  }, DURATA_QUANTE_CADE_MS);
+}
+
+// Dopo la lettera: la griglia va via (120 ms) e al suo posto, nella stessa riga, la lettera detta e i numeri.
+function chiediQuante(lettera) {
+  Gioco.quante.lettera = lettera;
+  impostaTitoloConsonanti(`Quante volte c’è la <b>${lettera}</b>?`);
+  const fila = document.createElement("div");
+  fila.className = "scelta-quante entra";
+  const ultimo = QUANTE_NUMERI[QUANTE_NUMERI.length - 1];
+  fila.innerHTML = `<span class="lettera-detta">${lettera}</span><span class="separatore"></span>` +
+    QUANTE_NUMERI.map((n) => `<button type="button" class="numero" data-numero="${n}">${n}${n === ultimo ? "<small>+</small>" : ""}</button>`).join("");
+  fila.querySelectorAll("button.numero").forEach((b) => b.addEventListener("click", () => rispostaQuante(+b.dataset.numero)));
+  grigliaConsonanti.classList.add("via");
+  setTimeout(() => {
+    if (!Gioco.quante || Gioco.quante.lettera !== lettera) return; // nel frattempo la partita e` andata altrove
+    grigliaConsonanti.style.display = "none";
+    grigliaConsonanti.classList.remove("via");
+    grigliaConsonanti.after(fila);
+  }, 120);
+}
+
+function rispostaQuante(numero) {
+  if (!Gioco.quante || !Gioco.quante.lettera || Gioco.stato !== "scegli_consonante") return;
+  const lettera = Gioco.quante.lettera;
+  pannelloConsonanti.classList.add("nascosta");
+  risolviConsonante(lettera, numero);
+}
+
 // ---- Scudo ----
 function spicchioScudo(g) {
   Gioco.stato = "in_annuncio";
@@ -2140,6 +2330,17 @@ function scudoSalva(lettera, titolo) {
 
 // ---- CONSONANTI -------------------------------------------------------------
 
+function preparaPannelloQuante(inQuante) {
+  const stato = Gioco.quante;
+  pulisciPannelloQuante();
+  Gioco.quante = stato; // la lettera da scegliere resta; si ripulisce solo il pannello
+  pannelloConsonanti.classList.toggle("quante", inQuante);
+  if (inQuante) {
+    fasciaExpressEl.innerHTML = svgSimbolo("quante") + `QUANTE? · ${euro(QUANTE_VALORE_LETTERA)} a lettera <span class="conto">il doppio col numero giusto</span>`;
+    impostaTitoloConsonanti("Scegli una consonante");
+  }
+}
+
 function apriPannelloConsonanti() {
   Gioco.stato = "scegli_consonante";
   grigliaConsonanti.innerHTML = "";
@@ -2147,6 +2348,8 @@ function apriPannelloConsonanti() {
   // Finite le consonanti il pannello non si chiude: restano solo quelle due mosse.
   const inExpress = Gioco.spicchioTipo === "express" && !!Gioco.express;
   pannelloConsonanti.classList.toggle("express", inExpress);
+  // Quante? (2.5): la stessa fascia dell'Express, senza le altre mosse; riparte sempre dalla griglia
+  preparaPannelloQuante(Gioco.spicchioTipo === "quante" && !!Gioco.quante);
   const consonantiFinite = inExpress && consonantiFiniteNellaFrase();
   if (inExpress) {
     aggiornaFasciaExpress();
@@ -2211,6 +2414,18 @@ function sceltaConsonante(lettera) {
     return;
   }
 
+  // Quante? (2.5): la lettera e` buona da dire, ora si chiede il numero; niente soldi finche` non arriva
+  if (Gioco.spicchioTipo === "quante" && Gioco.quante && Gioco.quante.lettera === null) {
+    pannelloConsonanti.classList.remove("nascosta"); // il pannello resta: cambia solo la riga
+    chiediQuante(lettera);
+    return;
+  }
+  risolviConsonante(lettera, null);
+}
+
+// Il resto di sceltaConsonante: la lettera e` stata detta (e, su Quante?, anche il numero).
+function risolviConsonante(lettera, numeroDetto) {
+  Gioco.quante = null;
   Gioco.lettereUsate.add(lettera);
   const posizioni = posizioniCoperteDellaLettera(lettera);
 
@@ -2221,7 +2436,11 @@ function sceltaConsonante(lettera) {
     // "scoprire" la lettera sul tabellone, come lo schermo che si accende
     // in TV: l'importo vinto e` gia` definitivo e visibile nella scheda.
     const g = giocatoreCorrente();
-    const importoVinto = Gioco.spicchioValore * posizioni.length;
+    // Quante? (2.5): numero giusto = il doppio; «6+» (l'ultimo tondo) vale sei o piu`
+    const ultimoTondo = QUANTE_NUMERI[QUANTE_NUMERI.length - 1];
+    const doppio = Gioco.spicchioTipo === "quante" && numeroDetto !== null &&
+      (numeroDetto === posizioni.length || (numeroDetto === ultimoTondo && posizioni.length >= numeroDetto));
+    const importoVinto = Gioco.spicchioValore * posizioni.length * (doppio ? QUANTE_MOLTIPLICATORE : 1);
     g.soldiRound += importoVinto;
     posizioni.forEach((p) => Gioco.posizioniAccese.add(p));
 
@@ -2251,6 +2470,23 @@ function sceltaConsonante(lettera) {
       disegnaTabellone();
       numeraCaselleAccese();
       Annuncio.mostra({ lettera, titolo: quanteVolte(posizioni.length), sotto: "raddoppi: " + euro(g.soldiRound) });
+    } else if (Gioco.spicchioTipo === "quante") {
+      Audio_.letteraRivelata();
+      disegnaTabellone();
+      numeraCaselleAccese();
+      if (doppio) {
+        Annuncio.mostra({ lettera, stile: "doppio", titolo: quanteVolte(posizioni.length), sottoHtml: `hai detto ${numeroDetto}: il doppio, <b>+${euro(importoVinto)}</b>` });
+      } else {
+        Annuncio.mostra({ lettera, stile: "quante", titolo: quanteVolte(posizioni.length), sottoHtml: `hai detto ${numeroDetto} · <b>+${euro(importoVinto)}</b>` });
+      }
+    } else if (Gioco.spicchioTipo === "robinhood") {
+      // 2.4.1: la consonante c'e`: nessun soldo per la lettera (lo spicchio non ha cifra),
+      // il furto parte quando le caselle sono scoperte (finalizzaRivelazione)
+      Gioco.robinInAttesa = true;
+      Audio_.letteraRivelata();
+      disegnaTabellone();
+      numeraCaselleAccese();
+      Annuncio.mostra({ lettera, titolo: quanteVolte(posizioni.length), sotto: "e scatta Robin Hood" });
     } else if (Gioco.express) {
       // 2.4: una consonante giusta nell'Express; poi si riapre il pannello (finalizzaRivelazione)
       Gioco.express.lettere += 1;
@@ -2277,6 +2513,8 @@ function sceltaConsonante(lettera) {
       annunciaEPassaTurno({ lettera, stile: "no", titolo: "non c’è", sotto: "niente Jolly", durata: DURATA_ANNUNCIO_MS });
     } else if (Gioco.spicchioTipo === "raddoppia") {
       annunciaEPassaTurno({ lettera, stile: "no", titolo: "non c’è", sotto: "niente raddoppio", durata: DURATA_ANNUNCIO_MS });
+    } else if (Gioco.spicchioTipo === "robinhood") {
+      annunciaEPassaTurno({ lettera, stile: "no", titolo: "non c’è", sotto: "niente Robin Hood", durata: DURATA_ANNUNCIO_MS });
     } else {
       annunciaEPassaTurno({ lettera, stile: "no", titolo: "non c’è", durata: DURATA_ANNUNCIO_MS });
     }
@@ -2299,6 +2537,12 @@ function scopriCasella(idx) {
 function finalizzaRivelazione() {
   fermaTimerAutoscoperta();
   Annuncio.nascondi();
+  // 2.4.1: la consonante giusta su Robin Hood: a lettere scoperte parte il furto
+  if (Gioco.robinInAttesa) {
+    Gioco.robinInAttesa = false;
+    spicchioRobinHood(giocatoreCorrente());
+    return;
+  }
   // 2.4: nell'Express, a frase non finita, si torna al pannello delle consonanti
   if (Gioco.express && !fraseCompletamenteRivelata()) {
     riapriExpress();

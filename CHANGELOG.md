@@ -4,16 +4,25 @@ Versione per versione, la più recente in cima. Si gioca su https://giraleparole
 
 ## In arrivo
 
-Le prime sei sono idee già scelte ma non ancora costruite; le ultime due sono ancora solo idee, e possono cambiare o non arrivare. L'ordine non è quello in cui arriveranno.
+Le prime cinque sono idee già scelte ma non ancora costruite; le ultime due sono ancora solo idee, e possono cambiare o non arrivare. L'ordine non è quello in cui arriveranno.
 
 - **L'avversario finto.** Un giocatore della macchina, con nome e tessera come gli altri: chiama le lettere più frequenti, ogni tanto sbaglia, e tenta la soluzione quando ha scoperto abbastanza. Così si potrà tornare a giocare da soli: arriva in un prossimo aggiornamento, nei prossimi giorni.
 - **La frase premio.** Una frase a partita nasconde un premio, per esempio un jolly in più o la cassaforte raddoppiata. Lo si scopre solo risolvendola.
 - **L'albo d'oro.** Il gioco si ricorderà partite e record: chi vince più spesso, la vincita più alta, la frase risolta con meno lettere.
 - **Le frasi dei ragazzi.** Una pagina dove scrivere frasi proprie, con il loro indizio. Finiscono nel mazzo di casa, e quando escono il gioco dice chi le ha scritte.
 - **La sfida con un link.** Si scrive una frase e la si manda con un link: chi lo apre la gioca da solo.
-- **Quante?** Dici una lettera e quante volte pensi che compaia: se indovini anche il numero, il valore raddoppia; se la lettera c'è ma il numero è sbagliato, vale come sempre. Arriva nella versione dopo la 2.4.
 - **Partite a tema.** Ci sto pensando: prima di cominciare si sceglie che serata è, e la ruota cambia qualche spicchio. In famiglia, per esempio, uno spicchio che vale una caramella vera, o uno che stasera vi libera dai piatti.
 - **I telefoni.** È l'idea più lontana: il telefono come pulsante per prenotarsi nel round lampo, e un giorno, forse, per giocare tutto, anche da case diverse. Prima bisogna capire se si può fare.
+
+## 2.5 — 7 ottobre 2026 · Quante?
+
+- **Quante?, il quinto spicchio speciale.** Sulla ruota è il simbolo del conto con le stanghette. Chi ci cade dice una consonante e quante volte pensa che compaia, toccando uno dei sei tondi: 1, 2, 3, 4, 5 o 6+. Lettera e numero giusti: il valore raddoppia, 1.000 € a lettera. Lettera giusta e numero sbagliato: vale come sempre, 500 € a lettera, senza penale. Se la lettera non c'è, è un errore come un altro (e lo Scudo salva). Se è già uscita, il gioco lo dice subito, senza chiedere il numero.
+- **Cinque speciali su due posti.** A ogni round escono i due comparsi meno volte in quella partita, e mai la stessa coppia del round prima: con 5 round si vedono tutti e cinque, con 3 uno resta fuori, a sorte. «Come si gioca» ha una frase in più per Quante?.
+- **Robin Hood scatta con la consonante giusta.** Chi ci cade chiama una consonante, come su uno spicchio normale: se c'è, Robin Hood prende i 500 € da chi è in testa e si gira ancora; se non c'è, è un errore come un altro e il turno passa. La lettera giusta non vale soldi per sé, perché lo spicchio non ha una cifra.
+- **Le animazioni di Robin Hood e del Mistero sono un po' più lunghe**, così si fa in tempo a vedere cosa succede: la pedina di Robin Hood viaggia più piano, e la carta del Mistero resta chiusa più a lungo e si gira con più calma.
+- **La freccia della ruota si piega dalla parte giusta.** Se la ruota gira in senso orario, la freccia va verso destra, spinta dai pioli; in senso antiorario, verso sinistra. Vale anche quando la ruota la porti tu a mano.
+- **Una frase uscita non torna per almeno quattro partite.** Il gioco si ricorda le ultime partite su questo dispositivo: se giocate da un altro telefono o computer, o cancellate i dati del sito, riparte da zero. Se le frasi dei gruppi scelti non bastano, la regola cede per prima, e torna la frase uscita meno di recente.
+- **«Cambia frase».** Accanto alla targa c'è un pulsante piccolo: finché non è uscita nessuna lettera del round, anche nel round lampo, tocchi e ne esce un'altra. Il round resta lo stesso, con la stessa ruota, gli stessi soldi e lo stesso turno; la frase lasciata non torna più in quella partita.
 
 ## 2.4 — 7 ottobre 2026 · Gli spicchi speciali
 

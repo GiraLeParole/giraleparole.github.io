@@ -130,12 +130,39 @@ const Lampo = (() => {
     [...Gioco.fraseCorrente.testo].forEach((c, i) => { if (eLettera(c)) ordine.push(i); });
     ordine = mescola(ordine);
     timerLettere = setTimeout(prossimaLettera, DURATA_ANNUNCIO_LAMPO_MS + 400);
+    aggiornaCambiaFrase();
+  }
+
+  // ---- Cambia frase (2.4.1): solo prima che si accenda la prima lettera ----
+
+  function puoCambiareFrase() {
+    return fase === "annuncio";
+  }
+
+  // Un'altra frase breve, con le stesse regole di prima (scegliFrase = stessa
+  // scelta di avvia); le lettere ripartono dopo LAMPO_ATTESA_DOPO_CAMBIO_MS, perche'
+  // chi guarda abbia il tempo di leggere l'indizio nuovo. Se non ce n'e` un'altra, non cambia niente.
+  function cambiaFrase() {
+    if (fase !== "annuncio") return;
+    const nuova = sostituisciFrase((f) => contaLettere(f.testo) <= LAMPO_MAX_LETTERE);
+    if (!nuova) return;
+    Audio_.click();
+    clearTimeout(timerLettere);
+    Gioco.fraseCorrente = nuova;
+    Gioco.posizioniRivelate = new Set();
+    categoriaEl.textContent = testoTarga(nuova);
+    ordine = [];
+    [...nuova.testo].forEach((c, i) => { if (eLettera(c)) ordine.push(i); });
+    ordine = mescola(ordine);
+    disegnaTabellone(true);
+    timerLettere = setTimeout(prossimaLettera, LAMPO_ATTESA_DOPO_CAMBIO_MS);
   }
 
   // ---- le lettere -----------------------------------------------------------
 
   function prossimaLettera() {
     fase = "lettere";
+    aggiornaCambiaFrase();
     if (!ordine.length) { nessuno(); return; }
     const idx = ordine.shift();
     Gioco.posizioniRivelate.add(idx);
@@ -335,5 +362,5 @@ const Lampo = (() => {
     if (vaAvanti) vaAvanti(chiApre);
   }
 
-  return { pianifica, dovuto, avvia };
+  return { pianifica, dovuto, avvia, puoCambiareFrase, cambiaFrase };
 })();

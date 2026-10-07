@@ -7,11 +7,24 @@ const NOVITA = {
     "<b>L'albo d'oro.</b> Il gioco si ricorderà partite e record: chi vince più spesso, la vincita più alta, la frase risolta con meno lettere.",
     "<b>Le frasi dei ragazzi.</b> Una pagina dove scrivere frasi proprie, con il loro indizio. Finiscono nel mazzo di casa, e quando escono il gioco dice chi le ha scritte.",
     "<b>La sfida con un link.</b> Si scrive una frase e la si manda con un link: chi lo apre la gioca da solo.",
-    "<b>Quante?</b> Dici una lettera e quante volte pensi che compaia: se indovini anche il numero, il valore raddoppia; se la lettera c'è ma il numero è sbagliato, vale come sempre. Arriva nella versione dopo la 2.4.",
     "<b>Partite a tema.</b> Ci sto pensando: prima di cominciare si sceglie che serata è, e la ruota cambia qualche spicchio. In famiglia, per esempio, uno spicchio che vale una caramella vera, o uno che stasera vi libera dai piatti.",
     "<b>I telefoni.</b> È l'idea più lontana: il telefono come pulsante per prenotarsi nel round lampo, e un giorno, forse, per giocare tutto, anche da case diverse. Prima bisogna capire se si può fare."
   ],
   "versioni": [
+    {
+      "versione": "2.5",
+      "data": "7 ottobre 2026",
+      "titolo": "Quante?",
+      "voci": [
+        "<b>Quante?, il quinto spicchio speciale.</b> Sulla ruota è il simbolo del conto con le stanghette. Chi ci cade dice una consonante e quante volte pensa che compaia, toccando uno dei sei tondi: 1, 2, 3, 4, 5 o 6+. Lettera e numero giusti: il valore raddoppia, 1.000 € a lettera. Lettera giusta e numero sbagliato: vale come sempre, 500 € a lettera, senza penale. Se la lettera non c'è, è un errore come un altro (e lo Scudo salva). Se è già uscita, il gioco lo dice subito, senza chiedere il numero.",
+        "<b>Cinque speciali su due posti.</b> A ogni round escono i due comparsi meno volte in quella partita, e mai la stessa coppia del round prima: con 5 round si vedono tutti e cinque, con 3 uno resta fuori, a sorte. «Come si gioca» ha una frase in più per Quante?.",
+        "<b>Robin Hood scatta con la consonante giusta.</b> Chi ci cade chiama una consonante, come su uno spicchio normale: se c'è, Robin Hood prende i 500 € da chi è in testa e si gira ancora; se non c'è, è un errore come un altro e il turno passa. La lettera giusta non vale soldi per sé, perché lo spicchio non ha una cifra.",
+        "<b>Le animazioni di Robin Hood e del Mistero sono un po' più lunghe</b>, così si fa in tempo a vedere cosa succede: la pedina di Robin Hood viaggia più piano, e la carta del Mistero resta chiusa più a lungo e si gira con più calma.",
+        "<b>La freccia della ruota si piega dalla parte giusta.</b> Se la ruota gira in senso orario, la freccia va verso destra, spinta dai pioli; in senso antiorario, verso sinistra. Vale anche quando la ruota la porti tu a mano.",
+        "<b>Una frase uscita non torna per almeno quattro partite.</b> Il gioco si ricorda le ultime partite su questo dispositivo: se giocate da un altro telefono o computer, o cancellate i dati del sito, riparte da zero. Se le frasi dei gruppi scelti non bastano, la regola cede per prima, e torna la frase uscita meno di recente.",
+        "<b>«Cambia frase».</b> Accanto alla targa c'è un pulsante piccolo: finché non è uscita nessuna lettera del round, anche nel round lampo, tocchi e ne esce un'altra. Il round resta lo stesso, con la stessa ruota, gli stessi soldi e lo stesso turno; la frase lasciata non torna più in quella partita."
+      ]
+    },
     {
       "versione": "2.4",
       "data": "7 ottobre 2026",

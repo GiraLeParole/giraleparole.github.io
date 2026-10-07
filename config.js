@@ -52,14 +52,14 @@ const COLORE_PASSA = "#F7F3E8";
 const TESTO_PASSA = "#20233A";
 
 // ----------------------------------------------------------------------------
-// GLI SPICCHI SPECIALI (2.4) — disegno di Chiara, 06/10/2026
-// (`design/2026-10-06-scheda-spicchi-speciali.md`). Quattro speciali, due per
-// round, nei due posti fissi 9 e 21 di SEGMENTI_RUOTA (tipo "speciale" dal
+// GLI SPICCHI SPECIALI (2.4, con Quante? dalla 2.5) — disegno di Chiara, 06/10/2026
+// (`design/2026-10-06-scheda-spicchi-speciali.md`; Quante?: `design/2026-10-07-quante.md`).
+// Cinque speciali, due per round, nei due posti fissi 9 e 21 di SEGMENTI_RUOTA (tipo "speciale" dal
 // round 2; nel round 1 non compare nessuno speciale, Damiano 06/10 sera).
 // Regole cambiate da Damiano la sera del 06/10: Express rifiutato = 200 € fissi
 // e si gira di nuovo; Scudo al massimo uno per giocatore.
 // ----------------------------------------------------------------------------
-// I quattro speciali. `nome` e` la parola sullo spicchio e nei cartelli (nomi
+// I cinque speciali (Quante?, il quinto, dalla 2.5). `nome` e` la parola sullo spicchio e nei cartelli (nomi
 // di Damiano e Alfred, 05-06/10/2026). `simbolo` e` il disegno: un solo
 // tracciato in un quadrato 0-100, letto dal canvas (Path2D) e dalla pagina
 // (<svg viewBox="0 0 100 100">), cosi` il simbolo e` lo stesso dappertutto.
@@ -96,6 +96,16 @@ const SPECIALI = {
       { d: "M50 31 L65.5 37 L65.5 49 C65.5 58.5 59 65.5 50 69.5 C41 65.5 34.5 58.5 34.5 49 L34.5 37 Z", fill: true },
     ],
   },
+  quante: {
+    nome: "QUANTE?",
+    titolo: "Quante?",
+    simbolo: [ // il conto con le stanghette: tre aste e la sbarra che le taglia, a linea come l'arco di Robin Hood
+      { d: "M26 16 L26 84", stroke: 10 },
+      { d: "M50 16 L50 84", stroke: 10 },
+      { d: "M74 16 L74 84", stroke: 10 },
+      { d: "M8 76 L92 24", stroke: 10 },
+    ],
+  },
 };
 
 // Il colore di classe: TUTTI gli speciali sono verde-azzurri, come tutti i
@@ -117,32 +127,52 @@ const COLORE_SPECIALE_SCURO = "#00695C";   // bordi, pillole e distintivi nei ca
 // (tre copie) sparisce. Dal round 2: nel round 1 i due posti hanno i soldi della 2.3.
 const POSTI_SPECIALI = [9, 21];
 
-// Quali due per round. Le tre spartizioni possibili dei quattro in due coppie:
-// ogni spartizione da` due round (prima una meta`, poi l'altra: «due e poi
-// altri due», Damiano 06/10), le tre spartizioni si mescolano a ogni partita.
-// Cosi`: ogni speciale c'e` un round si` e uno no; la coppia cambia a OGNI
-// round; la stessa coppia non torna prima di sei round; nessuna partita
-// comincia sempre con gli stessi due.
-const SPARTIZIONI_SPECIALI = [
-  [["express", "robinhood"], ["mistero", "scudo"]],
-  [["express", "mistero"], ["robinhood", "scudo"]],
-  [["express", "scudo"], ["robinhood", "mistero"]],
-];
+// L'ordine qui e` quello delle pillole nella guida.
+const SPECIALI_TUTTI = ["express", "robinhood", "mistero", "scudo", "quante"];
 
-// Restituisce, per una partita di `numeroRound` round, la coppia di ogni
-// round (indice 0 = round 1, che NON ha speciali: null; la rotazione parte dal
-// round 2). Si chiama UNA volta a inizio partita e il risultato si tiene in
-// Gioco (come il programma del lampo).
+const QUANTE_VALORE_LETTERA = 500;   // a occorrenza, come l'Express (scelta aperta per Damiano)
+const QUANTE_MOLTIPLICATORE = 2;     // col numero giusto
+const QUANTE_NUMERI = [1, 2, 3, 4, 5, 6]; // i tondi da toccare; l'ultimo vale «6 o piu`» (nel mazzo del 05/10 una consonante presente compare 6+ volte 17 volte su 2.386)
+const DURATA_QUANTE_CADE_MS = 1800;  // il cartello di chi ci cade, come lo Scudo preso
+
+// Quali due per round, con cinque speciali su due posti (dal round 2; il
+// round 1 non ne ha, Damiano 06/10). Regola «i due meno visti»: a ogni round
+// escono i due che in questa partita sono comparsi meno volte, a sorte fra i
+// pari; mai la coppia del round prima; fra piu` coppie possibili, prima quelle
+// mai uscite in questa partita. Garantisce: la coppia cambia a OGNI round;
+// nessuno speciale compare due volte prima che tutti siano comparsi una volta;
+// con 3 round escono quattro speciali diversi (uno resta fuori, a sorte); con
+// 5 round tutti e cinque almeno una volta (tre di loro due volte); con 7
+// round tutti almeno due volte (due di loro tre volte). I numeri sono in
+// design/2026-10-07-quante.md, §3 (design/strumenti/rotazione-cinque.mjs).
 function programmaSpeciali(numeroRound) {
-  const programma = [];
-  while (programma.length < numeroRound - 1) {
-    const spartizioni = SPARTIZIONI_SPECIALI.slice().sort(() => Math.random() - 0.5);
-    spartizioni.forEach(([a, b]) => {
-      if (Math.random() < 0.5) programma.push(a, b);
-      else programma.push(b, a);
-    });
+  const conto = {};
+  SPECIALI_TUTTI.forEach((k) => { conto[k] = 0; });
+  const chiave = (c) => c.slice().sort().join("+");
+  const programma = [null]; // round 1
+  const uscite = new Set();
+  let precedente = null;
+  for (let r = 2; r <= numeroRound; r++) {
+    const minimo = Math.min(...SPECIALI_TUTTI.map((k) => conto[k]));
+    const alMinimo = SPECIALI_TUTTI.filter((k) => conto[k] === minimo);
+    const coppie = [];
+    if (alMinimo.length >= 2) {
+      for (let i = 0; i < alMinimo.length; i++) for (let j = i + 1; j < alMinimo.length; j++) coppie.push([alMinimo[i], alMinimo[j]]);
+    } else {
+      // uno solo al minimo: lui e uno di quelli subito sopra (sono a minimo + 1, mai di piu`)
+      SPECIALI_TUTTI.filter((k) => k !== alMinimo[0]).forEach((k) => coppie.push([alMinimo[0], k]));
+    }
+    let ammesse = coppie.filter((c) => chiave(c) !== precedente);
+    if (!ammesse.length) ammesse = coppie; // non succede mai (vedi §3), ma meglio una coppia ripetuta di un round senza speciali
+    const nuove = ammesse.filter((c) => !uscite.has(chiave(c)));
+    const scelta = (nuove.length ? nuove : ammesse)[Math.floor(Math.random() * (nuove.length ? nuove : ammesse).length)].slice();
+    if (Math.random() < 0.5) scelta.reverse(); // chi va nel posto 9 e chi nel 21
+    programma.push(scelta);
+    scelta.forEach((k) => { conto[k] += 1; });
+    precedente = chiave(scelta);
+    uscite.add(precedente);
   }
-  return [null, ...programma.slice(0, numeroRound - 1)];
+  return programma;
 }
 
 // Cosa c'e` sotto il Mistero (Damiano, 05/10: «1.000 €, Passa, oppure regali
@@ -166,13 +196,23 @@ const EXPRESS_VALORE_LETTERA = 500;   // ogni consonante giusta, per ogni volta 
 const ROBIN_HOOD_VALORE = 500;         // da chi e` in testa (Damiano, 05/10: «lo porteremmo a 500»)
 
 // Durate (ms) dei cartelli nuovi; quelle di sempre restano (DURATA_ANNUNCIO_MS 1300, _LUNGO 1800).
-const DURATA_MISTERO_COPERTO_MS = 900;   // il «?» resta chiuso cosi` a lungo, poi la carta si gira (2 × 260 ms)
-const DURATA_ROBIN_HOOD_MS = 2400;       // il cartello con la pedina che passa di mano (la pedina viaggia da 300 a 1000 ms)
+// Mistero, 2.4.1 (Damiano 07/10, «un po' piu` lunga», come Robin Hood): il «?» restava chiuso 900 ms e la carta
+// si girava in 520 ms; ora resta chiuso 1300 ms e la carta si gira in 800 ms. Il CSS legge il secondo da qui.
+const DURATA_MISTERO_COPERTO_MS = 1300;  // il «?» resta chiuso cosi` a lungo, poi la carta si gira
+const DURATA_MISTERO_GIRA_MS = 800;      // la carta che si gira e mostra cosa c'era sotto
+// Robin Hood, 2.4.1 (Damiano 07/10, «un pelino piu` lunga»): la pedina viaggiava 700 ms (da 300 a 1000) e il cartello
+// restava 2400 ms; ora viaggia 1100 ms (da 300 a 1400) e il cartello resta 3000 ms. Il CSS legge i due valori da qui.
+const ROBIN_HOOD_PEDINA_RITARDO_MS = 300; // la pedina aspetta questo, poi parte
+const ROBIN_HOOD_PEDINA_MS = 1100;        // quanto dura il viaggio da chi e` in testa a chi gira
+const DURATA_ROBIN_HOOD_MS = 3000;        // il cartello intero con la pedina che passa di mano
 const DURATA_SCUDO_PRESO_MS = 1800;
 const DURATA_SCUDO_SCATTA_MS = 1800;
 
 // ----------------------------------------------------------------------------
-// PALETTE PER CIFRA — quella validata da Chiara col validatore delle
+// PALETTE PER LIVELLO DI CIFRA (2.5, Chiara 07/10: il colore segue lo spicchio, non
+// la cifra del round — ruota.js legge COLORE_PER_CIFRA[VALORE_BASE_SEGMENTI[i]], punto 65,
+// cioe` il valore dello spicchio al round 1; le cifre dei round dopo non hanno un colore
+// loro e non serve che l'abbiano). Quella validata da Chiara col validatore delle
 // adiacenze (decimo giro, 28/09/2026): ΔE minimo 14,2 per deutan/protan e
 // 17,7 a vista normale su tutte le 24 coppie di spicchi vicini (prima erano
 // 4,1 e 11,7). Il 1500 non e` piu` un colore piatto: e` olografico a
@@ -266,35 +306,6 @@ const CIFRE_PER_ROUND = [
   [550, 650, 750, 850, 950, 1050, 1150, 1250, 3000], // round 6
   [600, 700, 800, 900, 1000, 1100, 1200, 1300, 3300], // round 7
 ];
-
-// Ogni cifra introdotta da CIFRE_PER_ROUND che NON esisteva gia` in
-// COLORE_PER_CIFRA prende, in automatico, il colore del SUO livello (stesso
-// posto della tabella qui sopra — "stessa famiglia" perche` e` letteralmente
-// lo stesso spicchio, solo con un numero piu` alto), tranne l'ultimo livello
-// (indice 8, "da premio") che resta sempre "olografico" qualunque cifra
-// raggiunga, cosi` come il 1500 del round 1 oggi. Fatto una volta sola qui,
-// cosi` ruota.js continua a leggere COLORE_PER_CIFRA esattamente come prima
-// — nessun cambiamento al disegno.
-// PROVVISORIO, da guardare con Chiara: e` la scelta piu` semplice possibile
-// ("stessa famiglia" = stesso colore esatto del livello, non una sfumatura
-// nuova), e non rifa` il controllo delle adiacenze (ΔE) che lei aveva
-// validato solo sui 9 colori del round 1 — una cifra nuova potrebbe finire
-// vicino a uno spicchio dello stesso colore su una ruota di un round diverso
-// da quello per cui erano stati calcolati gli scarti.
-(function estendiColorePerCifra() {
-  CIFRE_PER_ROUND.forEach((riga) => {
-    riga.forEach((cifra, i) => {
-      if (COLORE_PER_CIFRA[cifra] !== undefined) return;
-      const coloreLivello = COLORE_PER_CIFRA[LIVELLI_BASE_CIFRE[i]];
-      COLORE_PER_CIFRA[cifra] = coloreLivello;
-      if (typeof console !== "undefined" && console.info) {
-        console.info(
-          `[config] cifra nuova ${cifra}€ (livello ${i}, base ${LIVELLI_BASE_CIFRE[i]}€) senza colore proprio: presa la famiglia di quel livello (${coloreLivello}) — da rivedere con Chiara.`
-        );
-      }
-    });
-  });
-})();
 
 // Restituisce la riga di CIFRE_PER_ROUND per un numero di round (1-based).
 // Oltre l'ultima riga scritta, ripete l'ultima (mai un round senza cifre).
@@ -487,6 +498,12 @@ const MAX_PER_SQUADRA = 3;
 const NOMI_SQUADRE_SEGNAPOSTO = ["Genitori", "Figli"]; // se il nome resta vuoto, si usa questo
 const CHIAVE_ULTIMA_ISCRIZIONE = "giraleparole-ultima-iscrizione";
 const CHIAVE_NOVITA_VISTE = "giraleparole-novita-viste";
+// 2.4.1 (Damiano 07/10): una frase uscita non torna per almeno 4 partite. Lo storico sta nel browser
+// (localStorage): non c'e` un server, quindi vale per il dispositivo, non per la casa.
+const CHIAVE_STORICO_FRASI = "giraleparole-storico-frasi";
+const PARTITE_SENZA_RIPETIZIONI = 4;
+// «Cambia frase» nel round lampo: la frase nuova compare e le lettere ripartono dopo questa attesa (ms), per darle il tempo di essere letta.
+const LAMPO_ATTESA_DOPO_CAMBIO_MS = 1500;
 const CHIAVE_FRASI_NOSTRE = "giraleparole-frasi-nostre"; // scritta dalla pagina "Le nostre frasi" (giro C, non ancora costruita)
 
 // ----------------------------------------------------------------------------

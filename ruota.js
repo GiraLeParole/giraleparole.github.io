@@ -26,6 +26,9 @@
 //    round successivo (chi chiama nuovoRound() in gioco.js lo riattiva).
 // ============================================================================
 
+// Spicchi speciali (2.4, disegno di Chiara 06/10/2026): colore unico, distintivo
+// bianco col simbolo, due posti fissi (POSTI_SPECIALI in config.js) che cambiano
+// coppia a ogni round (programmaSpeciali in config.js).
 const Ruota = (() => {
   let canvas, ctx;
   let rotazioneCorrente = 0; // radianti, stato persistente fra una girata e l'altra
@@ -49,7 +52,15 @@ const Ruota = (() => {
   // giro della ruota, e quanto dura il cambio su un singolo spicchio.
   const ONDA_GIRO_MS = 1000;
   const ONDA_SPICCHIO_MS = 360;
-  let transizioneRound = null; // { inizio, prima: [valori del round prima] }, solo mentre l'onda e` in corso
+  let transizioneRound = null; // { inizio, prima: [valori del round prima], primaSpeciali }, solo mentre l'onda e` in corso
+  // la coppia di speciali di ogni round (programmaSpeciali in config.js), data da gioco.js a inizio partita
+  let programmaSpecialiCorrente = null;
+  function impostaProgrammaSpeciali(programma) { programmaSpecialiCorrente = programma; }
+  function coppiaSpecialiDelRound(numeroRound) {
+    const p = programmaSpecialiCorrente || programmaSpeciali(numeroRound);
+    programmaSpecialiCorrente = p;
+    return p[Math.min(numeroRound, p.length) - 1];
+  }
 
   // Ruota pesante (05/10/2026): il motore fisico, uno solo per pulsante e mano
   let fisica = null;
@@ -99,8 +110,26 @@ const Ruota = (() => {
       if (livello === -1) continue; // non dovrebbe succedere: ogni valore del round 1 e` in LIVELLI_BASE_CIFRE
       SEGMENTI_RUOTA[i].valore = riga[livello];
     }
+    // i due posti speciali prendono la coppia del round; sotto
+    // l'onda il simbolo e la parola vecchi sfumano via e entrano i nuovi
+    // (stesso tempo delle cifre). Il colore dello spicchio non cambia.
+    const primaSpeciali = SEGMENTI_RUOTA.map((s) => (s.tipo === "speciale" ? s.speciale || null : null));
+    const primaTipi = SEGMENTI_RUOTA.map((s) => s.tipo);
+    // Damiano, 06/10 sera: il round 1 non ha speciali («anche in televisione non
+    // appaiono mai al primo round»). Nei due posti c'e` la ruota della 2.3 (soldi,
+    // stessi valori e colori: VALORE_BASE_SEGMENTI li ricorda); dal round 2 ci sono gli speciali.
+    POSTI_SPECIALI.forEach((posto, k) => {
+      if (numeroRound >= 2) {
+        SEGMENTI_RUOTA[posto].tipo = "speciale";
+        SEGMENTI_RUOTA[posto].speciale = coppiaSpecialiDelRound(numeroRound)[k];
+      } else {
+        SEGMENTI_RUOTA[posto].tipo = "soldi";
+        SEGMENTI_RUOTA[posto].speciale = null;
+      }
+    });
+    // (le cifre dei posti tornati soldi le ha gia` messe il ciclo qui sopra: VALORE_BASE_SEGMENTI li ricorda)
     if (conOnda && canvas) {
-      transizioneRound = { inizio: performance.now(), prima };
+      transizioneRound = { inizio: performance.now(), prima, primaSpeciali, primaTipi };
       const passo = () => {
         disegna();
         if (transizioneRound && performance.now() - transizioneRound.inizio < ONDA_GIRO_MS + ONDA_SPICCHIO_MS) {
@@ -127,6 +156,18 @@ const Ruota = (() => {
     const frazione = ((((am + rotazioneCorrente + Math.PI / 2) % giro) + giro) % giro) / giro;
     const t = (performance.now() - transizioneRound.inizio - frazione * ONDA_GIRO_MS) / ONDA_SPICCHIO_MS;
     return Math.max(0, Math.min(1, t));
+  }
+
+  // Il tipo con cui si disegna lo spicchio i: durante l'onda un posto che passa da
+  // soldi a speciale (round 1 -> 2) tiene il tipo vecchio nella prima meta` del
+  // lampo (cifra che sfuma, colore vecchio) e prende quello nuovo nella seconda.
+  function tipoVisto(i) {
+    const nuovo = SEGMENTI_RUOTA[i].tipo;
+    if (transizioneRound && transizioneRound.primaTipi) {
+      const fo = faseOnda(i);
+      if (fo !== null && fo < 0.5) return transizioneRound.primaTipi[i];
+    }
+    return nuovo;
   }
 
   // Ruota pesante (05/10/2026): init riceve anche la freccia
@@ -277,6 +318,78 @@ const Ruota = (() => {
     return c;
   }
 
+  // Il simbolo di uno speciale, dal tracciato di SPECIALI (config.js),
+  // disegnato centrato nell'origine in un quadrato di lato `lato`, nel colore
+  // dato. Lo stesso tracciato che la pagina usa come <svg>: un disegno solo.
+  function disegnaSimbolo(chiave, lato, colore) {
+    const sp = SPECIALI[chiave];
+    if (!sp) return;
+    ctx.save();
+    ctx.translate(-lato / 2, -lato / 2);
+    ctx.scale(lato / 100, lato / 100);
+    ctx.fillStyle = colore;
+    ctx.strokeStyle = colore;
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+    sp.simbolo.forEach((parte) => {
+      if (parte.testo) {
+        ctx.font = "800 92px 'Ubuntu', 'Liberation Sans', sans-serif";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(parte.testo, 50, 54);
+        return;
+      }
+      const p = new Path2D(parte.d);
+      if (parte.fill) ctx.fill(p, parte.regola || "nonzero");
+      if (parte.stroke) { ctx.lineWidth = parte.stroke; ctx.stroke(p); }
+    });
+    ctx.restore();
+  }
+
+  // Uno spicchio speciale: un distintivo bianco tondo vicino al
+  // bordo, col simbolo dentro, e sotto la parola, dal bordo verso il mozzo
+  // come tutte le altre. Durante l'onda del cambio di round simbolo e parola
+  // vecchi sfumano via nella prima metà e i nuovi entrano nella seconda
+  // (come le cifre). Misure in frazione di rSpicchi, così scalano con la ruota.
+  function disegnaSpeciale(i, am, rSpicchi) {
+    const seg = SEGMENTI_RUOTA[i];
+    const rDistintivo = rSpicchi * 0.092;      // 42 px sul canvas da 1000: il disco sta nella corda dello spicchio (93 px al suo bordo interno)
+    const rCentro = rSpicchi * 0.857;          // il distintivo sta fra 0,77 e 0,94 del raggio: entro la corda dello spicchio
+    const latoSimbolo = rDistintivo * 1.5;
+    const dimParola = rSpicchi * 0.06;         // come BANCAROTTA (0,072) ma più corta: "ROBIN HOOD" deve fermarsi prima del mozzo
+    const rParola = rCentro - rDistintivo - dimParola * 0.95;
+    const mostra = (chiave, alfa) => {
+      if (!chiave) return;
+      ctx.save();
+      ctx.globalAlpha = alfa;
+      // il distintivo
+      ctx.save();
+      ctx.rotate(am);
+      ctx.translate(rCentro, 0);
+      ctx.beginPath();
+      ctx.arc(0, 0, rDistintivo, 0, Math.PI * 2);
+      ctx.fillStyle = "#fff";
+      ctx.fill();
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = "#0A0E23";
+      ctx.stroke();
+      ctx.rotate(Math.PI / 2); // l'alto del simbolo verso il bordo, come l'alto di ogni lettera
+      disegnaSimbolo(chiave, latoSimbolo, COLORE_SPECIALE_SIMBOLO);
+      ctx.restore();
+      // la parola
+      scrittaRadiale(am, SPECIALI[chiave].nome, rParola, dimParola, "#fff", "#0A0E23", dimParola * 0.9);
+      ctx.restore();
+    };
+    const fo = faseOnda(i);
+    if (fo !== null && fo < 1 && transizioneRound.primaSpeciali) {
+      const vecchio = transizioneRound.primaSpeciali[i];
+      if (fo < 0.5) mostra(vecchio, 1 - fo * 2);
+      else mostra(seg.speciale, (fo - 0.5) * 2);
+    } else {
+      mostra(seg.speciale, 1);
+    }
+  }
+
   function disegna() {
     const w = canvas.width,
       h = canvas.height;
@@ -295,9 +408,10 @@ const Ruota = (() => {
     // 1. riempimenti
     for (let i = 0; i < N; i++) {
       const seg = SEGMENTI_RUOTA[i];
+      const tipoSeg = tipoVisto(i); // durante l'onda un posto che cambia tipo lo cambia a meta` lampo
       const a0 = i * ANGOLO_SPICCHIO,
         a1 = a0 + ANGOLO_SPICCHIO;
-      if (seg.tipo === "soldi") {
+      if (tipoSeg === "soldi") {
         // Voce A, tredicesimo giro (29/09/2026, controllo di Chiara): il
         // colore segue lo SPICCHIO (il suo livello del round 1), non la
         // cifra che ci sta sopra in questo round — altrimenti, dal round 3
@@ -319,11 +433,13 @@ const Ruota = (() => {
         } else {
           fetta(a0, a1, rSpicchi, c);
         }
-      } else if (seg.tipo === "passa") {
+      } else if (tipoSeg === "passa") {
         fetta(a0, a1, rSpicchi, COLORE_PASSA);
-      } else if (seg.tipo === "bancarotta") {
+      } else if (tipoSeg === "bancarotta") {
         fetta(a0, a1, rSpicchi, "#141414");
-      } else if (seg.tipo === "triplo") {
+      } else if (tipoSeg === "speciale") {
+        fetta(a0, a1, rSpicchi, COLORE_SPECIALE);  // un colore per tutta la classe
+      } else if (tipoSeg === "triplo") {
         const t = ANGOLO_SPICCHIO / 3;
         fetta(a0, a0 + t, rSpicchi, "#141414");
         riempiOlografico(a0 + t, a0 + 2 * t, 0, rSpicchi, "arcobaleno");
@@ -339,7 +455,7 @@ const Ruota = (() => {
       // opacita`, cosi` non copre mai del tutto il colore sotto. Lo spicchio
       // del jolly non partecipa (mostra JOLLY, non una cifra); il 1500
       // olografico si`.
-      if (seg.tipo === "soldi") {
+      if (tipoSeg === "soldi" || tipoSeg === "speciale") {
         const fo = faseOnda(i);
         if (fo !== null && fo > 0 && fo < 1) {
           fetta(a0, a1, rSpicchi, `rgba(255,255,255,${(0.55 * Math.sin(Math.PI * fo)).toFixed(3)})`);
@@ -374,8 +490,9 @@ const Ruota = (() => {
     const rDa = rSpicchi - dimCifra * 0.8;
     for (let i = 0; i < N; i++) {
       const seg = SEGMENTI_RUOTA[i];
+      const tipoSeg = tipoVisto(i); // durante l'onda un posto che cambia tipo lo cambia a meta` lampo
       const am = i * ANGOLO_SPICCHIO + ANGOLO_SPICCHIO / 2;
-      if (seg.tipo === "soldi") {
+      if (tipoSeg === "soldi") {
         if (mostraJolly(seg) && !(transizioneJolly && transizioneJolly.indice === i)) {
           // Voce 5, undicesimo giro (28/09/2026): spicchio bianco, "JOLLY"
           // alla stessa misura delle cifre, rosso pieno, senza contorno —
@@ -442,11 +559,13 @@ const Ruota = (() => {
             passoCifra
           );
         }
-      } else if (seg.tipo === "passa") {
+      } else if (tipoSeg === "speciale") {
+        disegnaSpeciale(i, am, rSpicchi);
+      } else if (tipoSeg === "passa") {
         scrittaRadiale(am, "PASSA", rDa, rSpicchi * 0.1, "#20233A", null, rSpicchi * 0.1 * 0.9);
-      } else if (seg.tipo === "bancarotta") {
+      } else if (tipoSeg === "bancarotta") {
         scrittaRadiale(am, "BANCAROTTA", rDa, rSpicchi * 0.072, "#fff", null, rSpicchi * 0.072 * 0.88);
-      } else if (seg.tipo === "triplo") {
+      } else if (tipoSeg === "triplo") {
         const t = ANGOLO_SPICCHIO / 3;
         const a0 = i * ANGOLO_SPICCHIO;
         scrittaRadiale(a0 + t / 2, "BANCAROTTA", rDa, rSpicchi * 0.052, "#fff", null, rSpicchi * 0.052 * 0.9);
@@ -754,6 +873,7 @@ const Ruota = (() => {
     impostaJollyDisponibile,
     animaPresaJolly,
     impostaRound,
+    impostaProgrammaSpeciali,
     puoIniziareTrascinamento,
     iniziaTrascinamento,
     muoviTrascinamento,

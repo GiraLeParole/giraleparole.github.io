@@ -38,6 +38,33 @@ const formattaMigliaia = (n) => String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\
 const euro = (n) => formattaMigliaia(n) + " €";
 
 // ----------------------------------------------------------------------------
+// GLI SPICCHI SPECIALI (2.4) — disegno di Chiara, 06/10/2026
+// (design/2026-10-06-scheda-spicchi-speciali.md). Il tracciato di ogni simbolo
+// sta in SPECIALI (config.js): qui lo stesso disegno come <svg>, copiato dal
+// prototipo di Chiara.
+// ----------------------------------------------------------------------------
+function svgSimbolo(chiave) {
+  const sp = SPECIALI[chiave];
+  const parti = sp.simbolo.map((p) => {
+    if (p.testo) return `<text x="50" y="54" text-anchor="middle" dominant-baseline="central">${p.testo}</text>`;
+    if (p.fill) return `<path d="${p.d}" stroke="none"${p.regola ? ` fill-rule="${p.regola}"` : ""}/>`;
+    return `<path d="${p.d}" fill="none" stroke-width="${p.stroke}"/>`;
+  });
+  return `<svg class="simbolo-speciale" viewBox="0 0 100 100" aria-hidden="true">${parti.join("")}</svg>`;
+}
+function pillola(chiave) {
+  return `<span class="pillola-speciale">${svgSimbolo(chiave)}${SPECIALI[chiave].titolo}</span>`;
+}
+// I nomi dei giocatori li scrive chi gioca: dentro un testo con markup (i cartelli
+// degli speciali) passano sempre da qui.
+function escHtml(testo) {
+  return String(testo).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}
+// Una fonte sola per i colori: config.js (COLORE_SPECIALE*), qui passati al CSS.
+document.documentElement.style.setProperty("--speciale", COLORE_SPECIALE);
+document.documentElement.style.setProperty("--speciale-scuro", COLORE_SPECIALE_SCURO);
+
+// ----------------------------------------------------------------------------
 // TABELLONE — griglia fissa (nono giro, punto 45, 28/09/2026)
 // ----------------------------------------------------------------------------
 // Distribuisce le parole di una frase sulle righe del tabellone (config.js,
@@ -93,7 +120,7 @@ const LARGHEZZA_FISICA_TABELLONE = Math.max(...RIGHE_TABELLONE);
 // ----------------------------------------------------------------------------
 
 const Gioco = {
-  giocatori: [],           // { nome, colore, soldiRound, soldiTotale, jolly }
+  giocatori: [],           // { nome, colore, soldiRound, soldiTotale, jolly, scudo }
   indiceCorrente: 0,
   frasiRimaste: [],        // coda mescolata delle frasi non ancora usate in questa partita
   fraseCorrente: null,     // { testo, categoria, difficolta, gruppi, indizio }
@@ -108,7 +135,7 @@ const Gioco = {
   // click del giocatore — accese sul tabellone, in attesa di un tocco.
   posizioniAccese: new Set(),
   lettereUsate: new Set(), // lettere gia tentate/comprate in questo round
-  stato: "idle",           // idle | girando | scegli_consonante | scegli_vocale | attesa_jolly | risolvendo | rivelando | fine_round | scegli_casella | in_annuncio
+  stato: "idle",           // idle | girando | scegli_consonante | scegli_vocale | attesa_jolly | attesa_express | risolvendo | rivelando | fine_round | scegli_casella | in_annuncio
   timerSoluzione: null,
   timerAutoscoperta: null,
   // Punto 33 (28/09/2026): se il "consonanti/vocali finite" di QUESTO round
@@ -138,7 +165,19 @@ const Gioco = {
   // da Lampo.pianifica().
   lampoAttivo: false,
   lampoDopo: new Set(),
+  // Spicchi speciali (2.4): la coppia di speciali di ogni round (indice 0 = round 1),
+  // estratta a ogni partita (programmaSpeciali, config.js; l'indice 0, il round 1, e` null: nel round 1 non ci sono speciali); e l'Express in corso:
+  // null oppure { lettere, vinto } (quante consonanti giuste, quanto hanno reso).
+  programmaSpeciali: [],
+  express: null,
 };
+
+// Una partita (nuova o «Gioca ancora») ha il suo programma di speciali: si
+// estrae qui e lo si da` alla ruota, prima che il round 1 sia impostato.
+function preparaSpeciali() {
+  Gioco.programmaSpeciali = programmaSpeciali(Gioco.numeroRoundTotale);
+  Ruota.impostaProgrammaSpeciali(Gioco.programmaSpeciali);
+}
 
 function mescola(array) {
   const a = array.slice();
@@ -660,11 +699,13 @@ const GUIDA = [
   { esempio: '<button class="segmento selezionata" style="border-radius:999px">A squadre</button>', nome: "A squadre", testo: "Due squadre, e dentro la squadra si gioca un turno a testa." },
   { esempio: '<span class="interruttore"><span class="leva" style="background:var(--accento);border-color:var(--accento)"></span></span>', nome: "Round lampo", testo: "Le lettere escono da sole. La sai? Tocca lo schermo o un tasto, l’arbitro tocca la tua tessera: 15 secondi per scriverla, 500 € se è giusta." },
   { esempio: '<span class="tessera-guida">★</span>', nome: "Frase premio", testo: "Una sola a partita: se la risolvi, vinci una sorpresa." },
+  // 2.4, voce C8 della scheda di Chiara (06/10/2026): sempre mostrata. Testo del disegno, da confermare a Penna (punto 74).
+  { esempio: '<span class="pillole-guida">' + ["express", "robinhood", "mistero", "scudo"].map(pillola).join("") + '</span>', nome: "Spicchi speciali", testo: "Dal secondo round, due a round, e cambiano. Express: consonanti a raffica, 500 € l’una, ma se sbagli una lettera è bancarotta; o lo lasci, e prendi 200 €. Robin Hood: 500 € da chi è in testa. Mistero: sotto c’è 1.000 €, Passa o 500 € da regalare al secondo. Scudo: ti salva da una lettera sbagliata, da solo. Uno per volta." },
 ];
 (function guida() {
   const elenco = document.getElementById("elenco-guida");
-  // la 7 (round lampo) segue LAMPO_ATTIVO, la 8 (frase premio) GIRO_B_C_ATTIVO
-  const voci = GUIDA.filter((_, i) => i < 6 || (i === 6 && LAMPO_ATTIVO) || (i === 7 && GIRO_B_C_ATTIVO));
+  // la 7 (round lampo) segue LAMPO_ATTIVO, la 8 (frase premio) GIRO_B_C_ATTIVO, la 9 (speciali) e` sempre mostrata
+  const voci = GUIDA.filter((_, i) => i < 6 || (i === 6 && LAMPO_ATTIVO) || (i === 7 && GIRO_B_C_ATTIVO) || i === 8);
   voci.forEach((v) => {
     const es = document.createElement("div");
     es.className = "esempio";
@@ -701,6 +742,7 @@ btnIniziaPartita.addEventListener("click", () => {
         soldiRound: 0,
         soldiTotale: 0,
         jolly: 0,
+        scudo: 0,
         aiutino: !!g.aiutino,
       };
     });
@@ -725,6 +767,7 @@ btnIniziaPartita.addEventListener("click", () => {
       soldiRound: 0,
       soldiTotale: 0,
       jolly: 0,
+      scudo: 0,
       componenti: s.componenti,
       mano: 0,
     }));
@@ -745,6 +788,7 @@ btnIniziaPartita.addEventListener("click", () => {
   Gioco.premioCasa = premioCasaEl.value.trim();
   Gioco.lampoAttivo = LAMPO_ATTIVO && lampoAttivoEl.checked;
   Lampo.pianifica(); // dopo Gioco.numeroRoundTotale, qui sopra
+  preparaSpeciali(); // prima di iniziaPartita(): nuovoRound() imposta il round 1 con la sua coppia
   erroreIscrizioneEl.textContent = "";
   iniziaPartita();
 });
@@ -802,6 +846,14 @@ const btnAnnullaVocale = document.getElementById("btn-annulla-vocale");
 
 const pannelloConsonanti = document.getElementById("pannello-consonanti");
 const grigliaConsonanti = document.getElementById("griglia-consonanti");
+
+const pannelloExpress = document.getElementById("pannello-express");
+const btnExpressSi = document.getElementById("btn-express-si");
+const btnExpressNo = document.getElementById("btn-express-no");
+const fasciaExpressEl = document.getElementById("fascia-express");
+const btnExpressVocale = document.getElementById("btn-express-vocale");
+const btnExpressSoluzione = document.getElementById("btn-express-soluzione");
+btnExpressVocale.textContent = "Vocale · " + euro(COSTO_VOCALE);
 
 const pannelloJolly = document.getElementById("pannello-jolly");
 const testoJollyDomanda = document.getElementById("testo-jolly-domanda");
@@ -1022,6 +1074,7 @@ function avanzaManoSquadra(g) {
 
 function nuovoRound() {
   fermaTimerAutoscoperta();
+  Gioco.express = null; // un Express non si porta da un round all'altro
   // Giro A, voce A2: l'aiutino si usa al massimo una volta per round.
   Gioco.aiutinoUsato = Gioco.giocatori.map(() => false);
   if (tabelloneEl) tabelloneEl.classList.remove("scegli-casella");
@@ -1057,7 +1110,8 @@ function nuovoRound() {
     Annuncio.mostra({
       stile: "scena oro round",
       titolo: `Round ${Gioco.numeroRoundCorrente}`,
-      sotto: "la ruota vale di più",
+      // 2.4: al posto di «la ruota vale di piu`», le due pillole degli speciali di questo round
+      pillole: Gioco.programmaSpeciali[Gioco.numeroRoundCorrente - 1],
       durata: DURATA_ANNUNCIO_ROUND_MS,
     });
   } else {
@@ -1272,6 +1326,14 @@ function aggiornaSchedeGiocatori() {
       carta.title = "Jolly";
       jolly.appendChild(carta);
     }
+    // 2.4: lo Scudo tenuto, accanto alle carte Jolly (voce C7)
+    for (let k = 0; k < (g.scudo || 0); k++) {
+      const carta = document.createElement("span");
+      carta.className = "carta-scudo";
+      carta.title = "Scudo";
+      carta.innerHTML = svgSimbolo("scudo");
+      jolly.appendChild(carta);
+    }
 
     info.appendChild(nome);
     info.appendChild(soldiRound);
@@ -1364,7 +1426,7 @@ function aggiornaPannelloClassifica() {
 }
 
 function nascondiTuttiIPannelli() {
-  [pannelloVocali, pannelloConsonanti, pannelloJolly, pannelloSoluzione, pannelloFineRound, pannelloAiutino].forEach((p) =>
+  [pannelloVocali, pannelloConsonanti, pannelloExpress, pannelloJolly, pannelloSoluzione, pannelloFineRound, pannelloAiutino].forEach((p) =>
     p.classList.add("nascosta")
   );
   tabelloneEl.classList.remove("scegli-casella");
@@ -1492,6 +1554,8 @@ const Annuncio = (() => {
   let timerUscita = null;
 
   // voce = { lettera?, titolo, sotto?, sopra?, colore?, stile?: 'no' | 'scena' | 'scena rosso' | 'scena oro' | 'tocca'[' lungo'], durata?: ms }
+  // 2.4 (spicchi speciali), in piu`: sottoHtml (la riga sotto con markup), simbolo (chiave di SPECIALI al posto della lettera),
+  // esito { classe, testo } (la carta del Mistero), robin { da, a, pedina } (Robin Hood), pillole [chiavi] (sotto «Round N»)
   // sopra/colore, punto 69 (29/09/2026, disegno di Chiara): il secondo tempo
   // «Tocca a» — sopra e` la riga piccola "Tocca a", colore e` il colore del
   // giocatore per l'anello della tessera e l'alone del nome (var CSS
@@ -1502,10 +1566,33 @@ const Annuncio = (() => {
     annuncioEl.className = "annuncio " + (voce.stile || "");
     annuncioEl.innerHTML = "";
     if (voce.colore) annuncioEl.style.setProperty("--colore-giocatore", voce.colore);
-    if (voce.lettera) {
+    if (voce.robin) {
+      // 2.4, Robin Hood: la tessera di chi e` in testa, il tragitto con la pedina, la tessera di chi riceve
+      const blocco = document.createElement("div");
+      blocco.className = "tessere-robin";
+      const tessera = (g) => {
+        const t = document.createElement("div");
+        t.className = "annuncio-tessera";
+        t.style.setProperty("--colore-giocatore", g.colore);
+        t.textContent = g.iniziale;
+        return t;
+      };
+      const tragitto = document.createElement("div");
+      tragitto.className = "tragitto";
+      const pedina = document.createElement("span");
+      pedina.className = "pedina";
+      pedina.textContent = voce.robin.pedina;
+      tragitto.appendChild(pedina);
+      blocco.appendChild(tessera(voce.robin.da));
+      blocco.appendChild(tragitto);
+      blocco.appendChild(tessera(voce.robin.a));
+      annuncioEl.appendChild(blocco);
+    } else if (voce.lettera || voce.simbolo || voce.esito) {
       const t = document.createElement("div");
-      t.className = "annuncio-tessera";
-      t.textContent = voce.lettera;
+      t.className = "annuncio-tessera" + (voce.esito ? " esito " + voce.esito.classe : "");
+      if (voce.simbolo) t.innerHTML = svgSimbolo(voce.simbolo);      // 2.4: il simbolo di uno speciale al posto della lettera
+      else if (voce.esito) t.innerHTML = voce.esito.testo;           // 2.4: la carta del Mistero (testo scritto qui, mai dai giocatori)
+      else t.textContent = voce.lettera;
       annuncioEl.appendChild(t);
     }
     const testo = document.createElement("div");
@@ -1520,11 +1607,20 @@ const Annuncio = (() => {
     h.className = "annuncio-titolo";
     h.textContent = voce.titolo;
     testo.appendChild(h);
-    if (voce.sotto) {
+    if (voce.sotto || voce.sottoHtml) {
       const s = document.createElement("div");
       s.className = "annuncio-sotto";
-      s.textContent = voce.sotto;
+      // sottoHtml: la riga con del markup (grassetto, simbolo); i nomi li passa gia` escHtml()
+      if (voce.sottoHtml) s.innerHTML = voce.sottoHtml;
+      else s.textContent = voce.sotto;
       testo.appendChild(s);
+    }
+    if (voce.pillole) {
+      // 2.4: sotto «Round N», le due pillole di questo round
+      const p = document.createElement("div");
+      p.className = "annuncio-pillole";
+      p.innerHTML = `<span class="etichetta">sulla ruota</span>` + voce.pillole.map(pillola).join("");
+      testo.appendChild(p);
     }
     annuncioEl.appendChild(testo);
     colonnaCentraleEl.classList.add("con-annuncio");
@@ -1748,6 +1844,298 @@ function gestisciEsitoRuota(segmento, indice) {
     apriPannelloConsonanti();
     return;
   }
+  if (segmento.tipo === "speciale") {
+    gestisciSpeciale(segmento.speciale, g);
+    return;
+  }
+}
+
+// ---- GLI SPICCHI SPECIALI (2.4) ----------------------------------------------
+// Disegno di Chiara, 06/10/2026 (scheda, voce C4-C6). Cambiate da Damiano la
+// sera del 06/10: Express rifiutato = 200 € fissi e si gira di nuovo; Scudo al
+// massimo uno per giocatore. Regola di Alfred (non detta da Damiano): chi cade sullo Scudo avendone
+// gia` uno gira di nuovo, senza prenderne un secondo.
+//
+// Suoni: nessuno nuovo, si riusano quelli che ci sono (Audio_.jolly per lo Scudo,
+// letteraRivelata per i soldi che entrano, click per il «?» che si apre, passa,
+// bancarotta, toccaA per il regalo).
+
+// Dopo una mossa che NON chiude il turno: in Express si torna al pannello delle
+// consonanti, altrimenti ai comandi di sempre.
+function riapriExpress() {
+  apriPannelloConsonanti();
+}
+
+function gestisciSpeciale(chiave, g) {
+  if (chiave === "express") {
+    apriPannelloExpress();
+  } else if (chiave === "robinhood") {
+    spicchioRobinHood(g);
+  } else if (chiave === "mistero") {
+    spicchioMistero(g);
+  } else if (chiave === "scudo") {
+    spicchioScudo(g);
+  }
+}
+
+// Fine di un cartello dopo il quale si gira ancora: i comandi tornano.
+function giraAncoraDopo(durata) {
+  Gioco.stato = "in_annuncio";
+  aggiornaComandi();
+  setTimeout(() => { Gioco.stato = "idle"; aggiornaComandi(); }, durata);
+}
+
+// ---- Express ----
+function apriPannelloExpress() {
+  Gioco.stato = "attesa_express";
+  pannelloExpress.classList.remove("nascosta");
+  aggiornaComandi();
+}
+
+btnExpressSi.addEventListener("click", () => {
+  if (Gioco.stato !== "attesa_express") return;
+  pannelloExpress.classList.add("nascosta");
+  Audio_.click();
+  Gioco.express = { lettere: 0, vinto: 0 };
+  Gioco.spicchioValore = EXPRESS_VALORE_LETTERA;
+  Gioco.spicchioTipo = "express";
+  apriPannelloConsonanti();
+});
+
+// Express rifiutato (Damiano, 06/10 sera): 200 € fissi e si gira di nuovo.
+// I testi del cartello sono di Erbottega (nel disegno c'era «500 € a lettera»).
+btnExpressNo.addEventListener("click", () => {
+  if (Gioco.stato !== "attesa_express") return;
+  const g = giocatoreCorrente();
+  pannelloExpress.classList.add("nascosta");
+  g.soldiRound += EXPRESS_RIFIUTO_VALORE;
+  Audio_.letteraRivelata();
+  aggiornaSchedeGiocatori();
+  Annuncio.mostra({ stile: "scena oro", titolo: "+" + euro(EXPRESS_RIFIUTO_VALORE), sotto: "niente Express · gira ancora", durata: DURATA_ANNUNCIO_MS });
+  giraAncoraDopo(DURATA_ANNUNCIO_MS);
+});
+
+// La fascia in testa al pannello delle consonanti, mentre si gioca l'Express.
+function aggiornaFasciaExpress() {
+  const e = Gioco.express;
+  const conto = e && e.lettere > 0
+    ? `<span class="conto"><b>${e.lettere}</b> ${e.lettere === 1 ? "lettera" : "lettere"} · <b>+${euro(e.vinto)}</b></span>`
+    : "";
+  fasciaExpressEl.innerHTML = svgSimbolo("express") + `EXPRESS · ${euro(EXPRESS_VALORE_LETTERA)} a lettera ` + conto;
+}
+
+// Vocale e Do la soluzione, sotto le consonanti, solo in Express.
+function aggiornaAltreMosseExpress() {
+  const g = giocatoreCorrente();
+  const conto = VOCALE_SI_PAGA_COL_TOTALE ? g.soldiTotale : g.soldiRound;
+  const vocaliRimaste = VOCALI.some((v) => !letteraGiaUscita(v));
+  btnExpressVocale.disabled = conto < COSTO_VOCALE || !vocaliRimaste || vocaliFiniteNellaFrase();
+  btnExpressSoluzione.disabled = false;
+}
+
+btnExpressVocale.addEventListener("click", () => {
+  if (!Gioco.express || Gioco.stato !== "scegli_consonante") return;
+  pannelloConsonanti.classList.add("nascosta");
+  apriPannelloVocali();
+});
+btnExpressSoluzione.addEventListener("click", () => {
+  if (!Gioco.express || Gioco.stato !== "scegli_consonante") return;
+  pannelloConsonanti.classList.add("nascosta");
+  apriPannelloSoluzione();
+});
+
+// Una lettera che non c'e` (o una soluzione sbagliata) durante l'Express: bancarotta,
+// con il Jolly che puo` salvare come sempre. L'Express finisce in ogni caso.
+let bancarottaDaExpress = false; // dice al «No, va cosi`» del Jolly quale riga scrivere
+function testoBancarotta(g) {
+  return bancarottaDaExpress ? "l’Express finisce: " + g.nome + " perde tutto" : g.nome + " perde tutto";
+}
+function bancarottaExpress() {
+  const g = giocatoreCorrente();
+  Gioco.express = null;
+  bancarottaDaExpress = true;
+  if (g.jolly > 0) {
+    apriPannelloJolly("bancarotta");
+    return;
+  }
+  Audio_.bancarotta();
+  g.soldiRound = 0;
+  g.soldiTotale = 0;
+  aggiornaSchedeGiocatori();
+  bancarottaDaExpress = false;
+  annunciaEPassaTurno({
+    stile: "scena rosso",
+    titolo: "Bancarotta!",
+    sotto: "l’Express finisce: " + g.nome + " perde tutto",
+    durata: DURATA_ANNUNCIO_LUNGO_MS,
+  });
+}
+
+// Una lettera gia` chiamata nell'Express non e` un errore: si dice e si riprova.
+function expressGiaUscita(lettera) {
+  Audio_.letteraGiaChiamata();
+  Gioco.stato = "in_annuncio";
+  aggiornaComandi();
+  Annuncio.mostra({ lettera, stile: "no", titolo: "è già uscita", sotto: "riprova", durata: DURATA_ANNUNCIO_MS });
+  setTimeout(riapriExpress, DURATA_ANNUNCIO_MS);
+}
+
+// ---- Robin Hood ----
+// Chi e` in testa e` chi ha piu` soldi in CASSAFORTE (la classifica). Pari merito in
+// testa: i 500 € si dividono a multipli di 50 €, il resto si perde (come il regalo del Mistero).
+function dividiA50(importo, quanti) {
+  return Math.floor(importo / quanti / 50) * 50;
+}
+function spicchioRobinHood(g) {
+  const massimo = Math.max(...Gioco.giocatori.map((x) => x.soldiTotale));
+  const inTesta = Gioco.giocatori.filter((x) => x.soldiTotale === massimo);
+  Gioco.stato = "in_annuncio";
+  aggiornaComandi();
+  if (inTesta.includes(g)) {
+    // sei tu in testa (anche a pari merito): niente da prendere
+    Audio_.click();
+    Annuncio.mostra({
+      stile: "speciale robin ferma",
+      robin: { da: g, a: g, pedina: euro(ROBIN_HOOD_VALORE) },
+      titolo: "Robin Hood!",
+      // a casseforti tutte vuote (dopo il round 1 puo` capitare) il testo di Chiara
+      sotto: massimo === 0 ? "nessuno ha ancora soldi in cassaforte · gira ancora" : "sei tu in testa: niente da prendere · gira ancora",
+      durata: DURATA_ROBIN_HOOD_MS,
+    });
+    giraAncoraDopo(DURATA_ROBIN_HOOD_MS);
+    return;
+  }
+  const quota = dividiA50(Math.min(ROBIN_HOOD_VALORE, massimo), inTesta.length);
+  const presi = quota * inTesta.length;
+  inTesta.forEach((x) => { x.soldiTotale -= quota; });
+  g.soldiRound += presi;
+  const nomi = inTesta.map((x) => `<b>${escHtml(x.nome)}</b>`).join(" e ");
+  Audio_.letteraRivelata();
+  Annuncio.mostra({
+    stile: "speciale robin",
+    robin: { da: inTesta[0], a: g, pedina: euro(presi) },
+    titolo: "Robin Hood!",
+    sottoHtml: `${euro(presi)} da ${nomi}, ${inTesta.length === 1 ? "che è" : "che sono"} in testa · gira ancora`,
+    durata: DURATA_ROBIN_HOOD_MS,
+  });
+  // le tessere della fila si aggiornano quando la pedina e` arrivata (1000 ms)
+  setTimeout(aggiornaSchedeGiocatori, 1000);
+  giraAncoraDopo(DURATA_ROBIN_HOOD_MS);
+}
+
+// ---- Mistero ----
+function spicchioMistero(g) {
+  Gioco.stato = "in_annuncio";
+  aggiornaComandi();
+  Audio_.click();
+  Annuncio.mostra({ stile: "speciale mistero", simbolo: "mistero", titolo: "Mistero…", sotto: "cosa c’è sotto?" });
+  setTimeout(() => svelaMistero(g, estraiMistero()), DURATA_MISTERO_COPERTO_MS);
+}
+function svelaMistero(g, sotto) {
+  const stile = "speciale mistero gira"; // «gira»: la carta si volta (a 260 ms il contenuto e` gia` quello nuovo)
+  if (sotto.esito === "soldi") {
+    Audio_.letteraRivelata();
+    Annuncio.mostra({
+      stile,
+      esito: { classe: "soldi", testo: formattaMigliaia(sotto.valore) + "<br>€" },
+      titolo: `${euro(sotto.valore)} a lettera!`,
+      sotto: "scegli una consonante",
+      durata: DURATA_ANNUNCIO_MS,
+    });
+    setTimeout(() => {
+      impostaTitoloConsonanti(`<b>${euro(sotto.valore)}</b> a lettera · scegli una consonante`);
+      Gioco.spicchioValore = sotto.valore;
+      Gioco.spicchioTipo = "soldi";
+      apriPannelloConsonanti();
+    }, DURATA_ANNUNCIO_MS);
+  } else if (sotto.esito === "passa") {
+    Audio_.passa();
+    const voce = { stile, esito: { classe: "passa", testo: "PASSA" }, titolo: "Passa!", durata: DURATA_ANNUNCIO_MS };
+    if (g.jolly > 0) {
+      // il ramo Passa di sempre, Jolly compreso: dopo la carta si chiede se lo si usa
+      Annuncio.mostra(voce);
+      setTimeout(() => apriPannelloJolly("passa"), DURATA_ANNUNCIO_MS);
+    } else {
+      annunciaEPassaTurno(voce);
+    }
+  } else {
+    // regalo: dalla cassaforte di g a quella del secondo in classifica (se il secondo
+    // e` g, al terzo; con due soli giocatori, all'altro). Pari merito: diviso a 50 €.
+    const ordine = Gioco.giocatori.slice().sort((a, b) => b.soldiTotale - a.soldiTotale);
+    let beneficiario = ordine[1];
+    if (beneficiario === g) beneficiario = ordine[2] || ordine[0];
+    const beneficiari = Gioco.giocatori.filter((x) => x !== g && x.soldiTotale === beneficiario.soldiTotale);
+    const quota = dividiA50(Math.min(sotto.valore, g.soldiTotale), beneficiari.length);
+    const dato = quota * beneficiari.length;
+    g.soldiTotale -= dato;
+    beneficiari.forEach((x) => { x.soldiTotale += quota; });
+    aggiornaSchedeGiocatori();
+    Audio_.toccaA();
+    if (dato > 0) {
+      Annuncio.mostra({
+        stile,
+        esito: { classe: "regalo", testo: "−" + formattaMigliaia(dato) + "<br>€" },
+        titolo: `Regali ${euro(dato)}`,
+        sottoHtml: `a ${beneficiari.map((x) => `<b>${escHtml(x.nome)}</b>`).join(" e ")}, ${beneficiari.length === 1 ? "secondo" : "secondi"} in classifica · gira ancora`,
+        durata: DURATA_ANNUNCIO_LUNGO_MS,
+      });
+    } else {
+      // niente in cassaforte: niente da regalare (se e` vuota per tutti, il testo di Chiara; titolo di Erbottega)
+      Annuncio.mostra({
+        stile,
+        esito: { classe: "regalo", testo: "0<br>€" },
+        titolo: "Niente da regalare",
+        sotto: Gioco.giocatori.every((x) => x.soldiTotale === 0) ? "nessuno ha ancora soldi in cassaforte · gira ancora" : "la cassaforte è vuota · gira ancora",
+        durata: DURATA_ANNUNCIO_LUNGO_MS,
+      });
+    }
+    giraAncoraDopo(DURATA_ANNUNCIO_LUNGO_MS);
+  }
+}
+
+// ---- Scudo ----
+function spicchioScudo(g) {
+  Gioco.stato = "in_annuncio";
+  aggiornaComandi();
+  Audio_.jolly();
+  if (g.scudo >= SCUDO_MASSIMO) {
+    // ne ha gia` uno (regola di Alfred, Damiano non l'ha detta): gira ancora, senza prenderne un secondo
+    Annuncio.mostra({ stile: "speciale", simbolo: "scudo", titolo: "Scudo!", sotto: "ne hai già uno · gira ancora", durata: DURATA_SCUDO_PRESO_MS });
+  } else {
+    g.scudo += 1;
+    aggiornaSchedeGiocatori();
+    Annuncio.mostra({ stile: "speciale", simbolo: "scudo", titolo: "Scudo!", sotto: "ti salva da una lettera sbagliata · gira ancora", durata: DURATA_SCUDO_PRESO_MS });
+  }
+  giraAncoraDopo(DURATA_SCUDO_PRESO_MS);
+}
+
+// Lo Scudo che scatta: su una consonante o una vocale che non c'e` o e` gia` uscita,
+// ma non nell'Express (li` e` l'all-in). La lettera conta come chiamata, il turno non passa.
+function scudoPuoSalvare() {
+  return giocatoreCorrente().scudo > 0 && !Gioco.express;
+}
+function scudoSalva(lettera, titolo) {
+  const g = giocatoreCorrente();
+  Gioco.lettereUsate.add(lettera);
+  Audio_.jolly();
+  // lo scudo sulla tessera si gonfia e sparisce (600 ms); la fila si ridisegna a fine cartello
+  const carta = colonnaGiocatoriEl.children[Gioco.indiceCorrente]?.querySelector(".carta-scudo");
+  if (carta) carta.classList.add("scatta");
+  g.scudo -= 1;
+  Gioco.stato = "in_annuncio";
+  aggiornaComandi();
+  Annuncio.mostra({
+    lettera,
+    stile: "no speciale",
+    titolo,
+    sottoHtml: svgSimbolo("scudo") + " lo Scudo ti ha salvato · gira ancora",
+    durata: DURATA_SCUDO_SCATTA_MS,
+  });
+  setTimeout(() => {
+    aggiornaSchedeGiocatori();
+    Gioco.stato = "idle";
+    aggiornaComandi();
+  }, DURATA_SCUDO_SCATTA_MS);
 }
 
 // ---- CONSONANTI -------------------------------------------------------------
@@ -1755,7 +2143,17 @@ function gestisciEsitoRuota(segmento, indice) {
 function apriPannelloConsonanti() {
   Gioco.stato = "scegli_consonante";
   grigliaConsonanti.innerHTML = "";
-  CONSONANTI.forEach((lettera) => {
+  // Express (2.4): fascia in testa, titolo «un'altra», Vocale e Do la soluzione sotto.
+  // Finite le consonanti il pannello non si chiude: restano solo quelle due mosse.
+  const inExpress = Gioco.spicchioTipo === "express" && !!Gioco.express;
+  pannelloConsonanti.classList.toggle("express", inExpress);
+  const consonantiFinite = inExpress && consonantiFiniteNellaFrase();
+  if (inExpress) {
+    aggiornaFasciaExpress();
+    impostaTitoloConsonanti(consonantiFinite ? "Consonanti finite" : Gioco.express.lettere > 0 ? "Un’altra consonante" : "Scegli una consonante");
+    aggiornaAltreMosseExpress();
+  }
+  (consonantiFinite ? [] : CONSONANTI).forEach((lettera) => {
     const btn = document.createElement("button");
     btn.type = "button";
     btn.textContent = lettera;
@@ -1801,6 +2199,8 @@ function sceltaConsonante(lettera) {
   // già tentata e risultata assente — fa finire il turno senza soldi.
   // Vale allo stesso modo sullo spicchio JOLLY (nessun ramo separato).
   if (letteraGiaUscita(lettera)) {
+    if (Gioco.express) { expressGiaUscita(lettera); return; }          // 2.4: nell'Express si riprova
+    if (scudoPuoSalvare()) { scudoSalva(lettera, "è già uscita"); return; } // 2.4: lo Scudo
     Audio_.letteraGiaChiamata();
     annunciaEPassaTurno({
       lettera,
@@ -1851,6 +2251,14 @@ function sceltaConsonante(lettera) {
       disegnaTabellone();
       numeraCaselleAccese();
       Annuncio.mostra({ lettera, titolo: quanteVolte(posizioni.length), sotto: "raddoppi: " + euro(g.soldiRound) });
+    } else if (Gioco.express) {
+      // 2.4: una consonante giusta nell'Express; poi si riapre il pannello (finalizzaRivelazione)
+      Gioco.express.lettere += 1;
+      Gioco.express.vinto += importoVinto;
+      Audio_.letteraRivelata();
+      disegnaTabellone();
+      numeraCaselleAccese();
+      Annuncio.mostra({ lettera, titolo: quanteVolte(posizioni.length), sotto: "+" + euro(importoVinto) + " · un’altra!" });
     } else {
       Audio_.letteraRivelata();
       disegnaTabellone();
@@ -1862,6 +2270,8 @@ function sceltaConsonante(lettera) {
     aggiornaComandi();
     avviaTimerAutoscoperta();
   } else {
+    if (Gioco.express) { Audio_.letteraAssente(); bancarottaExpress(); return; } // 2.4: nell'Express una lettera che non c'e` e` bancarotta
+    if (scudoPuoSalvare()) { scudoSalva(lettera, "non c’è"); return; }           // 2.4: lo Scudo
     Audio_.letteraAssente();
     if (Gioco.spicchioTipo === "jolly") {
       annunciaEPassaTurno({ lettera, stile: "no", titolo: "non c’è", sotto: "niente Jolly", durata: DURATA_ANNUNCIO_MS });
@@ -1889,6 +2299,11 @@ function scopriCasella(idx) {
 function finalizzaRivelazione() {
   fermaTimerAutoscoperta();
   Annuncio.nascondi();
+  // 2.4: nell'Express, a frase non finita, si torna al pannello delle consonanti
+  if (Gioco.express && !fraseCompletamenteRivelata()) {
+    riapriExpress();
+    return;
+  }
   Gioco.stato = "idle";
   aggiornaComandi();
   if (fraseCompletamenteRivelata()) {
@@ -1924,6 +2339,10 @@ function fermaTimerAutoscoperta() {
 
 btnCompraVocale.addEventListener("click", () => {
   if (Gioco.stato !== "idle") return;
+  apriPannelloVocali();
+});
+
+function apriPannelloVocali() {
   Gioco.stato = "scegli_vocale";
   grigliaVocali.innerHTML = "";
   VOCALI.forEach((lettera) => {
@@ -1937,10 +2356,11 @@ btnCompraVocale.addEventListener("click", () => {
   });
   pannelloVocali.classList.remove("nascosta");
   aggiornaComandi();
-});
+}
 
 btnAnnullaVocale.addEventListener("click", () => {
   pannelloVocali.classList.add("nascosta");
+  if (Gioco.express) { riapriExpress(); return; } // 2.4: in Express si torna alle consonanti
   Gioco.stato = "idle";
   aggiornaComandi();
 });
@@ -1958,9 +2378,12 @@ function sceltaVocale(lettera) {
   // (VOCALE_GIA_CHIAMATA_PERDE_TURNO in config.js), con lo stesso avviso
   // grande ed errore sonoro della consonante già chiamata.
   if (letteraGiaUscita(lettera)) {
+    // 2.4, Express: una lettera gia` chiamata non e` un errore, non costa nulla, si riprova
+    if (Gioco.express) { expressGiaUscita(lettera); return; }
     g[contoPerLaVocale] -= COSTO_VOCALE;
-    Audio_.letteraGiaChiamata();
     aggiornaSchedeGiocatori();
+    if (scudoPuoSalvare()) { scudoSalva(lettera, "è già uscita"); return; } // 2.4: lo Scudo (la vocale si paga lo stesso)
+    Audio_.letteraGiaChiamata();
     if (VOCALE_GIA_CHIAMATA_PERDE_TURNO) {
       annunciaEPassaTurno({
         lettera,
@@ -1993,8 +2416,12 @@ function sceltaVocale(lettera) {
   } else {
     // Punto 34 (28/09/2026): la vocale assente ora fa finire il turno
     // (prima continuava) — VOCALE_ASSENTE_PERDE_TURNO in config.js.
-    Audio_.letteraAssente();
     aggiornaSchedeGiocatori();
+    // 2.4: nell'Express una lettera che non c'e` e` bancarotta, vocale compresa
+    // (scelta di Erbottega: Damiano dice «una lettera che non c'e`», non «consonante»)
+    if (Gioco.express) { Audio_.letteraAssente(); bancarottaExpress(); return; }
+    if (scudoPuoSalvare()) { scudoSalva(lettera, "non c’è"); return; } // 2.4: lo Scudo (la vocale si paga lo stesso)
+    Audio_.letteraAssente();
     if (VOCALE_ASSENTE_PERDE_TURNO) {
       annunciaEPassaTurno({ lettera, stile: "no", titolo: "non c’è", durata: DURATA_ANNUNCIO_MS });
     } else {
@@ -2031,6 +2458,7 @@ btnJollySi.addEventListener("click", () => {
   aggiornaSchedeGiocatori();
   Gioco.stato = "idle";
   contestoJollyPendente = null;
+  bancarottaDaExpress = false;
   aggiornaComandi();
 });
 
@@ -2050,23 +2478,28 @@ btnJollyNo.addEventListener("click", () => {
     annunciaEPassaTurno({
       stile: "scena rosso",
       titolo: "Bancarotta!",
-      sotto: g.nome + " perde tutto",
+      sotto: testoBancarotta(g), // 2.4: «l'Express finisce: ... perde tutto» se veniva dall'Express
       durata: DURATA_ANNUNCIO_LUNGO_MS,
     });
   }
+  bancarottaDaExpress = false;
 });
 
 // ---- RISOLVI (con timer) -----------------------------------------------------
 
 btnRisolvi.addEventListener("click", () => {
   if (Gioco.stato !== "idle") return;
+  apriPannelloSoluzione();
+});
+
+function apriPannelloSoluzione() {
   Gioco.stato = "risolvendo";
   pannelloSoluzione.classList.remove("nascosta");
   inputSoluzione.value = "";
   inputSoluzione.focus();
   aggiornaComandi();
   avviaTimerSoluzione();
-});
+}
 
 function avviaTimerSoluzione() {
   let secondi = SECONDI_PER_LA_SOLUZIONE;
@@ -2085,6 +2518,8 @@ function avviaTimerSoluzione() {
     if (secondi <= 0) {
       fermaTimerSoluzione();
       pannelloSoluzione.classList.add("nascosta");
+      // 2.4: nell'Express il tempo scaduto vale una soluzione sbagliata (scelta di Erbottega)
+      if (Gioco.express) { bancarottaExpress(); return; }
       annunciaEPassaTurno({ stile: "scena", titolo: "Tempo scaduto", durata: DURATA_ANNUNCIO_MS });
     }
   }, 1000);
@@ -2105,6 +2540,8 @@ formSoluzione.addEventListener("submit", (ev) => {
   const corretta = normalizzaTesto(Gioco.fraseCorrente.testo);
   if (tentativo.length > 0 && tentativo === corretta) {
     vinciRound();
+  } else if (Gioco.express) {
+    bancarottaExpress(); // 2.4: soluzione sbagliata durante l'Express = bancarotta
   } else {
     annunciaEPassaTurno({ stile: "scena", titolo: "Non è questa", durata: DURATA_ANNUNCIO_MS });
   }
@@ -2122,6 +2559,7 @@ function fraseCompletamenteRivelata() {
 
 function vinciRound() {
   fermaTimerSoluzione();
+  Gioco.express = null; // 2.4: l'Express finisce con il round
   const g = giocatoreCorrente();
 
   // Regola 9 (28/09/2026, corretta punto 68 del 29/09/2026): chi risolve
@@ -2280,12 +2718,14 @@ btnGiocaAncora.addEventListener("click", () => {
     g.soldiRound = 0;
     g.soldiTotale = 0;
     g.jolly = 0;
+    g.scudo = 0;
     if (g.componenti) g.mano = 0;
   });
   Gioco.numeroRoundCorrente = 1;
   Gioco.storicoRound = [];
   Gioco.ultimoRoundFinito = false;
   Lampo.pianifica(); // una partita nuova, un lampo estratto di nuovo
+  preparaSpeciali(); // e due speciali nuovi per ogni round
   azzeraCategorieDellaPartita(); // e di nuovo tutte le categorie a disposizione
   schermataFinale.classList.add("nascosta");
   schermataGioco.classList.remove("nascosta");

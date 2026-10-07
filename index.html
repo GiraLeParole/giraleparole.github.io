@@ -224,9 +224,25 @@
           <button id="btn-annulla-vocale" type="button" class="secondario">Annulla</button>
         </div>
 
-        <div id="pannello-consonanti" class="pannello-scelta nascosta">
+        <div id="pannello-consonanti" class="pannello-scelta pannello-consonanti nascosta">
+          <!-- Express (2.4): la fascia e le due altre mosse si vedono solo con la classe «express» sul pannello -->
+          <div class="fascia-express" id="fascia-express"></div>
           <p>Scegli una consonante</p>
           <div class="griglia-lettere" id="griglia-consonanti"></div>
+          <div class="altre-mosse">
+            <button id="btn-express-vocale" type="button">Vocale · 500 €</button>
+            <button id="btn-express-soluzione" type="button">Do la soluzione</button>
+          </div>
+        </div>
+
+        <!-- Express (2.4, disegno di Chiara 06/10/2026): la scelta, nello stesso posto del «Usi un Jolly?».
+             Rifiutato = 200 € fissi e si gira di nuovo (Damiano, 06/10 sera). -->
+        <div id="pannello-express" class="pannello-scelta pannello-express nascosta">
+          <p><b>Express!</b> Consonanti una dopo l’altra, 500 € l’una. Se una lettera non c’è, bancarotta.</p>
+          <div class="scelte">
+            <button id="btn-express-si" type="button" class="primario">Gioco l’Express</button>
+            <button id="btn-express-no" type="button" class="secondario">No, prendo 200 €</button>
+          </div>
         </div>
 
         <div id="pannello-jolly" class="pannello-scelta nascosta">

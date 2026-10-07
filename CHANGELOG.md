@@ -4,16 +4,20 @@ Versione per versione, la più recente in cima. Si gioca su https://giraleparole
 
 ## In arrivo
 
-Le prime cinque sono idee già scelte ma non ancora costruite; le ultime tre sono ancora solo idee, e possono cambiare o non arrivare. L'ordine non è quello in cui arriveranno.
+Le prime sei sono idee già scelte ma non ancora costruite; le ultime due sono ancora solo idee, e possono cambiare o non arrivare. L'ordine non è quello in cui arriveranno.
 
 - **L'avversario finto.** Un giocatore della macchina, con nome e tessera come gli altri: chiama le lettere più frequenti, ogni tanto sbaglia, e tenta la soluzione quando ha scoperto abbastanza. Così si potrà tornare a giocare da soli: arriva in un prossimo aggiornamento, nei prossimi giorni.
 - **La frase premio.** Una frase a partita nasconde un premio, per esempio un jolly in più o la cassaforte raddoppiata. Lo si scopre solo risolvendola.
 - **L'albo d'oro.** Il gioco si ricorderà partite e record: chi vince più spesso, la vincita più alta, la frase risolta con meno lettere.
 - **Le frasi dei ragazzi.** Una pagina dove scrivere frasi proprie, con il loro indizio. Finiscono nel mazzo di casa, e quando escono il gioco dice chi le ha scritte.
 - **La sfida con un link.** Si scrive una frase e la si manda con un link: chi lo apre la gioca da solo.
-- **Spicchi nuovi sulla ruota.** Quali, non è ancora deciso. Fra le idee: Robin Hood, che porta via 500 € a chi è in testa, e Congela, con cui scegliete chi salta il prossimo turno.
+- **Quante?** Dici una lettera e quante volte pensi che compaia: se indovini anche il numero, il valore raddoppia; se la lettera c'è ma il numero è sbagliato, vale come sempre. Arriva nella versione dopo la 2.4.
 - **Partite a tema.** Ci sto pensando: prima di cominciare si sceglie che serata è, e la ruota cambia qualche spicchio. In famiglia, per esempio, uno spicchio che vale una caramella vera, o uno che stasera vi libera dai piatti.
 - **I telefoni.** È l'idea più lontana: il telefono come pulsante per prenotarsi nel round lampo, e un giorno, forse, per giocare tutto, anche da case diverse. Prima bisogna capire se si può fare.
+
+## 2.4 — 7 ottobre 2026 · Gli spicchi speciali
+
+- **Gli spicchi speciali.** Dal secondo round, sulla ruota, dove stavano l'800 € e il 400 €, ci sono due spicchi verde-azzurri con un simbolo bianco (il primo round non ne ha, come in televisione), e a ogni round cambiano: sono due dei quattro, e quali lo dice il cartello «Round» (con le loro pillole sotto). **Express** (il fulmine): o lo giochi, e dici consonanti una dopo l'altra a 500 € l'una, ma una lettera che non c'è, o una soluzione sbagliata, è bancarotta; o lo lasci, prendi 200 € e giri ancora. **Robin Hood** (l'arco): prendi 500 € dalla cassaforte di chi è in testa e giri ancora. **Mistero** (il «?»): sotto c'è 1.000 € a lettera, oppure un Passa, oppure 500 € da regalare a chi è secondo in classifica. **Scudo** (lo scudo): lo prendi subito e ti salva da una lettera sbagliata, da solo; se ne tiene uno solo (se ci cadi avendone già uno, giri e basta), e finché non lo usi resta anche nei round dopo. Nell'Express lo Scudo non lavora. «Come si gioca» ha una riga nuova.
 
 ## 2.3 — 6 ottobre 2026 · Si sente il gioco
 

@@ -7,11 +7,19 @@ const NOVITA = {
     "<b>L'albo d'oro.</b> Il gioco si ricorderà partite e record: chi vince più spesso, la vincita più alta, la frase risolta con meno lettere.",
     "<b>Le frasi dei ragazzi.</b> Una pagina dove scrivere frasi proprie, con il loro indizio. Finiscono nel mazzo di casa, e quando escono il gioco dice chi le ha scritte.",
     "<b>La sfida con un link.</b> Si scrive una frase e la si manda con un link: chi lo apre la gioca da solo.",
-    "<b>Spicchi nuovi sulla ruota.</b> Quali, non è ancora deciso. Fra le idee: Robin Hood, che porta via 500 € a chi è in testa, e Congela, con cui scegliete chi salta il prossimo turno.",
+    "<b>Quante?</b> Dici una lettera e quante volte pensi che compaia: se indovini anche il numero, il valore raddoppia; se la lettera c'è ma il numero è sbagliato, vale come sempre. Arriva nella versione dopo la 2.4.",
     "<b>Partite a tema.</b> Ci sto pensando: prima di cominciare si sceglie che serata è, e la ruota cambia qualche spicchio. In famiglia, per esempio, uno spicchio che vale una caramella vera, o uno che stasera vi libera dai piatti.",
     "<b>I telefoni.</b> È l'idea più lontana: il telefono come pulsante per prenotarsi nel round lampo, e un giorno, forse, per giocare tutto, anche da case diverse. Prima bisogna capire se si può fare."
   ],
   "versioni": [
+    {
+      "versione": "2.4",
+      "data": "7 ottobre 2026",
+      "titolo": "Gli spicchi speciali",
+      "voci": [
+        "<b>Gli spicchi speciali.</b> Dal secondo round, sulla ruota, dove stavano l'800 € e il 400 €, ci sono due spicchi verde-azzurri con un simbolo bianco (il primo round non ne ha, come in televisione), e a ogni round cambiano: sono due dei quattro, e quali lo dice il cartello «Round» (con le loro pillole sotto). <b>Express</b> (il fulmine): o lo giochi, e dici consonanti una dopo l'altra a 500 € l'una, ma una lettera che non c'è, o una soluzione sbagliata, è bancarotta; o lo lasci, prendi 200 € e giri ancora. <b>Robin Hood</b> (l'arco): prendi 500 € dalla cassaforte di chi è in testa e giri ancora. <b>Mistero</b> (il «?»): sotto c'è 1.000 € a lettera, oppure un Passa, oppure 500 € da regalare a chi è secondo in classifica. <b>Scudo</b> (lo scudo): lo prendi subito e ti salva da una lettera sbagliata, da solo; se ne tiene uno solo (se ci cadi avendone già uno, giri e basta), e finché non lo usi resta anche nei round dopo. Nell'Express lo Scudo non lavora. «Come si gioca» ha una riga nuova."
+      ]
+    },
     {
       "versione": "2.3",
       "data": "6 ottobre 2026",

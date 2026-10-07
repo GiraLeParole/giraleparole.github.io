@@ -8,7 +8,7 @@
 // LA RUOTA — composizione degli spicchi.
 // ----------------------------------------------------------------------------
 // Ogni spicchio e un oggetto con:
-//   tipo:    "soldi" | "passa" | "bancarotta" | "jolly"
+//   tipo:    "soldi" | "passa" | "bancarotta" | "jolly" | "speciale"
 //   valore:  il premio in euro (solo per tipo "soldi")
 //   colore:  colore di sfondo dello spicchio
 //   testo:   colore del testo scritto sopra
@@ -26,9 +26,12 @@
 //   addensare valori uguali nella stessa zona di ruota — l'indice 9 stava
 //   fra due spicchi bassi (400€, 500€) e ora porta un valore alto, l'indice
 //   21 stava fra due spicchi alti (900€, 1000€) e ora porta un valore basso.
-//   Cosi` restano 2 copie per ognuno dei 7 livelli invariati e 3 copie per
-//   400€ e 800€ — lo sbilancio minimo possibile spalmando 20 spicchi "soldi"
-//   su 9 livelli (20 non e` multiplo di 9). Verificato con
+//   Cosi` restavano 2 copie per ognuno dei 7 livelli invariati e 3 copie per
+//   400€ e 800€. DAL 06/10/2026 (2.4) quei due spicchi sono i due posti degli
+//   SPECIALI, ma solo DAL ROUND 2 (Damiano: nel round 1 non ce ne sono, come
+//   in TV): nel round 1 la ruota e` identica a quella della 2.3, con questi
+//   due spicchi coi soldi; dal round 2 ruota.js li fa tipo "speciale" e ogni
+//   livello di cifra ha ESATTAMENTE due copie (18 spicchi "soldi" su 9 livelli). Prima, verificato con
 //   `node design/strumenti/colori-round.mjs livello` su tutti e 7 i round:
 //   nessuna coppia di spicchi vicini dello stesso colore.
 // - BANCAROTTA: 2 spicchi in tutto. Damiano non era sicuro fra 2 e 3 ("mi
@@ -47,6 +50,126 @@
 // spicchi BIANCHI con scritta scura, come deciso al terzo giro, punto 11.
 const COLORE_PASSA = "#F7F3E8";
 const TESTO_PASSA = "#20233A";
+
+// ----------------------------------------------------------------------------
+// GLI SPICCHI SPECIALI (2.4) — disegno di Chiara, 06/10/2026
+// (`design/2026-10-06-scheda-spicchi-speciali.md`). Quattro speciali, due per
+// round, nei due posti fissi 9 e 21 di SEGMENTI_RUOTA (tipo "speciale" dal
+// round 2; nel round 1 non compare nessuno speciale, Damiano 06/10 sera).
+// Regole cambiate da Damiano la sera del 06/10: Express rifiutato = 200 € fissi
+// e si gira di nuovo; Scudo al massimo uno per giocatore.
+// ----------------------------------------------------------------------------
+// I quattro speciali. `nome` e` la parola sullo spicchio e nei cartelli (nomi
+// di Damiano e Alfred, 05-06/10/2026). `simbolo` e` il disegno: un solo
+// tracciato in un quadrato 0-100, letto dal canvas (Path2D) e dalla pagina
+// (<svg viewBox="0 0 100 100">), cosi` il simbolo e` lo stesso dappertutto.
+//   fill: true      → tracciato pieno
+//   stroke: N       → tracciato a linea, spessa N (su 100)
+//   testo: "?"      → un glifo del font dei titoli, al posto del tracciato
+const SPECIALI = {
+  express: {
+    nome: "EXPRESS",
+    titolo: "Express",
+    simbolo: [{ d: "M58 4 L22 54 L46 54 L40 96 L78 42 L54 42 Z", fill: true }], // il fulmine
+  },
+  robinhood: {
+    nome: "ROBIN HOOD",
+    titolo: "Robin Hood",
+    simbolo: [
+      { d: "M30 10 Q 92 50 30 90", stroke: 9 },     // l'arco
+      { d: "M30 10 L30 90", stroke: 4.5 },          // la corda
+      { d: "M10 50 L80 50", stroke: 8 },            // la freccia
+      { d: "M97 50 L76 37 L76 63 Z", fill: true },  // la punta
+    ],
+  },
+  mistero: {
+    nome: "MISTERO",
+    titolo: "Mistero",
+    simbolo: [{ testo: "?" }],
+  },
+  scudo: {
+    nome: "SCUDO",
+    titolo: "Scudo",
+    simbolo: [
+      // l'orlo dello scudo (anello: contorno meno interno, regola evenodd) e l'emblema in mezzo
+      { d: "M50 5 L87 19 L87 48 C87 71 71 88 50 96 C29 88 13 71 13 48 L13 19 Z M50 18.5 L76.5 28.5 L76.5 48.5 C76.5 64.5 65 76.5 50 83 C35 76.5 23.5 64.5 23.5 48.5 L23.5 28.5 Z", fill: true, regola: "evenodd" },
+      { d: "M50 31 L65.5 37 L65.5 49 C65.5 58.5 59 65.5 50 69.5 C41 65.5 34.5 58.5 34.5 49 L34.5 37 Z", fill: true },
+    ],
+  },
+};
+
+// Il colore di classe: TUTTI gli speciali sono verde-azzurri, come tutti i
+// Passa sono bianchi e tutte le Bancarotte nere (spirito del punto 29).
+// Scelto fuori dalle tinte dei soldi (ΔE ≥ 24 a vista normale e ≥ 14 per
+// protan/deutan contro i vicini dei due posti qui sotto, misurato il 06/10
+// con design/strumenti/validate_palette.mjs). Debole solo accanto al verde
+// del 700 € (ΔE 10) e, per chi non distingue i colori, al rosa del 600 € (7):
+// per questo i due posti non hanno quei vicini.
+const COLORE_SPECIALE = "#009688";        // lo spicchio
+const COLORE_SPECIALE_SIMBOLO = "#004D40"; // il simbolo dentro il distintivo bianco (contrasto 9,6:1)
+const COLORE_SPECIALE_SCURO = "#00695C";   // bordi, pillole e distintivi nei cartelli
+
+// Dove stanno: due posti fissi, opposti (12 spicchi esatti), con solo soldi
+// ai lati, a due o piu` spicchi da Bancarotta (0), Passa (3, 15), Jolly (7) e
+// dallo spicchio in tre (12). Sono i due posti lasciati dai Passa il 29/09
+// (punto 75): togliendoli, ogni livello di cifra torna ad avere ESATTAMENTE
+// due spicchi (18 spicchi su 9 livelli), e lo sbilancio del 400 € e dell'800 €
+// (tre copie) sparisce. Dal round 2: nel round 1 i due posti hanno i soldi della 2.3.
+const POSTI_SPECIALI = [9, 21];
+
+// Quali due per round. Le tre spartizioni possibili dei quattro in due coppie:
+// ogni spartizione da` due round (prima una meta`, poi l'altra: «due e poi
+// altri due», Damiano 06/10), le tre spartizioni si mescolano a ogni partita.
+// Cosi`: ogni speciale c'e` un round si` e uno no; la coppia cambia a OGNI
+// round; la stessa coppia non torna prima di sei round; nessuna partita
+// comincia sempre con gli stessi due.
+const SPARTIZIONI_SPECIALI = [
+  [["express", "robinhood"], ["mistero", "scudo"]],
+  [["express", "mistero"], ["robinhood", "scudo"]],
+  [["express", "scudo"], ["robinhood", "mistero"]],
+];
+
+// Restituisce, per una partita di `numeroRound` round, la coppia di ogni
+// round (indice 0 = round 1, che NON ha speciali: null; la rotazione parte dal
+// round 2). Si chiama UNA volta a inizio partita e il risultato si tiene in
+// Gioco (come il programma del lampo).
+function programmaSpeciali(numeroRound) {
+  const programma = [];
+  while (programma.length < numeroRound - 1) {
+    const spartizioni = SPARTIZIONI_SPECIALI.slice().sort(() => Math.random() - 0.5);
+    spartizioni.forEach(([a, b]) => {
+      if (Math.random() < 0.5) programma.push(a, b);
+      else programma.push(b, a);
+    });
+  }
+  return [null, ...programma.slice(0, numeroRound - 1)];
+}
+
+// Cosa c'e` sotto il Mistero (Damiano, 05/10: «1.000 €, Passa, oppure regali
+// 500 €»). I pesi sono una scelta di Chiara da approvare: il buono esce una
+// volta su due, cosi` il Mistero resta una cosa che si vuole scoprire.
+const MISTERO_SOTTO = [
+  { esito: "soldi", valore: 1000, peso: 2 },
+  { esito: "passa", peso: 1 },
+  { esito: "regalo", valore: 500, peso: 1 },
+];
+function estraiMistero() {
+  const tot = MISTERO_SOTTO.reduce((s, x) => s + x.peso, 0);
+  let r = Math.random() * tot;
+  for (const x of MISTERO_SOTTO) { r -= x.peso; if (r < 0) return x; }
+  return MISTERO_SOTTO[0];
+}
+
+const EXPRESS_RIFIUTO_VALORE = 200;   // chi rifiuta l'Express prende questi, fissi, e gira di nuovo (Damiano, 06/10 sera: «prende 200 e basta, fisso»; sostituisce i «500 € a lettera» della proposta di Chiara)
+const SCUDO_MASSIMO = 1;              // al massimo uno per giocatore (Damiano, 06/10 sera: «sennò troppo forte»); usato, se ne puo` prendere un altro
+const EXPRESS_VALORE_LETTERA = 500;   // ogni consonante giusta, per ogni volta che c'e` (Damiano, 06/10)
+const ROBIN_HOOD_VALORE = 500;         // da chi e` in testa (Damiano, 05/10: «lo porteremmo a 500»)
+
+// Durate (ms) dei cartelli nuovi; quelle di sempre restano (DURATA_ANNUNCIO_MS 1300, _LUNGO 1800).
+const DURATA_MISTERO_COPERTO_MS = 900;   // il «?» resta chiuso cosi` a lungo, poi la carta si gira (2 × 260 ms)
+const DURATA_ROBIN_HOOD_MS = 2400;       // il cartello con la pedina che passa di mano (la pedina viaggia da 300 a 1000 ms)
+const DURATA_SCUDO_PRESO_MS = 1800;
+const DURATA_SCUDO_SCATTA_MS = 1800;
 
 // ----------------------------------------------------------------------------
 // PALETTE PER CIFRA — quella validata da Chiara col validatore delle
@@ -93,7 +216,7 @@ const SEGMENTI_RUOTA = [
   { tipo: "soldi", valore: 1500 },
   { tipo: "soldi", valore: 600, jolly: true },
   { tipo: "soldi", valore: 400 },
-  { tipo: "soldi", valore: 800 }, // ex-Passa (quattordicesimo giro, punto 75): fra 400€ e 500€, valore alto
+  { tipo: "soldi", valore: 800 }, // posto 9: ex-Passa (punto 75), 800€ nel round 1; dal round 2 ruota.js lo fa «speciale» (2.4)
   { tipo: "soldi", valore: 500 },
   { tipo: "soldi", valore: 700 },
   { tipo: "triplo" }, // vedi sopra: UNA fetta, tre parti nel disegno
@@ -105,7 +228,7 @@ const SEGMENTI_RUOTA = [
   { tipo: "soldi", valore: 300 },
   { tipo: "soldi", valore: 400 },
   { tipo: "soldi", valore: 900 },
-  { tipo: "soldi", valore: 400 }, // ex-Passa (quattordicesimo giro, punto 75): fra 900€ e 1000€, valore basso
+  { tipo: "soldi", valore: 400 }, // posto 21: ex-Passa (punto 75), 400€ nel round 1; dal round 2 ruota.js lo fa «speciale» (2.4)
   { tipo: "soldi", valore: 1000 },
   { tipo: "soldi", valore: 800 },
 ];

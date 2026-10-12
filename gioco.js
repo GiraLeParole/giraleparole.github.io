@@ -24,6 +24,23 @@ function normalizzaTesto(testo) {
     .trim();
 }
 
+// Controllo di Chiara 08/10, apostrofo: chi detta la soluzione puo` scrivere
+// "d estate" (spazio al posto dell'apostrofo) oltre a "d'estate" e "destate".
+// Si confronta il tentativo con la frase giusta scritta in tutti i modi
+// (ogni apostrofo tolto o diventato spazio); il resto deve essere identico.
+function soluzioneGiusta(tentativoGrezzo, testoGiusto) {
+  const tentativo = normalizzaTesto(tentativoGrezzo);
+  if (tentativo.length === 0) return false;
+  const pezzi = testoGiusto.split(/['’‘`´]/);
+  let varianti = [pezzi[0]];
+  for (let i = 1; i < pezzi.length; i++) {
+    const nuove = [];
+    for (const v of varianti) nuove.push(v + pezzi[i], v + " " + pezzi[i]);
+    varianti = nuove;
+  }
+  return varianti.some((v) => normalizzaTesto(v) === tentativo);
+}
+
 function eLettera(carattere) {
   return /[A-Za-zÀ-ÖØ-öø-ÿ]/.test(carattere);
 }
@@ -37,32 +54,14 @@ function eLettera(carattere) {
 const formattaMigliaia = (n) => String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, ".");
 const euro = (n) => formattaMigliaia(n) + " €";
 
-// ----------------------------------------------------------------------------
-// GLI SPICCHI SPECIALI (2.4) — disegno di Chiara, 06/10/2026
-// (design/2026-10-06-scheda-spicchi-speciali.md). Il tracciato di ogni simbolo
-// sta in SPECIALI (config.js): qui lo stesso disegno come <svg>, copiato dal
-// prototipo di Chiara.
-// ----------------------------------------------------------------------------
-function svgSimbolo(chiave) {
-  const sp = SPECIALI[chiave];
-  const parti = sp.simbolo.map((p) => {
-    if (p.testo) return `<text x="50" y="54" text-anchor="middle" dominant-baseline="central">${p.testo}</text>`;
-    if (p.fill) return `<path d="${p.d}" stroke="none"${p.regola ? ` fill-rule="${p.regola}"` : ""}/>`;
-    return `<path d="${p.d}" fill="none" stroke-width="${p.stroke}"/>`;
-  });
-  return `<svg class="simbolo-speciale" viewBox="0 0 100 100" aria-hidden="true">${parti.join("")}</svg>`;
-}
-function pillola(chiave) {
-  return `<span class="pillola-speciale">${svgSimbolo(chiave)}${SPECIALI[chiave].titolo}</span>`;
-}
+// svgSimbolo() e pillola() (e i colori degli speciali passati al CSS) stanno in
+// speciali-comuni.js, caricato prima di questo file: li usa anche la presentazione.
+
 // I nomi dei giocatori li scrive chi gioca: dentro un testo con markup (i cartelli
 // degli speciali) passano sempre da qui.
 function escHtml(testo) {
   return String(testo).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 }
-// Una fonte sola per i colori: config.js (COLORE_SPECIALE*), qui passati al CSS.
-document.documentElement.style.setProperty("--speciale", COLORE_SPECIALE);
-document.documentElement.style.setProperty("--speciale-scuro", COLORE_SPECIALE_SCURO);
 // 2.4.1: i tempi della pedina di Robin Hood, anche loro da config.js
 document.documentElement.style.setProperty("--robin-pedina-ms", ROBIN_HOOD_PEDINA_MS + "ms");
 document.documentElement.style.setProperty("--robin-pedina-ritardo", ROBIN_HOOD_PEDINA_RITARDO_MS + "ms");
@@ -181,12 +180,79 @@ const Gioco = {
   // null oppure { lettere, vinto } (quante consonanti giuste, quanto hanno reso).
   programmaSpeciali: [],
   express: null,
+  // Percorso (07/10/2026): "classica" | "percorso" (scelta all'iscrizione). Tutto quello che segue vale
+  // solo nel Percorso e viene azzerato da azzeraPercorso(); in Classica non si legge mai.
+  partita: "classica",
+  // Quinta stesura (09/10/2026): lo stato vero lo scrive percorso-gioco.js (azzeraPercorso); qui i nomi, per chi li cerca.
+  caselle: 0,              // le pietre della plancia (PLANCIA_40: 40)
+  caselleSpeciali: {},     // posizione -> tipo (CASELLE_PERCORSO), del set in uso (Castelli del lampo compresi)
+  castelli: {},            // posizione -> il castellano
+  bivacchi: {},            // posizione -> "spento" | "oggi" | "prima"
+  tickArrivo: 0,           // conta gli arrivi: a pari caselle e` in testa chi ci e` arrivato prima
+  meteo: null,             // il tempo di oggi (percorso.js)
+  tramonto: null,          // null oppure { restano } (i giri di ruota che restano)
+  sera: false,
+  sassi: {},               // posizione -> il giocatore che ha posato il Sasso
+  scorciatoie: [],         // le pietre delle Scorciatoie nascoste (nessuno le conosce, nemmeno il regista)
+  tendaAperta: false,      // la finestra della tenda: fra la fine di un turno e il primo gesto di chi ha il turno dopo
+  traguardo: null,         // chi ha toccato il traguardo
+  lampoGiorno: false,
+  regole: null,            // i numeri del pannello (Percorso.leggiRegole)
+  viste: new Set(),        // le bolle della prima volta gia` dette in questa partita
+  tempoGiro: "sereno",     // il tempo del giro di ruota in corso
 };
+
+// Siamo nella modalita` Percorso? (lo stesso controllo per gioco.js e lampo.js)
+const inPercorso = () => Gioco.partita === "percorso";
+
+// ---- quello che la Classica e il Percorso condividono e che gioco.js chiama in tutti e due i casi -----------------------
+// (le regole e la scena del Percorso stanno in percorso.js, percorso-gioco.js e percorso-vista.js; qui solo cio` che la partita
+// chiama anche in Classica, cosi` il gioco di sempre non dipende dai file del Percorso per girare)
+// Le tessere dei giocatori nel DOM, nell'ordine di Gioco.giocatori: in Classica sono i figli della colonna, nel Percorso le tessere dei viaggiatori.
+function elementiDeiGiocatori() {
+  return inPercorso() ? [...colonnaGiocatoriEl.querySelectorAll(".tessera-viaggio")] : [...colonnaGiocatoriEl.children];
+}
+// Chiamata a ogni «Inizia la partita» (e da «Gioca ancora» per il Percorso): mette la pagina nella modalita` giusta.
+// In Classica rimette le cose com'erano (un Percorso giocato prima non lascia segni).
+function preparaModalita() {
+  const p = inPercorso();
+  document.body.classList.toggle("percorso", p);
+  colonnaGiocatoriEl.classList.toggle("percorso", p);
+  if (!p) colonnaGiocatoriEl.classList.remove("quattro");
+  Ruota.impostaModalita(p ? "percorso" : "classica");
+  if (p) Ruota.impostaUnitaPassi(percorsoUnitaInUso());
+  btnCompraVocale.textContent = p ? "Vocale · " + testoPassi(PERCORSO_COSTO_VOCALE_PASSI) : "Vocale · " + euro(COSTO_VOCALE);
+  // la festa e la schermata finale: in Percorso dicono caselle, in Classica euro (i testi di sempre)
+  const schedaFesta = overlayFesta.querySelector(".scheda-festa");
+  const schedaFinale = document.getElementById("scheda-finale-vincitore");
+  [schedaFesta, schedaFinale].forEach((el) => { el.classList.toggle("percorso", p); el.classList.remove("traguardo"); });
+  overlayFesta.querySelector(".festa-testo").textContent = "ha risolto la frase!";
+  document.getElementById("festa-unita").textContent = " €";
+  document.getElementById("festa-sotto").textContent = "volano in cassaforte";
+  document.getElementById("finale-unita").textContent = " €";
+  document.getElementById("finale-sotto").textContent = "in cassaforte";
+  // R11 (Damiano, 09/10): nel Percorso ogni annuncio a tempo dura un secondo in piu`, «Tocca a» 2700; la Classica torna ai valori di sempre
+  const piu = p ? PERCORSO_ANNUNCIO_IN_PIU_MS : 0;
+  DURATA_ANNUNCIO_MS = DURATE_BASE_ANNUNCI.annuncio + piu;
+  DURATA_ANNUNCIO_LUNGO_MS = DURATE_BASE_ANNUNCI.lungo + piu;
+  DURATA_ROBIN_HOOD_MS = DURATE_BASE_ANNUNCI.robin + piu;
+  DURATA_CARTELLO_PERCORSO_MS = DURATE_BASE_ANNUNCI.cartello + piu;
+  DURATA_TOCCA_A_MS = p ? DURATA_TOCCA_A_PERCORSO_MS : DURATE_BASE_ANNUNCI.toccaA;
+  if (p) azzeraPercorso();
+}
+
+// Dopo il cartello si ridisegnano le tessere (in Percorso la scena anima i passi da sola).
+function aggiornaSchedeDopoCartello() { aggiornaSchedeGiocatori(); }
+function pagaVocalePercorso(g) { Percorso.pagaVocale(Gioco, g); }
+
+// (La fascia «VENTO IN POPPA» e` tolta con il Vento in poppa, settima stesura: in tutte e due le modalita` toglie la classe e basta.)
+function preparaFasciaVento() { pannelloConsonanti.classList.remove("vento"); }
+
 
 // Una partita (nuova o «Gioca ancora») ha il suo programma di speciali: si
 // estrae qui e lo si da` alla ruota, prima che il round 1 sia impostato.
 function preparaSpeciali() {
-  Gioco.programmaSpeciali = programmaSpeciali(Gioco.numeroRoundTotale);
+  Gioco.programmaSpeciali = inPercorso() ? [] : programmaSpeciali(Gioco.numeroRoundTotale); // Percorso: la ruota e` sempre la stessa (settima stesura)
   Ruota.impostaProgrammaSpeciali(Gioco.programmaSpeciali);
 }
 
@@ -226,10 +292,14 @@ function frasiDeiGruppi() {
 
 const opzioniGruppiEl = document.getElementById("opzioni-gruppi");
 const contaFraseEl = document.getElementById("conta-frasi");
+// La mappa del Percorso (08/10/2026) ha le sue frasi: gli stessi gruppi, scritti nei due posti
+const opzioniGruppiMappaEl = document.getElementById("opzioni-gruppi-mappa");
+const contaFraseMappaEl = document.getElementById("conta-frasi-mappa");
 
 function disegnaGruppi() {
   opzioniGruppiEl.innerHTML = "";
-  GRUPPI_FRASI.forEach((g) => {
+  opzioniGruppiMappaEl.innerHTML = "";
+  [opzioniGruppiEl, opzioniGruppiMappaEl].forEach((contenitore) => GRUPPI_FRASI.forEach((g) => {
     const b = document.createElement("button");
     b.type = "button";
     b.className = "opzione-gruppo" + (gruppiScelti.has(g.valore) ? " selezionata" : "");
@@ -253,9 +323,10 @@ function disegnaGruppi() {
       } catch (e) {}
       disegnaGruppi();
     });
-    opzioniGruppiEl.appendChild(b);
-  });
+    contenitore.appendChild(b);
+  }));
   contaFraseEl.textContent = frasiDeiGruppi().length + " frasi";
+  contaFraseMappaEl.textContent = contaFraseEl.textContent;
 }
 disegnaGruppi();
 
@@ -384,9 +455,15 @@ const listaGiocatoriEl = document.getElementById("lista-giocatori");
 const btnAggiungiGiocatore = document.getElementById("btn-aggiungi-giocatore"); // resta nel DOM, nascosto: il posto vuoto lo sostituisce
 const btnIniziaPartita = document.getElementById("btn-inizia-partita");
 const erroreIscrizioneEl = document.getElementById("errore-iscrizione");
+const erroreIscrizioneMappaEl = document.getElementById("errore-iscrizione-mappa");
+// l'errore dell'iscrizione si scrive in tutti e due i posti (la Classica e la mappa del Percorso): ne vede uno solo
+function scriviErrore(testo) { erroreIscrizioneEl.textContent = testo; erroreIscrizioneMappaEl.textContent = testo; }
 const modoGiocoEl = document.getElementById("modo-gioco");
 const premioCasaEl = document.getElementById("premio-casa");
 const lampoAttivoEl = document.getElementById("lampo-attivo");
+const partitaSceltaEl = document.getElementById("partita-scelta");
+const btnCambiaPartita = document.getElementById("cambia-partita");
+const schermataModalita = document.getElementById("schermata-modalita");
 
 // Undicesimo giro, punto 58, strada B (28/09/2026, scelta di Damiano: "la
 // tessera con l'iniziale, moooolto carina"): la prima lettera del nome,
@@ -395,6 +472,47 @@ const lampoAttivoEl = document.getElementById("lampo-attivo");
 function inizialeDiNome(nome) {
   const car = (nome || "").trim().charAt(0);
   return car ? car.toUpperCase() : "?";
+}
+
+// Controllo di Chiara 08/10 (P5) e rilievo 1 del controllo sulle correzioni: nel Percorso, fra chi ha la stessa iniziale,
+// in ordine d'iscrizione, la sigla non si ripete mai. Il primo prende le prime due lettere del nome («Ma»); ognuno dei
+// successivi prende la prima lettera del nome, dalla seconda in poi, che da` una sigla non ancora presa (Margherita
+// «Mr», Marco «Mc», Mirco «Mi»); se nessuna lettera basta, l'iniziale e il numero d'iscrizione («M2»). Il primo e`
+// solo il caso in cui nessuna sigla e` ancora presa: la regola e` una sola. Solo nel Percorso: la Classica resta com'e`.
+// Il nome intero sta sempre accanto.
+function siglePercorso(giocatori) {
+  const sigle = giocatori.map((g) => g.iniziale);
+  const gruppi = {};
+  giocatori.forEach((g, i) => { if (g.iniziale && g.iniziale !== "?") (gruppi[g.iniziale] = gruppi[g.iniziale] || []).push(i); });
+  Object.keys(gruppi).forEach((ini) => {
+    const indici = gruppi[ini];
+    if (indici.length < 2) return;
+    const prese = new Set();
+    indici.forEach((i) => {
+      const lettere = Array.from((giocatori[i].nome || "").trim()).slice(1).filter((c) => /\p{L}/u.test(c));
+      let sigla = null;
+      for (const c of lettere) {
+        const cand = ini + c.toLowerCase();
+        if (!prese.has(cand)) { sigla = cand; break; }
+      }
+      if (sigla === null) sigla = ini + (i + 1);
+      prese.add(sigla);
+      sigle[i] = sigla;
+    });
+  });
+  return sigle;
+}
+function inizialeDistinta(g) {
+  if (!inPercorso()) return g.iniziale;
+  const i = Gioco.giocatori.indexOf(g);
+  return i < 0 ? g.iniziale : siglePercorso(Gioco.giocatori)[i];
+}
+
+// Scrive la lettera (o le due lettere) in una tessera/pedina; con due lettere la classe «due» la fa entrare (style.css).
+function scriviIniziale(el, g) {
+  const t = inizialeDistinta(g);
+  el.textContent = t;
+  el.classList.toggle("due", t.length > 1);
 }
 
 // Lo stato dell'iscrizione vive QUI, non nel DOM. Difetto trovato da Chiara
@@ -412,7 +530,15 @@ const Iscrizione = {
   ],
   premioCasa: "",
   lampoAttivo: false,
+  partita: "classica", // "classica" | "percorso": che partita si gioca stasera; la decide la carta della schermata prima, ogni sera (08/10/2026)
+  pronta: false,       // vero quando la schermata ha tutti i suoi pezzi (serve alla pillola, che conta le caselle)
 };
+// Per il palco dell'iscrizione (08/10/2026, disegno di Chiara): cosa e` nuovo, cioe` quando le luci si accendono.
+// ultimoAggiunto = l'indice del giocatore appena aggiunto col posto vuoto;
+// scenaTuttaNuova = vero quando si arriva dalla carta.
+// Le azzera disegnaIscrizione() in fondo: togliere un giocatore o cambiare modo non animano.
+let ultimoAggiunto = -1;
+let scenaTuttaNuova = false;
 
 // I nomi dell'ultima partita restano scritti (scelta 1 della scheda,
 // raccomandata da Chiara, approvata da Damiano): la sera normale e` aprire
@@ -430,6 +556,8 @@ const Iscrizione = {
       if (Array.isArray(v.squadre) && v.squadre.length === 2) Iscrizione.squadre = v.squadre;
       if (typeof v.premioCasa === "string") Iscrizione.premioCasa = v.premioCasa;
       if (typeof v.lampoAttivo === "boolean") Iscrizione.lampoAttivo = v.lampoAttivo;
+      // la partita (Classica | Percorso) NON si ricorda piu` (08/10/2026, scelta 1 di Damiano):
+      // la domanda «Che partita facciamo stasera?» si fa ogni sera, senza memoria della volta prima.
     }
   } catch (e) {}
 })();
@@ -502,6 +630,7 @@ function disegnaIscrizione() {
     b.classList.toggle("selezionata", on);
     b.setAttribute("aria-checked", on ? "true" : "false");
   });
+  scriviPartitaScelta(); // il numero di caselle dipende da quanti giocatori ci sono
 
   if (Iscrizione.modo === "singoli") {
     Iscrizione.giocatori.forEach((g, i) => {
@@ -555,6 +684,9 @@ function disegnaIscrizione() {
     });
   }
   disegnaPostoVuoto();
+  disegnaScena();
+  ultimoAggiunto = -1;
+  scenaTuttaNuova = false;
 }
 
 // Il posto vuoto vive accanto alla lista, MA non e` un giocatore: gioco.js
@@ -571,6 +703,7 @@ function disegnaPostoVuoto() {
   postoVuoto.innerHTML = "<b>+</b><span>un altro</span>";
   postoVuoto.addEventListener("click", () => {
     Iscrizione.giocatori.push({ nome: "", aiutino: false });
+    ultimoAggiunto = Iscrizione.giocatori.length - 1;
     salvaIscrizione();
     disegnaIscrizione();
     listaGiocatoriEl.querySelector(".tessera-iscrizione:last-child input")?.focus();
@@ -585,6 +718,99 @@ modoGiocoEl.addEventListener("click", (ev) => {
   salvaIscrizione();
   disegnaIscrizione();
 });
+
+// Quante caselle avra` la striscia di stasera, se si sceglie il Percorso: segue la serata (round e giocatori;
+// a squadre contano le squadre, due), a meno di una lunghezza fissata a mano (?caselle=, config.js).
+function caselleDiStasera() {
+  const giocatori = Iscrizione.modo === "squadre" ? 2 : Iscrizione.giocatori.length;
+  return percorsoCaselleForzate() || percorsoCaselle(numeroRoundScelto, giocatori);
+}
+// La pillola nell'iscrizione, al posto del segmento (08/10/2026, scheda di Chiara): la partita scelta
+// nella schermata prima. Il Percorso ha la sua schermata (la mappa), con la sua pillola.
+function scriviPartitaScelta() {
+  // La pillola dice solo la partita (08/10/2026, scelta 3 della mappa): il numero delle caselle sta alla bandiera della mappa.
+  partitaSceltaEl.textContent = Iscrizione.partita === "percorso" ? "Percorso" : "Classica";
+}
+
+// Il palco (08/10/2026, disegno di Chiara, solo la Classica): sotto le tessere dei giocatori la sola ribalta con la fila
+// delle luci. Le casseforti vuote sono tolte (scelta 3 della pagina del palco in partita): le tessere stanno direttamente sulla
+// ribalta. Quando arriva un giocatore (o si arriva dalla carta) le luci si accendono. Nel Percorso la scena e` vuota
+// (display:none da :empty): la sua iscrizione e` un'altra (vedi disegnaMappa).
+const scenaIscrizioneEl = document.getElementById("scena-iscrizione");
+// Rimette la classe di un'animazione e la fa ripartire; a fine corsa la classe va via. L'animazione sta quasi sempre su un
+// figlio (le luci, la cifra): si ascolta animationend dal nome giusto, cosi` ne' un'altra animazione della stessa tessera
+// (il balzo di chi entra in turno) ne' un figlio sbagliato la tolgono prima del tempo. Con "riduci movimento" non c'e'
+// animazione e la classe resta: rimetterla e` innocuo.
+const ANIMAZIONE_DI = { accesa: "luci-accendono", sale: "cifra-sale", incassa: "cassaforte-incassa", perde: "cifra-perde" };
+function riaccendi(el, classe) {
+  if (!el) return;
+  el.classList.remove(classe);
+  void el.offsetWidth;
+  el.classList.add(classe);
+  const fine = (e) => {
+    if (e.animationName !== ANIMAZIONE_DI[classe]) return;
+    el.classList.remove(classe);
+    el.removeEventListener("animationend", fine);
+  };
+  el.addEventListener("animationend", fine);
+}
+function disegnaScena() {
+  if (!Iscrizione.pronta) return;
+  if (Iscrizione.partita !== "classica") { scenaIscrizioneEl.innerHTML = ""; return; }
+  let palco = scenaIscrizioneEl.querySelector(".palco");
+  if (!palco) {
+    palco = document.createElement("div");
+    palco.className = "palco";
+    const ribalta = document.createElement("div");
+    ribalta.className = "ribalta";
+    const luci = document.createElement("div");
+    luci.className = "luci";
+    ribalta.appendChild(luci);
+    palco.appendChild(ribalta);
+    scenaIscrizioneEl.innerHTML = "";
+    scenaIscrizioneEl.appendChild(palco);
+  }
+  if (scenaTuttaNuova || ultimoAggiunto >= 0) riaccendi(palco.querySelector(".ribalta"), "accesa");
+}
+
+// La schermata della scelta (08/10/2026): la carta e` il pulsante. Un tocco e si e` nell'iscrizione di sempre;
+// «cambia» e` il contrario. Nessuna transizione, come fra le altre schermate. I nomi restano scritti
+// (stanno in Iscrizione). Le due ruote sulle carte sono quelle vere, ferme: Ruota e` un oggetto solo, init
+// cambia il canvas su cui disegna e quello di prima tiene il disegno fatto. iniziaPartita() rifa` init sul
+// canvas della partita e preparaModalita() rimette la modalita` giusta a ogni «Inizia la partita».
+Ruota.init(document.getElementById("ruota-classica"), null);
+Ruota.init(document.getElementById("ruota-percorso"), null);
+Ruota.impostaModalita("percorso");
+function mostraScelta() {
+  schermataIscrizione.classList.add("nascosta");
+  schermataIscrizionePercorso.classList.add("nascosta");
+  if (typeof PercorsoVista !== "undefined") PercorsoVista.nascondi(); // la scelta della partita ha il suo sfondo: il paesaggio del Percorso si spegne
+  schermataModalita.classList.remove("nascosta");
+  window.scrollTo(0, 0);
+}
+schermataModalita.querySelectorAll(".carta-modalita").forEach((carta) => {
+  carta.addEventListener("click", () => {
+    Iscrizione.partita = carta.dataset.partita;
+    scriviPartitaScelta();
+    schermataModalita.classList.add("nascosta");
+    window.scrollTo(0, 0);
+    if (Iscrizione.partita === "percorso") {
+      // il Percorso ha un'iscrizione tutta sua: la mappa del viaggio (si monta davanti ai ragazzi)
+      schermataIscrizione.classList.add("nascosta");
+      scenaIscrizioneEl.innerHTML = "";
+      mostraMappa();
+      return;
+    }
+    schermataIscrizione.classList.remove("nascosta");
+    schermataIscrizionePercorso.classList.add("nascosta");
+    // arrivando dalla carta il palco si monta davanti ai ragazzi: rifatto a schermata visibile, perche` l'animazione parta ora
+    scenaIscrizioneEl.innerHTML = "";
+    scenaTuttaNuova = true;
+    disegnaScena();
+    scenaTuttaNuova = false;
+  });
+});
+btnCambiaPartita.addEventListener("click", mostraScelta);
 
 premioCasaEl.value = Iscrizione.premioCasa;
 premioCasaEl.addEventListener("input", () => {
@@ -633,8 +859,7 @@ disegnaIscrizione();
 // toccare il markup. La leva del round lampo (giro B, costruito il
 // 05/10/2026) ha il suo, LAMPO_ATTIVO. --------------------------------------
 if (!GIRO_B_C_ATTIVO) {
-  document.getElementById("btn-albo")?.classList.add("nascosta");
-  document.getElementById("btn-frasi-nostre")?.classList.add("nascosta");
+  document.querySelectorAll(".porta-albo, .porta-frasi").forEach((b) => b.classList.add("nascosta"));
 }
 if (!LAMPO_ATTIVO) {
   document.getElementById("riga-lampo")?.classList.add("nascosta");
@@ -654,13 +879,266 @@ function costruisciOpzioniRound() {
     btn.textContent = n === NUMERO_ROUND_DI_DEFAULT ? `${n} (partita completa)` : String(n);
     btn.addEventListener("click", () => {
       numeroRoundScelto = n;
-      [...opzioniRoundEl.children].forEach((b) => b.classList.remove("selezionata"));
-      btn.classList.add("selezionata");
+      segnaRoundScelto(); // pulsanti della Classica e frecce del cartello della mappa: lo stesso numero
+      scriviPartitaScelta();
     });
     opzioniRoundEl.appendChild(btn);
   });
 }
 costruisciOpzioniRound();
+Iscrizione.pronta = true;
+scriviPartitaScelta();
+disegnaScena();
+
+// ----------------------------------------------------------------------------
+// L'ISCRIZIONE DEL PERCORSO, quinta stesura (09/10/2026, scheda di Chiara §11 e note di Damiano §11): la STESSA
+// plancia della partita (stesso paesaggio, stesso sentiero di pietre, le tappe come edifici, i due bivacchi, la bandiera
+// in cima) con i meeple al campo base. «Chi parte» sta dentro il cartello di legno: una riga per viaggiatore, con i sei
+// meeple fra cui scegliere accanto al nome (il colore viene col meeple). Niente piu' sentiero che si disegna e bandiera
+// che scivola: finche' c'e' una plancia sola, cambiare round o giocatori non muove niente. Lo stato e` lo STESSO oggetto
+// Iscrizione della Classica (nomi, aiutino, modo, premio, lampo, round, gruppi di frasi); il paesaggio lo disegna
+// percorso-vista.js.
+// ----------------------------------------------------------------------------
+const schermataIscrizionePercorso = document.getElementById("schermata-iscrizione-percorso");
+const listaViaggiatoriEl = document.getElementById("lista-viaggiatori");
+const modoMappaEl = document.getElementById("modo-gioco-mappa");
+const frecceRoundEl = document.getElementById("frecce-round");
+const premioCasaMappaEl = document.getElementById("premio-casa-mappa");
+const btnIniziaPercorso = document.getElementById("btn-inizia-percorso");
+const NS_SVG = "http://www.w3.org/2000/svg";
+function sv(tag, attrs, parent) { // un elemento svg, con i suoi attributi, dentro `parent`
+  const e = document.createElementNS(NS_SVG, tag);
+  Object.keys(attrs || {}).forEach((k) => e.setAttribute(k, attrs[k]));
+  if (parent) parent.appendChild(e);
+  return e;
+}
+// chi scende in campo stasera: i giocatori, o le due squadre (nome, meeple)
+function partecipanti() {
+  const lista = Iscrizione.modo === "squadre" ? Iscrizione.squadre : Iscrizione.giocatori;
+  assicuraMeeple(lista);
+  return lista.map((o, i) => ({
+    nome: (o.nome || "").trim() || (Iscrizione.modo === "squadre" ? NOMI_SQUADRE_SEGNAPOSTO[i] : `Giocatore ${i + 1}`),
+    meeple: MEEPLE[o.meeple],
+    colore: MEEPLE[o.meeple].colore,
+  }));
+}
+// le sigle di stasera: come in partita (siglePercorso), a squadre l'iniziale del nome della squadra
+function sigleDiStasera() {
+  if (Iscrizione.modo === "squadre") return Iscrizione.squadre.map((s, i) => inizialeDiNome((s.nome || "").trim() || NOMI_SQUADRE_SEGNAPOSTO[i]));
+  return siglePercorso(Iscrizione.giocatori.map((g, i) => ({ nome: g.nome, iniziale: inizialeDiNome(g.nome || `Giocatore ${i + 1}`) })));
+}
+
+// ---- i sei meeple: a ognuno il suo (scheda §5.1) ---------------------------------------------------------------------
+// Ogni viaggiatore (o squadra) ha un meeple, tutti diversi. Chi non l'ha ancora scelto prende il primo libero.
+function assicuraMeeple(lista) {
+  const usati = new Set();
+  lista.forEach((o) => {
+    if (Number.isInteger(o.meeple) && o.meeple >= 0 && o.meeple < MEEPLE.length && !usati.has(o.meeple)) usati.add(o.meeple);
+    else o.meeple = undefined;
+  });
+  lista.forEach((o) => {
+    if (o.meeple !== undefined) return;
+    let k = 0;
+    while (usati.has(k)) k += 1;
+    o.meeple = k;
+    usati.add(k);
+  });
+}
+// Si parte col meeple scelto, e il colore e` il suo (il colore segue il meeple, non piu' l'ordine d'iscrizione).
+function assegnaMeeple() {
+  const lista = Iscrizione.modo === "squadre" ? Iscrizione.squadre : Iscrizione.giocatori;
+  assicuraMeeple(lista);
+  Gioco.giocatori.forEach((g, i) => {
+    g.meeple = MEEPLE[lista[i].meeple].id;
+    g.colore = MEEPLE[lista[i].meeple].colore;
+  });
+}
+const meepleDi = (g) => MEEPLE.find((m) => m.id === g.meeple) || MEEPLE[0];
+// il meeple in html (tessere, annuncio, iscrizione): la sagoma in un svg 48 x 64, col contorno bianco, il colore e la sigla
+function meepleHtml(m, sigla, classe) {
+  const due = sigla && String(sigla).length > 1;
+  return `<svg class="meeple-html ${classe || ""}" viewBox="0 0 48 64" aria-hidden="true" style="--colore-giocatore:${m.colore}"><use href="#mp-${m.id}" class="contorno"/><use href="#mp-${m.id}" class="pieno"/>${sigla ? `<text class="sigla${due ? " due" : ""}" x="24" y="49" text-anchor="middle" dominant-baseline="central">${escHtml(sigla)}</text>` : ""}</svg>`;
+}
+
+function campoNomeMappa(oggetto, segnaposto, alCambio) {
+  const input = document.createElement("input");
+  input.type = "text";
+  input.maxLength = 16;
+  input.placeholder = segnaposto;
+  input.value = oggetto.nome || "";
+  input.className = "nome-chi-parte";
+  input.addEventListener("input", () => {
+    oggetto.nome = input.value;
+    salvaIscrizione();
+    alCambio(input.value);
+  });
+  return input;
+}
+
+// -- «Chi parte» nel cartello: una riga per viaggiatore, i sei meeple fra cui scegliere accanto al nome
+function sceltaMeepleEl(lista, i) {
+  const scelta = document.createElement("div");
+  scelta.className = "scegli-meeple";
+  const oggetto = lista[i];
+  MEEPLE.forEach((m, k) => {
+    const preso = lista.some((x, j) => j !== i && x.meeple === k);
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "meeple-scelta" + (oggetto.meeple === k ? " scelto" : "") + (preso ? " preso" : "");
+    b.dataset.meeple = m.id;
+    b.title = m.nome + (preso ? " (già scelto)" : "");
+    b.setAttribute("aria-label", m.nome + (preso ? " (già scelto)" : ""));
+    b.setAttribute("aria-pressed", oggetto.meeple === k ? "true" : "false");
+    b.disabled = preso;
+    b.innerHTML = meepleHtml(m, "");
+    b.addEventListener("click", () => {
+      if (preso) return;
+      oggetto.meeple = k;
+      salvaIscrizione();
+      disegnaViaggiatori();
+      PercorsoVista.disegnaIscrizione();
+    });
+    scelta.appendChild(b);
+  });
+  return scelta;
+}
+function disegnaViaggiatori() {
+  listaViaggiatoriEl.innerHTML = "";
+  listaViaggiatoriEl.classList.toggle("squadre", Iscrizione.modo === "squadre");
+  [...modoMappaEl.children].forEach((b) => {
+    const on = b.dataset.modo === Iscrizione.modo;
+    b.classList.toggle("selezionata", on);
+    b.setAttribute("aria-checked", on ? "true" : "false");
+  });
+  const lista = Iscrizione.modo === "squadre" ? Iscrizione.squadre : Iscrizione.giocatori;
+  assicuraMeeple(lista);
+  if (Iscrizione.modo === "singoli") {
+    Iscrizione.giocatori.forEach((g, i) => {
+      const riga = document.createElement("div");
+      riga.className = "riga-chi-parte" + (i === ultimoAggiunto ? " nuova" : "");
+      riga.style.setProperty("--colore-giocatore", MEEPLE[g.meeple].colore);
+      riga.appendChild(sceltaMeepleEl(Iscrizione.giocatori, i));
+      // scrivendo il nome cambia la sigla sul meeple al campo base: niente animazione
+      riga.appendChild(campoNomeMappa(g, `Giocatore ${i + 1}`, () => PercorsoVista.disegnaIscrizione()));
+      riga.appendChild(interruttoreAiutino(g));
+      const x = document.createElement("button");
+      x.type = "button";
+      x.className = "btn-rimuovi" + (Iscrizione.giocatori.length > 2 ? "" : " segnaposto"); // con due soli viaggiatori non si toglie nessuno: la colonna resta, l'allineamento pure
+      x.textContent = "✕";
+      x.setAttribute("aria-label", "Togli questo viaggiatore");
+      x.addEventListener("click", () => {
+        if (Iscrizione.giocatori.length <= 2) return;
+        Iscrizione.giocatori.splice(i, 1);
+        ultimoAggiunto = -1;
+        salvaIscrizione();
+        disegnaViaggiatori();
+        PercorsoVista.disegnaIscrizione();
+      });
+      riga.appendChild(x);
+      listaViaggiatoriEl.appendChild(riga);
+    });
+    if (Iscrizione.giocatori.length < MAX_GIOCATORI) {
+      const vuoto = document.createElement("button");
+      vuoto.type = "button";
+      vuoto.className = "viaggiatore-vuoto btn-un-altro";
+      vuoto.innerHTML = "+ un altro";
+      vuoto.addEventListener("click", () => {
+        Iscrizione.giocatori.push({ nome: "", aiutino: false });
+        ultimoAggiunto = Iscrizione.giocatori.length - 1;
+        salvaIscrizione();
+        disegnaViaggiatori();
+        PercorsoVista.disegnaIscrizione();
+        const righe = listaViaggiatoriEl.querySelectorAll(".riga-chi-parte");
+        if (righe.length) righe[righe.length - 1].querySelector("input")?.focus();
+      });
+      listaViaggiatoriEl.appendChild(vuoto);
+    }
+  } else {
+    Iscrizione.squadre.forEach((s, i) => {
+      const sq = document.createElement("div");
+      sq.className = "squadra-mappa";
+      sq.style.setProperty("--colore-giocatore", MEEPLE[s.meeple].colore);
+      const capo = document.createElement("div");
+      capo.className = "riga-chi-parte capo";
+      capo.style.setProperty("--colore-giocatore", MEEPLE[s.meeple].colore);
+      capo.appendChild(sceltaMeepleEl(Iscrizione.squadre, i));
+      capo.appendChild(campoNomeMappa(s, NOMI_SQUADRE_SEGNAPOSTO[i], () => PercorsoVista.disegnaIscrizione()));
+      sq.appendChild(capo);
+      // i componenti in una riga sola (tre per squadra): due squadre non devono scendere sul sentiero
+      const comp = document.createElement("div");
+      comp.className = "componenti-mappa";
+      s.componenti.forEach((c, k) => {
+        const riga = document.createElement("div");
+        riga.className = "componente";
+        riga.appendChild(campoNomeMappa(c, k === 0 ? "chi c’è" : "", () => {}));
+        riga.appendChild(interruttoreAiutino(c));
+        comp.appendChild(riga);
+      });
+      sq.appendChild(comp);
+      listaViaggiatoriEl.appendChild(sq);
+    });
+  }
+  ultimoAggiunto = -1;
+}
+modoMappaEl.addEventListener("click", (ev) => {
+  const b = ev.target.closest(".segmento");
+  if (!b || b.dataset.modo === Iscrizione.modo) return;
+  Iscrizione.modo = b.dataset.modo;
+  salvaIscrizione();
+  disegnaViaggiatori();
+  PercorsoVista.disegnaIscrizione();
+});
+
+// -- il cartello coi round: le frecce sono i pulsanti, da OPZIONI_NUMERO_ROUND
+OPZIONI_NUMERO_ROUND.forEach((n) => {
+  const b = document.createElement("button");
+  b.type = "button";
+  b.className = "freccia freccia-round";
+  b.dataset.round = String(n);
+  b.setAttribute("role", "radio");
+  b.innerHTML = `${n}` + (n === NUMERO_ROUND_DI_DEFAULT ? "" : "");
+  b.title = n + " giorni" + (n === NUMERO_ROUND_DI_DEFAULT ? " · partita completa" : ""); // R14: nel Percorso i round sono giorni
+  b.addEventListener("click", () => {
+    if (numeroRoundScelto === n) return;
+    numeroRoundScelto = n;
+    segnaRoundScelto();
+    scriviPartitaScelta();
+    // la plancia e` una sola (40 pietre) per ogni serata: cambiare round non muove niente (scheda §11)
+  });
+  frecceRoundEl.appendChild(b);
+});
+// il round scelto si vede sulle frecce e sui pulsanti della Classica (stesso numeroRoundScelto)
+function segnaRoundScelto() {
+  [...frecceRoundEl.children].forEach((b) => {
+    const on = Number(b.dataset.round) === numeroRoundScelto;
+    b.classList.toggle("selezionata", on);
+    b.setAttribute("aria-checked", on ? "true" : "false");
+  });
+  [...opzioniRoundEl.children].forEach((b, i) => b.classList.toggle("selezionata", OPZIONI_NUMERO_ROUND[i] === numeroRoundScelto));
+}
+segnaRoundScelto();
+
+// -- «Stasera»: le frasi (disegnaGruppi scrive in tutti e due i posti), il lampo e il premio (le stesse due cose della Classica)
+premioCasaMappaEl.value = Iscrizione.premioCasa;
+premioCasaMappaEl.addEventListener("input", () => {
+  Iscrizione.premioCasa = premioCasaMappaEl.value;
+  premioCasaEl.value = premioCasaMappaEl.value; // btnIniziaPartita legge il campo
+  salvaIscrizione();
+});
+premioCasaEl.addEventListener("input", () => { premioCasaMappaEl.value = premioCasaEl.value; });
+// (10/10: nel Percorso la leva «Round lampo» non c'e` piu`: il lampo c'e` sempre dopo ogni giorno, decisione di Damiano; la leva resta nella Classica)
+document.getElementById("cambia-partita-mappa").addEventListener("click", mostraScelta);
+btnIniziaPercorso.addEventListener("click", () => btnIniziaPartita.click()); // la stessa partenza: i controlli e i messaggi sono quelli di sempre
+
+// Si arriva all'iscrizione dalla carta «Percorso»: tutto si monta davanti ai ragazzi (il paesaggio e` lo stesso della partita).
+function mostraMappa() {
+  schermataIscrizionePercorso.classList.remove("nascosta");
+  premioCasaMappaEl.value = Iscrizione.premioCasa;
+  segnaRoundScelto();
+  disegnaViaggiatori();
+  PercorsoVista.mostraIscrizione(true);
+}
+
 
 // ---- VERSIONE, NOVITÀ, MINI GUIDA (Giro A, voci A5/A6) --------------------
 // NOVITA arriva da novita.js, generato da CHANGELOG.md (vedi
@@ -668,12 +1146,11 @@ costruisciOpzioniRound();
 (function versioneENovita() {
   if (typeof NOVITA === "undefined" || !NOVITA.versioni || !NOVITA.versioni.length) return;
   const ultima = NOVITA.versioni[0];
-  const versioneEl = document.getElementById("versione-gioco");
-  if (versioneEl) versioneEl.textContent = "v " + ultima.versione;
-  const pallino = document.querySelector("#btn-novita .pallino-nuovo");
+  document.querySelectorAll(".testo-versione").forEach((el) => { el.textContent = "v " + ultima.versione; });
+  const pallini = [...document.querySelectorAll(".apri-novita .pallino-nuovo")];
   let viste = null;
   try { viste = window.localStorage.getItem(CHIAVE_NOVITA_VISTE); } catch (e) {}
-  if (pallino) pallino.classList.toggle("acceso", viste !== ultima.versione);
+  pallini.forEach((p) => p.classList.toggle("acceso", viste !== ultima.versione));
 
   const elenco = document.getElementById("elenco-novita");
   NOVITA.versioni.forEach((v) => {
@@ -696,7 +1173,7 @@ costruisciOpzioniRound();
   const btnTutte = document.getElementById("btn-tutte-novita");
   const segnaVista = () => {
     try { window.localStorage.setItem(CHIAVE_NOVITA_VISTE, ultima.versione); } catch (e) {}
-    if (pallino) pallino.classList.remove("acceso");
+    pallini.forEach((p) => p.classList.remove("acceso"));
   };
   const blocchi = () => [...elenco.querySelectorAll(".versione-novita")];
   // «Tutte le novità»: via il filtro, via il pulsante. Dal piede si vede sempre tutto.
@@ -710,11 +1187,11 @@ costruisciOpzioniRound();
     blocchi().forEach((b, i) => b.classList.toggle("gia-vista", i >= quante));
     if (btnTutte) btnTutte.classList.add("visibile");
   };
-  document.getElementById("btn-novita")?.addEventListener("click", () => {
+  document.querySelectorAll(".apri-novita").forEach((b) => b.addEventListener("click", () => {
     mostraTutte();
     fin.classList.remove("nascosta");
     segnaVista();
-  });
+  }));
   btnTutte?.addEventListener("click", mostraTutte);
   document.getElementById("btn-chiudi-novita")?.addEventListener("click", () => fin.classList.add("nascosta"));
   fin.addEventListener("click", (ev) => { if (ev.target === fin) fin.classList.add("nascosta"); });
@@ -736,11 +1213,25 @@ costruisciOpzioniRound();
     window.localStorage.setItem(CHIAVE_NOVITA_VISTE + "-prova", "1");
     window.localStorage.removeItem(CHIAVE_NOVITA_VISTE + "-prova");
   } catch (e) { memoriaOk = false; }
+  // 07/10/2026 (scheda di Chiara, scelta 6): «Novità» dal piede della presentazione
+  // (gioco.html#novita) apre la finestra con tutte le versioni, e solo quella. Chi l'ha
+  // chiesto la vede anche se il browser non lascia scrivere: per questo sta prima di
+  // controllare la memoria.
+  if (location.hash === "#novita") {
+    mostraTutte();
+    fin.classList.remove("nascosta");
+    segnaVista();
+    return;
+  }
   if (!memoriaOk) return;
   if (viste === null) {
     // Prima visita in assoluto: a chi non conosce il gioco «cosa c'è di nuovo» non dice
     // niente. Si apre «Come si gioca»; la versione di oggi conta come vista.
-    window.setTimeout(() => { finGuida?.classList.remove("nascosta"); segnaVista(); }, RITARDO_APERTURA_MS);
+    // 07/10/2026 (presentazione, scheda di Chiara, scelta 5): chi arriva da «Gioca»
+    // della presentazione (gioco.html#gioca) la guida l'ha appena letta lassu`: non si
+    // apre da sola, ma la versione conta comunque come vista (la volta dopo niente si riapre).
+    if (location.hash === "#gioca") segnaVista();
+    else window.setTimeout(() => { finGuida?.classList.remove("nascosta"); segnaVista(); }, RITARDO_APERTURA_MS);
   } else if (viste !== ultima.versione) {
     // Versione nuova: le Novità con solo le versioni uscite dopo quella vista; se quella
     // vista non c'è più nell'elenco, tutte.
@@ -763,15 +1254,21 @@ const GUIDA = [
   { esempio: '<button class="aiutino">Aiutino</button>', nome: "Aiutino", testo: "Se ce l’hai, scegli una casella: si scoprono gratis tutte le sue lettere. Una a round." },
   { esempio: '<span class="tessera-guida">J</span>', nome: "Jolly", testo: "Su Bancarotta o Passa lo giochi: non perdi soldi né turno." },
   { esempio: '<button class="segmento selezionata" style="border-radius:999px">A squadre</button>', nome: "A squadre", testo: "Due squadre, e dentro la squadra si gioca un turno a testa." },
-  { esempio: '<span class="interruttore"><span class="leva" style="background:var(--accento);border-color:var(--accento)"></span></span>', nome: "Round lampo", testo: "Le lettere escono da sole. La sai? Tocca lo schermo o un tasto, l’arbitro tocca la tua tessera: 15 secondi per scriverla, 500 € se è giusta." },
+  { esempio: '<span class="interruttore"><span class="leva" style="background:var(--accento);border-color:var(--accento)"></span></span>', nome: "Round lampo", testo: "Le lettere escono da sole. La sai? Tocca lo schermo o un tasto, il regista tocca la tua tessera: 15 secondi per scriverla, 500 € se è giusta." },
   { esempio: '<span class="tessera-guida">★</span>', nome: "Frase premio", testo: "Una sola a partita: se la risolvi, vinci una sorpresa." },
   // 2.4, voce C8 della scheda di Chiara (06/10/2026): sempre mostrata. Testo del disegno, da confermare a Penna (punto 74).
   { esempio: '<span class="pillole-guida">' + SPECIALI_TUTTI.map(pillola).join("") + '</span>', nome: "Spicchi speciali", testo: "Dal secondo round, due a round, e cambiano. Express: consonanti a raffica, 500 € l’una, ma se sbagli una lettera è bancarotta; o lo lasci, e prendi 200 €. Robin Hood: se la consonante che chiami c’è, 500 € da chi è in testa. Mistero: sotto c’è 1.000 €, Passa o 500 € da regalare al secondo. Scudo: ti salva da una lettera sbagliata, da solo. Uno per volta. Quante?: di’ anche quante volte c’è la lettera: se indovini, 1.000 € l’una." },
+  // Percorso (07/10/2026, scheda di Chiara, C13): sempre mostrata. Testo del disegno (con «Nebbia» al posto di «bancarotta», decisione di Damiano), da confermare con Penna.
+  { esempio: '<span class="tessera-guida">↠</span>', nome: "Percorso", testo: "Niente soldi, passi: ogni consonante giusta è un passo, e il fantasma dice dove arrivi se risolvi. Chi risolve cammina la sera; con la tenda ti fermi prima, ma al sicuro. Vince chi tocca il traguardo." },
 ];
 (function guida() {
   const elenco = document.getElementById("elenco-guida");
-  // la 7 (round lampo) segue LAMPO_ATTIVO, la 8 (frase premio) GIRO_B_C_ATTIVO, la 9 (speciali) e` sempre mostrata
-  const voci = GUIDA.filter((_, i) => i < 6 || (i === 6 && LAMPO_ATTIVO) || (i === 7 && GIRO_B_C_ATTIVO) || i === 8);
+  // la 7 (round lampo) segue LAMPO_ATTIVO, la 8 (frase premio) GIRO_B_C_ATTIVO, la 9 (speciali) e la 10 (Percorso) sono sempre mostrate
+  const voci = GUIDA.filter((_, i) => i < 6 || (i === 6 && LAMPO_ATTIVO) || (i === 7 && GIRO_B_C_ATTIVO) || i === 8 || i === 9);
+  // Percorso (08/10/2026, controllo di Chiara): la sua voce sta in cima alla colonna di destra, subito sotto «Vocale»,
+  // cosi` la guida non cresce a sinistra e a 1366 «Chiudi» non si taglia. Le voci vanno a coppie: posto 4 = destra, secondo.
+  const percorsoVoce = voci.pop();
+  voci.splice(3, 0, percorsoVoce);
   voci.forEach((v) => {
     const es = document.createElement("div");
     es.className = "esempio";
@@ -783,20 +1280,20 @@ const GUIDA = [
     elenco.appendChild(t);
   });
   const fin = document.getElementById("finestra-guida");
-  document.getElementById("btn-guida")?.addEventListener("click", () => fin.classList.remove("nascosta"));
+  document.querySelectorAll(".apri-guida").forEach((b) => b.addEventListener("click", () => fin.classList.remove("nascosta")));
   document.getElementById("btn-chiudi-guida")?.addEventListener("click", () => fin.classList.add("nascosta"));
   fin.addEventListener("click", (ev) => { if (ev.target === fin) fin.classList.add("nascosta"); });
 })();
 
 btnIniziaPartita.addEventListener("click", () => {
-  erroreIscrizioneEl.textContent = "";
+  scriviErrore("");
 
   if (Iscrizione.modo === "singoli") {
     // 06/10/2026, decisione di Damiano: da soli il turno non passa mai e non
     // c'e` niente in gioco, quindi «ognuno per se`» parte da 2 giocatori.
     // (A squadre le squadre sono sempre due: anche da un giocatore l'una, sono due.)
     if (Iscrizione.giocatori.length < 2) {
-      erroreIscrizioneEl.textContent = "Per giocare servono almeno due giocatori. Tocca il «+» per aggiungerne uno.";
+      scriviErrore("Per giocare servono almeno due giocatori. Tocca il «+» per aggiungerne uno.");
       return;
     }
     Gioco.giocatori = Iscrizione.giocatori.map((g, i) => {
@@ -823,7 +1320,7 @@ btnIniziaPartita.addEventListener("click", () => {
       return { indice: i, nome: (s.nome || "").trim() || NOMI_SQUADRE_SEGNAPOSTO[i], componenti };
     });
     if (squadreValide.some((s) => s.componenti.length < 1)) {
-      erroreIscrizioneEl.textContent = "Ogni squadra ha bisogno di almeno un giocatore.";
+      scriviErrore("Ogni squadra ha bisogno di almeno un giocatore.");
       return;
     }
     Gioco.giocatori = squadreValide.map((s) => ({
@@ -839,6 +1336,9 @@ btnIniziaPartita.addEventListener("click", () => {
     }));
   }
 
+  // Percorso: ognuno parte col meeple che ha scelto all'iscrizione, e il colore e` quello del meeple (percorso-gioco.js)
+  if (Iscrizione.partita === "percorso") assegnaMeeple();
+
   // Punto 38: quanti round dura questa partita.
   Gioco.numeroRoundTotale = numeroRoundScelto;
   Gioco.numeroRoundCorrente = 1;
@@ -852,10 +1352,12 @@ btnIniziaPartita.addEventListener("click", () => {
   // il premio di casa e il round lampo restano quelli scelti stasera.
   Gioco.aiutinoUsato = [];
   Gioco.premioCasa = premioCasaEl.value.trim();
-  Gioco.lampoAttivo = LAMPO_ATTIVO && lampoAttivoEl.checked;
+  Gioco.partita = Iscrizione.partita; // Classica o Percorso (07/10/2026); prima di pianifica(): il Percorso ha il lampo dopo ogni giorno
+  Gioco.lampoAttivo = LAMPO_ATTIVO && (Iscrizione.partita === "percorso" || lampoAttivoEl.checked); // Percorso: il lampo c'e` sempre (Damiano, 10/10)
   Lampo.pianifica(); // dopo Gioco.numeroRoundTotale, qui sopra
+  preparaModalita(); // prima di preparaSpeciali(): il Percorso ha i suoi
   preparaSpeciali(); // prima di iniziaPartita(): nuovoRound() imposta il round 1 con la sua coppia
-  erroreIscrizioneEl.textContent = "";
+  scriviErrore("");
   iniziaPartita();
 });
 
@@ -873,6 +1375,11 @@ const tabelloneEl = document.getElementById("tabellone-frase");
 const colonnaCentraleEl = document.querySelector(".colonna-centrale");
 const annuncioEl = document.getElementById("annuncio");
 const colonnaGiocatoriEl = document.getElementById("colonna-giocatori");
+// Il palco in partita (08/10/2026): la ribalta sotto le tessere e l'area che va al buio con la Bancarotta (solo Classica)
+const ribaltaPartitaEl = document.getElementById("ribalta-partita");
+const areaPartitaEl = document.querySelector(".area-partita");
+const tesseraDi = (i) => colonnaGiocatoriEl.children[i] || null;
+let ultimiSoldiRound = [];
 const canvasRuota = document.getElementById("canvas-ruota");
 
 // Punto 69, quattordicesimo giro (29/09/2026, disegno di Chiara): lo
@@ -903,6 +1410,7 @@ const finaleVincitoreImmagineEl = document.getElementById("finale-vincitore-imma
 const finaleVincitoreNomeEl = document.getElementById("finale-vincitore-nome");
 const finaleVincitoreCifraEl = document.getElementById("finale-vincitore-cifra");
 const finaleClassificaEl = document.getElementById("finale-classifica");
+const palcoFinaleEl = document.getElementById("palco-finale");
 const overlayFuochiFinaleEl = document.getElementById("overlay-fuochi-finale");
 const btnGiocaAncora = document.getElementById("btn-gioca-ancora");
 const btnTornaInizio = document.getElementById("btn-torna-inizio");
@@ -922,6 +1430,8 @@ const btnExpressVocale = document.getElementById("btn-express-vocale");
 const btnExpressSoluzione = document.getElementById("btn-express-soluzione");
 btnExpressVocale.textContent = "Vocale · " + euro(COSTO_VOCALE);
 
+const pannelloPercorso = document.getElementById("pannello-percorso"); // Percorso: le scelte del regista (il Freno)
+const btnScendeSera = document.getElementById("btn-scende-sera");        // Percorso: nell'ultima ora del tramonto
 const pannelloJolly = document.getElementById("pannello-jolly");
 const testoJollyDomanda = document.getElementById("testo-jolly-domanda");
 const btnJollySi = document.getElementById("btn-jolly-si");
@@ -976,7 +1486,7 @@ function creaScintille(contenitore, quante, raggioPx) {
 // DURATA_FESTA_VITTORIA_MS (config.js) o subito con un tocco.
 function mostraFestaVittoria(giocatore, importo) {
   Audio_.festaVittoria();
-  festaImmagineEl.textContent = giocatore.iniziale;
+  scriviIniziale(festaImmagineEl, giocatore);
   festaImmagineEl.style.outlineColor = giocatore.colore;
   festaNomeEl.textContent = giocatore.nome;
   festaNomeEl.style.color = giocatore.colore;
@@ -985,6 +1495,7 @@ function mostraFestaVittoria(giocatore, importo) {
   animaContatoreFesta(importo);
   generaCoriandoliFesta(giocatore.colore);
   overlayFesta.classList.remove("nascosta");
+  ribaltaPartitaEl.classList.add("festa"); // le lampadine lampeggiano finche' la festa e' aperta (si vedono attraverso il velo)
   fermaTimerChiusuraFesta();
   timerChiusuraFesta = setTimeout(chiudiFestaVittoria, DURATA_FESTA_VITTORIA_MS);
 }
@@ -1030,14 +1541,14 @@ function generaMoneteFesta() {
   }
 }
 
-function animaContatoreFesta(importo) {
+function animaContatoreFesta(importo, prefisso = "") {
   const durata = DURATA_CONTATORE_FESTA_MS; // proporzionale a DURATA_FESTA_VITTORIA_MS, vedi config.js
   const inizio = performance.now();
   if (frameContatoreFesta) cancelAnimationFrame(frameContatoreFesta);
   function passo(ora) {
     const t = Math.min(1, (ora - inizio) / durata);
     const eased = 1 - Math.pow(1 - t, 3);
-    festaCifraEl.textContent = formattaMigliaia(importo * eased);
+    festaCifraEl.textContent = prefisso + formattaMigliaia(importo * eased);
     if (t < 1) {
       frameContatoreFesta = requestAnimationFrame(passo);
     } else {
@@ -1048,8 +1559,17 @@ function animaContatoreFesta(importo) {
 }
 
 function chiudiFestaVittoria() {
+  const eraAperta = !overlayFesta.classList.contains("nascosta");
   fermaTimerChiusuraFesta();
   overlayFesta.classList.add("nascosta");
+  ribaltaPartitaEl.classList.remove("festa");
+  if (inPercorso() && eraAperta && Gioco.dopoFesta) { const f = Gioco.dopoFesta; Gioco.dopoFesta = null; f(); } // finita la festa di chi ha risolto, scende la sera
+  // Il palco (08/10/2026): i soldi sono arrivati in cassaforte, la cifra d'oro si gonfia e si posa e le luci si accendono.
+  // Chi ha risolto e` ancora il giocatore corrente (vinciRound).
+  if (eraAperta && !inPercorso()) {
+    riaccendi(tesseraDi(Gioco.indiceCorrente), "incassa");
+    riaccendi(ribaltaPartitaEl, "accesa");
+  }
 }
 
 function fermaTimerChiusuraFesta() {
@@ -1100,9 +1620,12 @@ let contestoJollyPendente = null; // "passa" | "bancarotta"
 
 function iniziaPartita() {
   schermataIscrizione.classList.add("nascosta");
+  schermataIscrizionePercorso.classList.add("nascosta");
   schermataGioco.classList.remove("nascosta");
+  if (inPercorso()) PercorsoVista.mostraPartita(); // il paesaggio resta lo stesso dell'iscrizione: cambia quello che c'e' sopra
   // la freccia va alla ruota: la piega a ogni fotogramma secondo la lamella (ruota pesante, 05/10/2026)
-  Ruota.init(canvasRuota, document.querySelector(".puntatore"));
+  // (la freccia della ruota in partita, non quelle delle due carte della scelta, che stanno prima nel documento)
+  Ruota.init(canvasRuota, canvasRuota.parentElement.querySelector(".puntatore"));
   Gioco.indiceCorrente = Math.floor(Math.random() * Gioco.giocatori.length);
   nuovoRound();
   aggiornaSchedeGiocatori();
@@ -1127,7 +1650,7 @@ function chiTocca(g) {
     const c = g.componenti[g.mano % g.componenti.length];
     return { nome: c.nome, iniziale: c.iniziale, colore: g.colore };
   }
-  return { nome: g.nome, iniziale: g.iniziale, colore: g.colore };
+  return { nome: g.nome, iniziale: inizialeDistinta(g), colore: g.colore };
 }
 
 // A ogni turno che finisce, se la squadra che ha appena giocato ha piu` di
@@ -1164,6 +1687,7 @@ function nuovoRound() {
   Gioco.vocaliFiniteAvvisate = false;
   // Punto 53 (28/09/2026): il jolly torna disponibile ad ogni round nuovo.
   Gioco.jollyPresoInQuestoRound = false;
+  if (inPercorso()) albaPercorso(); // l'alba: il tempo, i bivacchi di ieri, le tende che spariscono (percorso-gioco.js)
   Ruota.impostaJollyDisponibile(true);
   // Punto 60 (29/09/2026): le cifre della ruota cambiano round dopo round
   // (CIFRE_PER_ROUND, config.js) — stessi spicchi, stesso ordine, cifre
@@ -1173,13 +1697,13 @@ function nuovoRound() {
   // Voce C, tredicesimo giro (29/09/2026): dal round 2 in poi la ruota
   // stessa mostra il cambio con l'onda di luce (vedi Ruota.impostaRound) —
   // l'annuncio non deve piu` dirlo da solo, lo accompagna.
-  Ruota.impostaRound(Gioco.numeroRoundCorrente, Gioco.numeroRoundCorrente > 1);
+  Ruota.impostaRound(Gioco.numeroRoundCorrente, Gioco.numeroRoundCorrente > 1 && !inPercorso()); // Percorso: la ruota non cambia da un giorno all'altro, niente onda
   if (Gioco.numeroRoundCorrente > 1) {
     Annuncio.mostra({
       stile: "scena oro round",
-      titolo: `Round ${Gioco.numeroRoundCorrente}`,
+      titolo: inPercorso() ? `Giorno ${Gioco.numeroRoundCorrente}` : `Round ${Gioco.numeroRoundCorrente}`,
       // 2.4: al posto di «la ruota vale di piu`», le due pillole degli speciali di questo round
-      pillole: Gioco.programmaSpeciali[Gioco.numeroRoundCorrente - 1],
+      pillole: inPercorso() ? undefined : Gioco.programmaSpeciali[Gioco.numeroRoundCorrente - 1],
       durata: DURATA_ANNUNCIO_ROUND_MS,
     });
   } else {
@@ -1190,8 +1714,12 @@ function nuovoRound() {
   disegnaPuntiRound();
   disegnaTabellone(true); // punto 45: le caselle-lettera si accendono con un'onda, solo all'apertura del round
   nascondiTuttiIPannelli();
+  if (inPercorso()) preparaRoundPercorso(); // il turno di chi apre; prima di ridisegnare
   aggiornaComandi();
   aggiornaSchedeGiocatori();
+  // Il palco (08/10/2026): a ogni round nuovo, e alla partenza, le luci si accendono; il buio della Bancarotta e` finito
+  areaPartitaEl.classList.remove("buio");
+  if (!inPercorso()) riaccendi(ribaltaPartitaEl, "accesa");
 
   // Punto 69, voce 4: al round 1 il palco mostra subito «Tocca a»; dal round
   // 2 lo mostra dopo l'annuncio "Round N" (durata DURATA_ANNUNCIO_ROUND_MS),
@@ -1201,7 +1729,7 @@ function nuovoRound() {
   setTimeout(() => {
     const p = chiTocca(giocatoreCorrente());
     Audio_.toccaA();
-    Annuncio.mostra({
+    Annuncio.mostra((inPercorso() && vocePercorsoToccaA(p, true)) || {
       stile: "tocca" + (p.nome.length > 12 ? " lungo" : ""),
       lettera: p.iniziale,
       colore: p.colore,
@@ -1342,6 +1870,13 @@ let ultimoIndiceDisegnato = -1;
 // righe di testo per due numeri. I jolly diventano carte (.carta-jolly),
 // non piu` un'emoji che su Linux esce come un quadratino.
 function aggiornaSchedeGiocatori() {
+  // Percorso: le tessere dei viaggiatori le disegna la scena (percorso-vista.js)
+  if (inPercorso()) {
+    PercorsoVista.aggiorna();
+    aggiornaPannelloClassifica();
+    disegnaPuntiRound();
+    return;
+  }
   colonnaGiocatoriEl.innerHTML = "";
   // Giro B, voce B1: durante il round lampo nessuno e` di turno, quindi
   // nessuna tessera e` piena e nessuna sbiadita (e il «balzo» di chi entra in
@@ -1358,8 +1893,7 @@ function aggiornaSchedeGiocatori() {
     div.className = "scheda-giocatore" + (inTurno ? " turno-attivo" : "")
       + (inTurno && indiceCambiato ? " entra-in-turno" : "");
     div.style.setProperty("--colore-giocatore", g.colore);
-    div.style.borderLeftColor = g.colore;
-    div.style.background = hexInRgba(g.colore, inTurno ? 0.55 : 0.16);
+    // 08/10/2026 (palco in partita): corpo e bordo li da` il CSS da --colore-giocatore (il podio), niente piu` in linea
 
     // Undicesimo giro, punto 58, strada B (28/09/2026): non piu` un
     // disegnino ma la tessera bianca con l'iniziale del nome — il colore del
@@ -1438,6 +1972,12 @@ function aggiornaSchedeGiocatori() {
     div.appendChild(jolly);
     colonnaGiocatoriEl.appendChild(div);
   });
+  // Il palco (08/10/2026): i soldi del round che salgono saltano (420 ms). Un round nuovo li azzera: non scatta.
+  Gioco.giocatori.forEach((g, i) => {
+    const prima = ultimiSoldiRound[i];
+    if (prima !== undefined && g.soldiRound > prima) riaccendi(colonnaGiocatoriEl.children[i].querySelector(".soldi-round-giocatore"), "sale");
+  });
+  ultimiSoldiRound = Gioco.giocatori.map((g) => g.soldiRound);
   aggiornaPannelloClassifica();
   disegnaPuntiRound();
 }
@@ -1473,6 +2013,21 @@ function disegnaPuntiRound() {
 // cosi` resta sempre allineata anche se il pannello e` chiuso.
 function aggiornaPannelloClassifica() {
   contenutoClassificaEl.innerHTML = "";
+  if (inPercorso()) {
+    // Percorso: si ordina per dove e` la pedina, a pari caselle chi ci e` arrivato prima (scheda, C10)
+    const titolo = document.createElement("p");
+    titolo.className = "titolo-classifica";
+    titolo.textContent = "Classifica caselle";
+    contenutoClassificaEl.appendChild(titolo);
+    classificaPercorso().forEach((g, i) => {
+      const riga = document.createElement("div");
+      riga.className = "riga-classifica";
+      riga.style.borderLeftColor = g.colore;
+      riga.textContent = `${i + 1}. ${g.nome} — ${doveEPercorso(g)}`;
+      contenutoClassificaEl.appendChild(riga);
+    });
+    return;
+  }
 
   // Decimo giro, intervento 4: "Round vinti" e` passato ai pallini
   // nell'intestazione (disegnaPuntiRound) — qui resta la sola classifica
@@ -1505,7 +2060,7 @@ function pulisciPannelloQuante() {
 
 function nascondiTuttiIPannelli() {
   pulisciPannelloQuante();
-  [pannelloVocali, pannelloConsonanti, pannelloExpress, pannelloJolly, pannelloSoluzione, pannelloFineRound, pannelloAiutino].forEach((p) =>
+  [pannelloVocali, pannelloConsonanti, pannelloExpress, pannelloJolly, pannelloSoluzione, pannelloFineRound, pannelloAiutino, pannelloPercorso].forEach((p) =>
     p.classList.add("nascosta")
   );
   tabelloneEl.classList.remove("scegli-casella");
@@ -1543,6 +2098,19 @@ function vocaliFiniteNellaFrase() {
 // (Gioco.consonantiFiniteAvvisate/vocaliFiniteAvvisate, azzerato in
 // nuovoRound()) che ricorda se l'abbiamo già annunciato.
 function aggiornaAvvisoLettereFinite(consonantiFinite, vocaliFinite) {
+  // Controllo di Chiara 08/10 (P3): mentre le caselle sono accese ("rivelando") sul palco c'e` il
+  // cartello della lettera (con i passi o gli euro): l'avviso non lo scavalca, aspetta che sia finito.
+  // I flag non si toccano: finalizzaRivelazione() richiama aggiornaComandi() a caselle scoperte.
+  // Se con quella lettera la frase e` completa l'avviso non serve piu`: parte la festa.
+  if (Gioco.stato === "rivelando") return;
+  // Nel Percorso l'avviso esce solo a mano libera (stato idle): chiamato mentre un'altra scena parte (il furto di Robin Hood
+  // mette «in_annuncio» e subito dopo il suo cartello) veniva scritto e coperto nello stesso istante, e il flag lo dava per detto.
+  if (inPercorso() && Gioco.stato !== "idle") return;
+  if (Gioco.stato === "idle" && fraseCompletamenteRivelata()) {
+    Gioco.consonantiFiniteAvvisate = consonantiFinite;
+    Gioco.vocaliFiniteAvvisate = vocaliFinite;
+    return;
+  }
   const consonantiAppenaFinite = consonantiFinite && !Gioco.consonantiFiniteAvvisate;
   const vocaliAppenaFinite = vocaliFinite && !Gioco.vocaliFiniteAvvisate;
   Gioco.consonantiFiniteAvvisate = consonantiFinite;
@@ -1566,12 +2134,20 @@ function aggiornaComandi() {
   // niente — vedi DISATTIVA_COMANDI_SE_LETTERE_FINITE in config.js.
   const consonantiFinite = DISATTIVA_COMANDI_SE_LETTERE_FINITE && consonantiFiniteNellaFrase();
   const vocaliFinite = DISATTIVA_COMANDI_SE_LETTERE_FINITE && vocaliFiniteNellaFrase();
-  btnGira.disabled = !idle || consonantiFinite;
+  btnGira.disabled = !idle || consonantiFinite || (inPercorso() && Percorso.ruotaSpenta(Gioco)); // nell'ultima ora del tramonto non si gira piu`
   // La vocale si paga coi soldi DEL ROUND (scelta provvisoria di Erbottega,
   // vedi VOCALE_SI_PAGA_COL_TOTALE in config.js): il totale in cassaforte
   // non basta a comprarla da solo, anche se e` pieno.
   const contoPerLaVocale = VOCALE_SI_PAGA_COL_TOTALE ? g.soldiTotale : g.soldiRound;
-  btnCompraVocale.disabled = !idle || contoPerLaVocale < COSTO_VOCALE || !vocaliRimaste || vocaliFinite;
+  if (inPercorso()) {
+    // Percorso: la vocale costa un passo all'ombra; con l'ombra ferma alla pedina il pulsante si spegne (come oggi con 0 €).
+    // Chi e` fermo a un bivacco non compra vocali (§3): il suo fantasma e` fermo sulla pedina, e` il prezzo di essere arrivato per primo.
+    btnCompraVocale.disabled = !idle || g.fermo || passiInBallo(g) < PERCORSO_COSTO_VOCALE_PASSI || !vocaliRimaste || vocaliFinite;
+    // «Scende la sera»: nell'ultima ora del tramonto, quando la ruota non gira piu` (§6)
+    btnScendeSera.classList.toggle("nascosta", !(idle && Percorso.ultimaOra(Gioco)));
+  } else {
+    btnCompraVocale.disabled = !idle || contoPerLaVocale < COSTO_VOCALE || !vocaliRimaste || vocaliFinite;
+  }
   btnRisolvi.disabled = !idle;
   // Giro A, voce A2: l'aiutino c'e` solo per chi ce l'ha (nelle squadre, il
   // componente che ha la mano adesso), e si spegne dopo l'uso nel round.
@@ -1581,6 +2157,7 @@ function aggiornaComandi() {
   btnAiutino.disabled = !idle || usato;
   aggiornaAvvisoLettereFinite(consonantiFinite, vocaliFinite);
   aggiornaCambiaFrase();
+  if (inPercorso()) aggiornaPercorsoComandi(); // tende, bolle della prima volta, Giornata limpida (percorso-gioco.js)
 }
 
 // ---- CAMBIA FRASE (2.4.1, Damiano 07/10) -----------------------------------
@@ -1627,6 +2204,7 @@ if (btnCambiaFrase) btnCambiaFrase.addEventListener("click", () => {
 // turno NON passa — resta a chi ha appena scoperto la casella gratis.
 btnAiutino.addEventListener("click", () => {
   if (Gioco.stato !== "idle" || Gioco.aiutinoUsato[Gioco.indiceCorrente]) return;
+  if (inPercorso()) gestoDelTurno(); // il primo gesto di chi ha il turno chiude la finestra della tenda
   Gioco.aiutinoUsato[Gioco.indiceCorrente] = true;
   Gioco.stato = "scegli_casella";
   nascondiTuttiIPannelli();
@@ -1694,7 +2272,7 @@ const Annuncio = (() => {
         const t = document.createElement("div");
         t.className = "annuncio-tessera";
         t.style.setProperty("--colore-giocatore", g.colore);
-        t.textContent = g.iniziale;
+        scriviIniziale(t, g);
         return t;
       };
       const tragitto = document.createElement("div");
@@ -1707,12 +2285,25 @@ const Annuncio = (() => {
       blocco.appendChild(tragitto);
       blocco.appendChild(tessera(voce.robin.a));
       annuncioEl.appendChild(blocco);
-    } else if (voce.lettera || voce.simbolo || voce.esito) {
+    } else if (voce.meeple) {
+      // Percorso: il meeple al posto della tessera con l'iniziale («Tocca a…»)
+      const t = document.createElement("div");
+      t.className = "annuncio-meeple";
+      t.innerHTML = meepleHtml(voce.meeple.m, voce.meeple.sigla);
+      annuncioEl.appendChild(t);
+    } else if (voce.icona) {
+      // Percorso (R9/R10): l'icona del tempo o della sera nella tessera, al posto della lettera
+      const t = document.createElement("div");
+      t.className = "annuncio-tessera";
+      t.innerHTML = `<svg viewBox="0 0 48 48" aria-hidden="true"><use href="#ic-${voce.icona}"/></svg>`;
+      annuncioEl.appendChild(t);
+    } else if (voce.lettera || voce.simbolo || voce.casella || voce.esito) {
       const t = document.createElement("div");
       t.className = "annuncio-tessera" + (voce.esito ? " esito " + voce.esito.classe : "");
       if (voce.simbolo) t.innerHTML = svgSimbolo(voce.simbolo);      // 2.4: il simbolo di uno speciale al posto della lettera
+      else if (voce.casella) t.innerHTML = svgCasella(voce.casella); // Percorso: il simbolo di una casella speciale
       else if (voce.esito) t.innerHTML = voce.esito.testo;           // 2.4: la carta del Mistero (testo scritto qui, mai dai giocatori)
-      else t.textContent = voce.lettera;
+      else { t.textContent = voce.lettera; t.classList.toggle("due", String(voce.lettera).length > 1); }
       annuncioEl.appendChild(t);
     }
     const testo = document.createElement("div");
@@ -1746,11 +2337,15 @@ const Annuncio = (() => {
     colonnaCentraleEl.classList.add("con-annuncio");
     void annuncioEl.offsetWidth; // riavvia l'animazione anche se un annuncio era gia` a schermo
     annuncioEl.classList.add("entra");
+    // Percorso, il cambio di tempo (09/10 sera): il resto dello schermo si offusca finche' l'annuncio e` a vista
+    if (voce.velo) document.body.classList.add("velo-annuncio");
+    else if (document.body.classList.contains("velo-annuncio")) document.body.classList.remove("velo-annuncio");
     if (voce.durata) timer = setTimeout(nascondi, voce.durata);
   }
 
   function nascondi() {
     if (timer) { clearTimeout(timer); timer = null; }
+    if (document.body.classList.contains("velo-annuncio")) document.body.classList.remove("velo-annuncio");
     if (!colonnaCentraleEl.classList.contains("con-annuncio")) return;
     annuncioEl.classList.add("esce");
     timerUscita = setTimeout(() => {
@@ -1798,7 +2393,13 @@ function annunciaEPassaTurno(voce) {
   Gioco.stato = "in_annuncio";
   aggiornaComandi();
   Annuncio.mostra(voce);
+  // Il palco (08/10/2026): alla Bancarotta le luci si spengono per tutto il cartello e le cifre di chi perde tremano
+  // in rosso; chi perde e` ancora il giocatore corrente (il turno passa dopo voce.durata). Solo nella Classica.
+  const buio = voce.titolo === "Bancarotta!" && !inPercorso();
+  if (buio) { areaPartitaEl.classList.add("buio"); riaccendi(tesseraDi(Gioco.indiceCorrente), "perde"); }
   setTimeout(() => {
+    if (buio) areaPartitaEl.classList.remove("buio");
+    if (inPercorso()) { passaTurnoPercorso(); return; } // il turno passa; se era l'ultimo del tramonto scende la sera
     passaTurno();
     const p = chiTocca(giocatoreCorrente());
     Audio_.toccaA();
@@ -1818,10 +2419,12 @@ function annunciaEPassaTurno(voce) {
 
 btnGira.addEventListener("click", () => {
   if (Gioco.stato !== "idle" || Ruota.inAnimazione()) return;
+  if (inPercorso()) gestoDelTurno();
   Gioco.stato = "girando";
   aggiornaComandi();
   Audio_.inizioSpin();
   Annuncio.nascondi();
+  if (inPercorso()) annunciInizioGiro(); // il cambio di tempo e l'ultimo giro, in grande (percorso-gioco.js)
 
   // Ruota pesante (05/10/2026): niente piu` giri e durata decisi qui. La
   // ruota riceve una forza a caso (nessun argomento) e la fisica decide
@@ -1862,13 +2465,17 @@ function onTrascinamentoNonValido() {
 // A ruota ferma dopo un lancio non valido: il turno non passa, si puo`
 // riprovare all'istante.
 function onRuotaFermaNonValida() {
+  Gioco.giroAnnunciato = false; // il lancio non e` valido: il prossimo annunciera' di nuovo
   Gioco.stato = "idle";
   aggiornaComandi();
 }
 
 canvasRuota.addEventListener("pointerdown", (ev) => {
   if (Gioco.stato !== "idle" || Ruota.inAnimazione()) return;
+  // Percorso: la ruota non si afferra nemmeno a mano quando non si gira piu` (ultima ora del tramonto, consonanti finite)
+  if (inPercorso() && (Percorso.ruotaSpenta(Gioco) || consonantiFiniteNellaFrase())) return;
   if (!Ruota.iniziaTrascinamento(ev.clientX, ev.clientY, ticRuotaTrascinamento)) return;
+  if (inPercorso()) gestoDelTurno();
   pointerIdTrascinamento = ev.pointerId;
   canvasRuota.setPointerCapture(ev.pointerId);
   canvasRuota.classList.add("trascinando");
@@ -1876,6 +2483,7 @@ canvasRuota.addEventListener("pointerdown", (ev) => {
   aggiornaComandi();
   Audio_.inizioSpin();
   Annuncio.nascondi();
+  if (inPercorso()) annunciInizioGiro();
   ev.preventDefault();
 });
 
@@ -1909,6 +2517,9 @@ function gestisciEsitoRuota(segmento, indice) {
   const g = giocatoreCorrente();
   Gioco.quante = null; // 2.5: un Quante? lasciato a meta` (Scudo, partita chiusa) non si porta al giro dopo
   Gioco.spicchioIndice = indice;
+  if (inPercorso()) iniziaGiroPercorso(); // e` passata un'ora: il tempo, il sole, le tende che valgono (percorso-gioco.js)
+  // Percorso: tutto quello che toccava i soldi tocca l'ombra o la pedina (il Passa resta quello di sempre)
+  if (inPercorso() && segmento.tipo !== "passa") { gestisciEsitoPercorso(segmento, indice, g); return; }
   if (segmento.tipo === "soldi") {
     // Punto 53 (28/09/2026): il jolly e` uno spicchio intero, sullo stesso
     // indice di un 600€ — finche` nessuno l'ha preso in questo round, chi ci
@@ -2005,7 +2616,12 @@ function gestisciSpeciale(chiave, g) {
 function giraAncoraDopo(durata) {
   Gioco.stato = "in_annuncio";
   aggiornaComandi();
-  setTimeout(() => { Gioco.stato = "idle"; aggiornaComandi(); }, durata);
+  setTimeout(() => {
+    if (inPercorso() && Gioco.traguardo) { vittoriaDiTraguardo(Gioco.traguardo); return; }
+    if (inPercorso() && chiGiocaDorme()) return; // un Sorpasso su un bivacco: dorme li`, il turno passa
+    Gioco.stato = "idle";
+    aggiornaComandi();
+  }, durata);
 }
 
 // ---- Express ----
@@ -2164,6 +2780,7 @@ function dopoRobinHood() {
   aggiornaComandi();
   setTimeout(() => {
     if (fraseCompletamenteRivelata()) { vinciRound(); return; }
+    if (inPercorso() && chiGiocaDorme()) return; // il passo di questa consonante l'ha fermato a un bivacco
     Gioco.stato = "idle";
     aggiornaComandi();
   }, DURATA_ROBIN_HOOD_MS);
@@ -2309,7 +2926,7 @@ function scudoSalva(lettera, titolo) {
   Gioco.lettereUsate.add(lettera);
   Audio_.jolly();
   // lo scudo sulla tessera si gonfia e sparisce (600 ms); la fila si ridisegna a fine cartello
-  const carta = colonnaGiocatoriEl.children[Gioco.indiceCorrente]?.querySelector(".carta-scudo");
+  const carta = elementiDeiGiocatori()[Gioco.indiceCorrente]?.querySelector(".carta-scudo");
   if (carta) carta.classList.add("scatta");
   g.scudo -= 1;
   Gioco.stato = "in_annuncio";
@@ -2350,6 +2967,7 @@ function apriPannelloConsonanti() {
   pannelloConsonanti.classList.toggle("express", inExpress);
   // Quante? (2.5): la stessa fascia dell'Express, senza le altre mosse; riparte sempre dalla griglia
   preparaPannelloQuante(Gioco.spicchioTipo === "quante" && !!Gioco.quante);
+  preparaFasciaVento(); // Percorso: la fascia «VENTO IN POPPA» (in Classica toglie la classe e basta)
   const consonantiFinite = inExpress && consonantiFiniteNellaFrase();
   if (inExpress) {
     aggiornaFasciaExpress();
@@ -2425,6 +3043,7 @@ function sceltaConsonante(lettera) {
 
 // Il resto di sceltaConsonante: la lettera e` stata detta (e, su Quante?, anche il numero).
 function risolviConsonante(lettera, numeroDetto) {
+  if (inPercorso()) { risolviConsonantePercorso(lettera); return; } // i passi al posto degli euro
   Gioco.quante = null;
   Gioco.lettereUsate.add(lettera);
   const posizioni = posizioniCoperteDellaLettera(lettera);
@@ -2537,10 +3156,12 @@ function scopriCasella(idx) {
 function finalizzaRivelazione() {
   fermaTimerAutoscoperta();
   Annuncio.nascondi();
+  // Percorso: chi ha toccato il traguardo col passo subito vince subito, anche a meta` giorno
+  if (inPercorso() && Gioco.traguardo) { vittoriaDiTraguardo(Gioco.traguardo); return; }
   // 2.4.1: la consonante giusta su Robin Hood: a lettere scoperte parte il furto
   if (Gioco.robinInAttesa) {
     Gioco.robinInAttesa = false;
-    spicchioRobinHood(giocatoreCorrente());
+    if (inPercorso()) spicchioRobinHoodPercorso(giocatoreCorrente()); else spicchioRobinHood(giocatoreCorrente());
     return;
   }
   // 2.4: nell'Express, a frase non finita, si torna al pannello delle consonanti
@@ -2548,6 +3169,7 @@ function finalizzaRivelazione() {
     riapriExpress();
     return;
   }
+  if (inPercorso() && chiGiocaDorme()) return; // il passo subito l'ha fermato a un bivacco: dorme li`, il turno passa (percorso-gioco.js)
   Gioco.stato = "idle";
   aggiornaComandi();
   if (fraseCompletamenteRivelata()) {
@@ -2583,6 +3205,7 @@ function fermaTimerAutoscoperta() {
 
 btnCompraVocale.addEventListener("click", () => {
   if (Gioco.stato !== "idle") return;
+  if (inPercorso()) gestoDelTurno();
   apriPannelloVocali();
 });
 
@@ -2615,7 +3238,8 @@ function sceltaVocale(lettera) {
   // Vedi VOCALE_SI_PAGA_COL_TOTALE in config.js: per ora si paga sempre col
   // round, mai col totale in cassaforte (scelta provvisoria di Erbottega).
   const contoPerLaVocale = VOCALE_SI_PAGA_COL_TOTALE ? "soldiTotale" : "soldiRound";
-  if (g[contoPerLaVocale] < COSTO_VOCALE) return; // non dovrebbe capitare: il pulsante "Compra vocale" e` disabilitato senza fondi
+  // Percorso: la vocale costa un passo, dall'ombra (mai dalla pedina)
+  if (inPercorso() ? passiInBallo(g) < PERCORSO_COSTO_VOCALE_PASSI : g[contoPerLaVocale] < COSTO_VOCALE) return; // non dovrebbe capitare: il pulsante "Compra vocale" e` disabilitato senza fondi
 
   // Punto 35 (28/09/2026): una vocale già chiamata in questo round si
   // tratta esattamente come una vocale assente — paga e perde il turno
@@ -2624,8 +3248,8 @@ function sceltaVocale(lettera) {
   if (letteraGiaUscita(lettera)) {
     // 2.4, Express: una lettera gia` chiamata non e` un errore, non costa nulla, si riprova
     if (Gioco.express) { expressGiaUscita(lettera); return; }
-    g[contoPerLaVocale] -= COSTO_VOCALE;
-    aggiornaSchedeGiocatori();
+    if (inPercorso()) pagaVocalePercorso(g); else g[contoPerLaVocale] -= COSTO_VOCALE;
+    aggiornaSchedeDopoCartello();
     if (scudoPuoSalvare()) { scudoSalva(lettera, "è già uscita"); return; } // 2.4: lo Scudo (la vocale si paga lo stesso)
     Audio_.letteraGiaChiamata();
     if (VOCALE_GIA_CHIAMATA_PERDE_TURNO) {
@@ -2643,7 +3267,7 @@ function sceltaVocale(lettera) {
     return;
   }
 
-  g[contoPerLaVocale] -= COSTO_VOCALE; // si paga sempre, anche se la vocale non c'è
+  if (inPercorso()) pagaVocalePercorso(g); else g[contoPerLaVocale] -= COSTO_VOCALE; // si paga sempre, anche se la vocale non c'è
   Gioco.lettereUsate.add(lettera);
   const posizioni = posizioniCoperteDellaLettera(lettera);
 
@@ -2652,15 +3276,18 @@ function sceltaVocale(lettera) {
     Audio_.letteraRivelata();
     disegnaTabellone();
     numeraCaselleAccese();
-    Annuncio.mostra({ lettera, titolo: quanteVolte(posizioni.length) }); // la vocale non paga: niente "sotto"
-    aggiornaSchedeGiocatori();
+    // la vocale non paga: niente "sotto" (nel Percorso, il passo che e` costata)
+    Annuncio.mostra(inPercorso()
+      ? { lettera, titolo: quanteVolte(posizioni.length), sotto: "−" + PERCORSO_COSTO_VOCALE_PASSI + (PERCORSO_COSTO_VOCALE_PASSI === 1 ? " passo" : " passi") + " all’ombra" }
+      : { lettera, titolo: quanteVolte(posizioni.length) });
+    aggiornaSchedeDopoCartello();
     Gioco.stato = "rivelando";
     aggiornaComandi();
     avviaTimerAutoscoperta();
   } else {
     // Punto 34 (28/09/2026): la vocale assente ora fa finire il turno
     // (prima continuava) — VOCALE_ASSENTE_PERDE_TURNO in config.js.
-    aggiornaSchedeGiocatori();
+    aggiornaSchedeDopoCartello();
     // 2.4: nell'Express una lettera che non c'e` e` bancarotta, vocale compresa
     // (scelta di Erbottega: Damiano dice «una lettera che non c'e`», non «consonante»)
     if (Gioco.express) { Audio_.letteraAssente(); bancarottaExpress(); return; }
@@ -2681,7 +3308,7 @@ function sceltaVocale(lettera) {
 function apriPannelloJolly(contesto) {
   Gioco.stato = "attesa_jolly";
   contestoJollyPendente = contesto;
-  testoJollyDomanda.textContent = (contesto === "bancarotta" ? "Bancarotta!" : "Passa!") + " Usi un Jolly?";
+  testoJollyDomanda.textContent = (contesto === "bancarotta" ? "Bancarotta!" : contesto === "nebbia" ? "Nebbia!" : "Passa!") + " Usi un Jolly?";
   pannelloJolly.classList.remove("nascosta");
   aggiornaComandi();
 }
@@ -2692,7 +3319,10 @@ btnJollySi.addEventListener("click", () => {
   pannelloJolly.classList.add("nascosta");
   Audio_.jolly();
   if (contestoJollyPendente === "passa") {
-    Annuncio.mostra({ stile: "scena oro", titolo: "Jolly!", sotto: g.nome + " è salvo e gira ancora", durata: DURATA_ANNUNCIO_MS });
+    Annuncio.mostra({ stile: "scena oro", titolo: "Jolly!", sottoHtml: `il turno resta a <b>${escHtml(g.nome)}</b> · gira ancora`, durata: DURATA_ANNUNCIO_MS });
+  } else if (contestoJollyPendente === "nebbia") {
+    // Percorso: il Jolly salva l'ombra e il turno (testo di Erbottega: la scheda dice solo «Nebbia! Usi un Jolly?»)
+    Annuncio.mostra({ stile: "scena oro", titolo: "Jolly!", sotto: g.nome + " salva l’ombra e il turno", durata: DURATA_ANNUNCIO_MS });
   } else {
     // JOLLY_SALVA_ANCHE_I_SOLDI: deciso da Damiano il 28/09/2026, sempre vero.
     // Il ramo "false" non azzera comunque i soldi qui: il jolly annulla
@@ -2714,6 +3344,8 @@ btnJollyNo.addEventListener("click", () => {
   if (contesto === "passa") {
     Audio_.passa();
     annunciaEPassaTurno({ stile: "scena", titolo: "Passa!", durata: DURATA_ANNUNCIO_MS });
+  } else if (contesto === "nebbia") {
+    nebbiaSullOmbra(g); // Percorso: l'ombra sparisce, il turno passa
   } else {
     Audio_.bancarotta();
     g.soldiRound = 0;
@@ -2733,6 +3365,7 @@ btnJollyNo.addEventListener("click", () => {
 
 btnRisolvi.addEventListener("click", () => {
   if (Gioco.stato !== "idle") return;
+  if (inPercorso()) gestoDelTurno();
   apriPannelloSoluzione();
 });
 
@@ -2780,9 +3413,7 @@ formSoluzione.addEventListener("submit", (ev) => {
   ev.preventDefault();
   fermaTimerSoluzione();
   pannelloSoluzione.classList.add("nascosta");
-  const tentativo = normalizzaTesto(inputSoluzione.value);
-  const corretta = normalizzaTesto(Gioco.fraseCorrente.testo);
-  if (tentativo.length > 0 && tentativo === corretta) {
+  if (soluzioneGiusta(inputSoluzione.value, Gioco.fraseCorrente.testo)) {
     vinciRound();
   } else if (Gioco.express) {
     bancarottaExpress(); // 2.4: soluzione sbagliata durante l'Express = bancarotta
@@ -2805,6 +3436,7 @@ function vinciRound() {
   fermaTimerSoluzione();
   Gioco.express = null; // 2.4: l'Express finisce con il round
   const g = giocatoreCorrente();
+  if (inPercorso()) { vinciRoundPercorso(g); return; } // la festa, poi la passeggiata della sera
 
   // Regola 9 (28/09/2026, corretta punto 68 del 29/09/2026): chi risolve
   // porta a casa i soldi del round in corso. Il bonus fisso di 1000€ vale
@@ -2872,6 +3504,7 @@ btnRoundSuccessivo.addEventListener("click", () => {
   // vinto il lampo, o chi verrebbe comunque (indiceProssimoRound) se non l'ha
   // vinto nessuno.
   const apriRound = (indice) => {
+    if (inPercorso()) indice = indiceDelPrimoDomani(); // ogni mattina parte l'ultimo (anche dopo il lampo)
     Gioco.indiceCorrente = indice;
     Gioco.numeroRoundCorrente += 1;
     nuovoRound();
@@ -2891,25 +3524,26 @@ function mostraSchermataFinale() {
   overlayFesta.classList.add("nascosta");
   schermataGioco.classList.add("nascosta");
   schermataFinale.classList.remove("nascosta");
+  if (inPercorso()) PercorsoVista.nascondi(); // la schermata finale ha il suo sfondo
 
+  if (inPercorso()) { mostraFinalePercorso(); return; } // vince chi e` piu` avanti (o chi ha toccato il traguardo)
   const classificati = [...Gioco.giocatori].sort((a, b) => b.soldiTotale - a.soldiTotale);
   const vincitore = classificati[0];
   Audio_.jingleFinale(); // 06/10/2026: un jingle suo, diverso da quello della festa del round e da quello del lampo
 
-  finaleVincitoreImmagineEl.textContent = vincitore.iniziale;
+  scriviIniziale(finaleVincitoreImmagineEl, vincitore);
   finaleVincitoreImmagineEl.style.outlineColor = vincitore.colore;
   finaleVincitoreNomeEl.textContent = vincitore.nome;
   finaleVincitoreNomeEl.style.color = vincitore.colore;
   finaleVincitoreCifraEl.textContent = formattaMigliaia(vincitore.soldiTotale);
 
+  // Il palco della finale (08/10/2026, Chiara): al posto delle righe, un podio per giocatore sulla ribalta, in ordine
+  // d'iscrizione (scelta 1, A: ognuno al posto che ha avuto tutta la sera), col bollo del posto in classifica; a pari soldi
+  // lo stesso numero. Le righe restano per il Percorso.
   finaleClassificaEl.innerHTML = "";
-  classificati.forEach((giocatore, i) => {
-    const riga = document.createElement("div");
-    riga.className = "riga-classifica-finale";
-    riga.style.borderLeftColor = giocatore.colore;
-    riga.textContent = `${i + 1}. ${giocatore.nome} — ${euro(giocatore.soldiTotale)}`;
-    finaleClassificaEl.appendChild(riga);
-  });
+  finaleClassificaEl.classList.add("nascosta");
+  palcoFinaleEl.classList.remove("nascosta");
+  disegnaPodiFinale(classificati);
 
   // Giro A, voce A4: il premio di casa, solo se all'iscrizione era stato
   // scritto qualcosa in "In palio stasera".
@@ -2922,6 +3556,39 @@ function mostraSchermataFinale() {
   }
 
   avviaFuochiFinale();
+}
+
+function disegnaPodiFinale(classificati) {
+  const podi = document.getElementById("finale-podi");
+  const vincitore = classificati[0];
+  const posto = (g) => 1 + classificati.findIndex((x) => x.soldiTotale === g.soldiTotale);
+  podi.innerHTML = "";
+  Gioco.giocatori.forEach((g, i) => {
+    const p = document.createElement("div");
+    p.className = "podio-finale entra" + (g === vincitore ? " vincitore" : "");
+    p.style.setProperty("--colore-giocatore", g.colore);
+    p.style.setProperty("--ritardo", `${i * 90}ms`);
+    const bollo = document.createElement("span");
+    bollo.className = "posto";
+    bollo.textContent = `${posto(g)}º`;
+    const t = document.createElement("div");
+    t.className = "tessera-giocatore";
+    scriviIniziale(t, g);
+    const nome = document.createElement("div");
+    nome.className = "nome";
+    nome.textContent = g.nome;
+    const cifra = document.createElement("div");
+    cifra.className = "cifra";
+    cifra.innerHTML = `${formattaMigliaia(g.soldiTotale)}<span class="euro">€</span>`;
+    const eti = document.createElement("div");
+    eti.className = "etichetta";
+    eti.textContent = "in cassaforte";
+    [bollo, t, nome, cifra, eti].forEach((el) => p.appendChild(el));
+    podi.appendChild(p);
+  });
+  // a fine entrata la classe va via; poi le luci si accendono
+  setTimeout(() => podi.querySelectorAll(".entra").forEach((e) => e.classList.remove("entra")), 320 + 4 * 90 + 50);
+  setTimeout(() => riaccendi(palcoFinaleEl.querySelector(".ribalta"), "accesa"), 300);
 }
 
 // Punto 46 (28/09/2026, nono giro): qualche "botto" di scintille a posizioni
@@ -2969,10 +3636,12 @@ btnGiocaAncora.addEventListener("click", () => {
   Gioco.storicoRound = [];
   Gioco.ultimoRoundFinito = false;
   Lampo.pianifica(); // una partita nuova, un lampo estratto di nuovo
+  if (inPercorso()) azzeraPercorso(); // pedine, ombre, caselle e Pedaggi da capo (stessi giocatori, stessa serata)
   preparaSpeciali(); // e due speciali nuovi per ogni round
   azzeraCategorieDellaPartita(); // e di nuovo tutte le categorie a disposizione
   schermataFinale.classList.add("nascosta");
   schermataGioco.classList.remove("nascosta");
+  if (inPercorso()) PercorsoVista.mostraPartita();
   Gioco.indiceCorrente = Math.floor(Math.random() * Gioco.giocatori.length);
   nuovoRound();
   aggiornaSchedeGiocatori();
@@ -2983,7 +3652,8 @@ btnGiocaAncora.addEventListener("click", () => {
 // vecchie finché non si preme "Inizia la partita" un'altra volta).
 btnTornaInizio.addEventListener("click", () => {
   schermataFinale.classList.add("nascosta");
-  schermataIscrizione.classList.remove("nascosta");
+  mostraScelta(); // 08/10/2026 (scelta 2 di Damiano): «inizio» ora e` la domanda «Che partita facciamo stasera?»
+  Audio_.musicaIscrizione(); // di nuovo la musica dell'iscrizione (se scelta)
 });
 
 // Punto 69 (29/09/2026): non rimette piu` lo stato a "idle" da solo — quello
@@ -3003,6 +3673,10 @@ function passaTurno() {
 // un pannello con due cursori, assorbiti in Audio_ (vedi audio.js). --------
 
 cursoreVolumeMusica.value = String(Math.round(Audio_.leggiVolumeMusicaCursore() * 100));
+
+// All'apertura la schermata di iscrizione e` quella visibile: parte la sua
+// musica (se Damiano ne ha scelta una, MUSICA_ISCRIZIONE_FILE in config.js).
+Audio_.musicaIscrizione();
 cursoreVolumeEffetti.value = String(Math.round(Audio_.leggiVolumeEffettiCursore() * 100));
 
 function aggiornaIconaVolume() {
@@ -3073,3 +3747,10 @@ document.addEventListener("click", (ev) => {
     chiudiPannelloClassifica();
   }
 });
+
+// ============================================================================
+// LA MODALITA` «PERCORSO»: le regole stanno in percorso.js, la partita (come le regole si innestano nel gioco) in
+// percorso-gioco.js, la scena (paesaggio, meeple, tende, tessere, bolle) in percorso-vista.js. Sono caricati
+// prima/dopo questo file; qui resta solo cio` che la Classica e il Percorso condividono. Tutto cio` che e` del
+// Percorso parte solo se inPercorso(): in Classica non si legge mai.
+// ============================================================================

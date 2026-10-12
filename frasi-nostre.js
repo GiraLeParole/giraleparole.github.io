@@ -65,6 +65,11 @@ const FRASI = [
   { testo: "Ha otto zampe e non è un insetto", categoria: "Animali", difficolta: "facile", gruppi: ["bambini", "famiglia"], indizio: "Il ragno" },
   { testo: "Usa il nido degli altri", categoria: "Animali", difficolta: "media", gruppi: ["tutti", "esperti"], indizio: "Il cuculo" },
   { testo: "Il braccio perso ricresce", categoria: "Animali", difficolta: "media", gruppi: ["famiglia", "tutti"], indizio: "La stella marina" },
+  { testo: "Fa la cacca a forma di cubetto", categoria: "Animali", difficolta: "facile", gruppi: ["bambini", "famiglia"], indizio: "Il vombato" },
+  { testo: "Non è cieco e ci vede bene", categoria: "Animali", difficolta: "media", gruppi: ["bambini", "famiglia"], indizio: "Gli occhi del pipistrello" },
+  { testo: "Le uova più grandi fra gli uccelli viventi", categoria: "Animali", difficolta: "facile", gruppi: ["bambini", "famiglia"], indizio: "Lo struzzo" },
+  { testo: "Dorme con un occhio aperto", categoria: "Animali", difficolta: "media", gruppi: ["bambini", "famiglia"], indizio: "Il delfino" },
+  { testo: "Ha migliaia di denti", categoria: "Animali", difficolta: "media", gruppi: ["bambini", "famiglia"], indizio: "La lumaca" },
 
   // ---- Musica ----
   { testo: "Prima diceva buongiorno a tutti", categoria: "Musica", difficolta: "facile", gruppi: ["bambini"], indizio: "Happy Birthday" },
@@ -93,6 +98,10 @@ const FRASI = [
   { testo: "Quante bestie ha zio Tobia", categoria: "Musica", difficolta: "facile", gruppi: ["bambini"], indizio: "Nella vecchia fattoria" },
   { testo: "La donna è mobile", categoria: "Musica", difficolta: "media", gruppi: ["tutti", "esperti"], indizio: "Il Rigoletto di Verdi" },
   { testo: "Oggi è l'inno dell'Europa", categoria: "Musica", difficolta: "media", gruppi: ["tutti", "esperti"], indizio: "La nona sinfonia di Beethoven" },
+  { testo: "Fatto con l'osso di un avvoltoio", categoria: "Musica", difficolta: "media", gruppi: ["bambini", "famiglia"], indizio: "Uno dei flauti più antichi" },
+  { testo: "Con le mani si fa il becco", categoria: "Musica", difficolta: "facile", gruppi: ["bambini", "famiglia"], indizio: "Il ballo del qua qua" },
+  { testo: "Bambini che cantano a Bologna", categoria: "Musica", difficolta: "facile", gruppi: ["bambini", "famiglia"], indizio: "Lo Zecchino d'Oro" },
+  { testo: "L'archetto ha i crini del cavallo", categoria: "Musica", difficolta: "media", gruppi: ["bambini", "famiglia"], indizio: "Il violino" },
 
   // ---- A tavola ----
   { testo: "È arrivato in Italia dall'America", categoria: "A tavola", difficolta: "facile", gruppi: ["bambini"], indizio: "Il pomodoro" },
@@ -121,6 +130,11 @@ const FRASI = [
   { testo: "Savoiardi caffè e mascarpone", categoria: "A tavola", difficolta: "media", gruppi: ["famiglia", "tutti"], indizio: "Il tiramisù" },
   { testo: "Viene dal fiore del croco", categoria: "A tavola", difficolta: "media", gruppi: ["tutti", "esperti"], indizio: "Lo zafferano" },
   { testo: "Il colore del saio dei frati", categoria: "A tavola", difficolta: "media", gruppi: ["tutti"], indizio: "Il cappuccino" },
+  { testo: "Ha i colori della bandiera", categoria: "A tavola", difficolta: "facile", gruppi: ["bambini", "famiglia"], indizio: "La pizza margherita" },
+  { testo: "La macchina la inventò anche un dentista", categoria: "A tavola", difficolta: "media", gruppi: ["bambini", "famiglia"], indizio: "Lo zucchero filato" },
+  { testo: "Viene da Alba in Piemonte", categoria: "A tavola", difficolta: "media", gruppi: ["bambini", "famiglia"], indizio: "La Nutella" },
+  { testo: "Quando la tagli ti fa piangere", categoria: "A tavola", difficolta: "facile", gruppi: ["bambini"], indizio: "La cipolla" },
+  { testo: "Si chiama come un uccello", categoria: "A tavola", difficolta: "media", gruppi: ["bambini", "famiglia"], indizio: "Il kiwi" },
 
   // ---- Fiabe e libri ----
   { testo: "La scarpetta all'inizio era un sandalo", categoria: "Fiabe e libri", difficolta: "media", gruppi: ["bambini"], indizio: "Cenerentola" },
@@ -145,6 +159,10 @@ const FRASI = [
   { testo: "Mi ritrovai per una selva oscura", categoria: "Fiabe e libri", difficolta: "media", gruppi: ["tutti", "esperti"], indizio: "La Divina Commedia" },
   { testo: "Caccia la balena bianca", categoria: "Fiabe e libri", difficolta: "media", gruppi: ["tutti", "esperti"], indizio: "Il capitano Achab" },
   { testo: "Un amico di nome Venerdì", categoria: "Fiabe e libri", difficolta: "media", gruppi: ["famiglia", "tutti"], indizio: "Robinson Crusoe" },
+  { testo: "Gridava al lupo per scherzo", categoria: "Fiabe e libri", difficolta: "facile", gruppi: ["bambini", "famiglia"], indizio: "Il pastorello bugiardo" },
+  { testo: "Solleva il suo cavallo da sola", categoria: "Fiabe e libri", difficolta: "facile", gruppi: ["bambini", "famiglia"], indizio: "Pippi Calzelunghe" },
+  { testo: "Da grande scopre di essere un cigno", categoria: "Fiabe e libri", difficolta: "facile", gruppi: ["bambini", "famiglia"], indizio: "Il brutto anatroccolo" },
+  { testo: "Solo la casa di mattoni resiste", categoria: "Fiabe e libri", difficolta: "facile", gruppi: ["bambini"], indizio: "I tre porcellini" },
 
   // ---- Cartoni animati ----
   { testo: "Il primo film fatto tutto al computer", categoria: "Cartoni animati", difficolta: "facile", gruppi: ["bambini"], indizio: "Toy Story" },
@@ -169,6 +187,9 @@ const FRASI = [
   { testo: "Gioia e Tristezza nella testa di una bambina", categoria: "Cartoni animati", difficolta: "media", gruppi: ["bambini", "famiglia"], indizio: "Inside Out" },
   { testo: "Non riesce quasi mai a prendere Beep Beep", categoria: "Cartoni animati", difficolta: "facile", gruppi: ["bambini", "famiglia"], indizio: "Willy il Coyote" },
   { testo: "Una famiglia tutta gialla", categoria: "Cartoni animati", difficolta: "facile", gruppi: ["famiglia", "tutti"], indizio: "I Simpson" },
+  { testo: "Sono cani ma parla solo uno", categoria: "Cartoni animati", difficolta: "facile", gruppi: ["bambini", "famiglia"], indizio: "Pippo e Pluto" },
+  { testo: "Non si nomina Bruno", categoria: "Cartoni animati", difficolta: "facile", gruppi: ["bambini"], indizio: "Encanto" },
+  { testo: "Un topo che fa il cuoco a Parigi", categoria: "Cartoni animati", difficolta: "facile", gruppi: ["bambini", "famiglia"], indizio: "Ratatouille" },
 
   // ---- Cinema e serie TV ----
   { testo: "Ha una cicatrice a forma di saetta", categoria: "Cinema e serie TV", difficolta: "facile", gruppi: ["bambini", "famiglia", "tutti"], indizio: "Harry Potter" },
@@ -193,6 +214,12 @@ const FRASI = [
   { testo: "Un prete che indaga in bicicletta", categoria: "Cinema e serie TV", difficolta: "facile", gruppi: ["famiglia", "tutti"], indizio: "Don Matteo" },
   { testo: "Il cuore dell'oceano", categoria: "Cinema e serie TV", difficolta: "media", gruppi: ["tutti", "esperti"], indizio: "La collana di Titanic" },
   { testo: "Com'è umano lei", categoria: "Cinema e serie TV", difficolta: "media", gruppi: ["tutti", "esperti"], indizio: "Fantozzi" },
+  { testo: "Tiri i dadi ed escono gli animali", categoria: "Cinema e serie TV", difficolta: "media", gruppi: ["bambini", "famiglia"], indizio: "Jumanji" },
+  { testo: "Parte dal binario nove e tre quarti", categoria: "Cinema e serie TV", difficolta: "facile", gruppi: ["bambini", "famiglia", "tutti"], indizio: "Il treno per Hogwarts" },
+  { testo: "Va matto per la marmellata", categoria: "Cinema e serie TV", difficolta: "facile", gruppi: ["bambini", "famiglia"], indizio: "L'orso Paddington" },
+  { testo: "Sposta le cose con la mente", categoria: "Cinema e serie TV", difficolta: "media", gruppi: ["bambini", "famiglia"], indizio: "Matilda 6 mitica" },
+  { testo: "Ruba i regali e gli addobbi", categoria: "Cinema e serie TV", difficolta: "facile", gruppi: ["bambini", "famiglia"], indizio: "Il Grinch" },
+  { testo: "Tutto inizia dal morso di un ragno", categoria: "Cinema e serie TV", difficolta: "facile", gruppi: ["bambini", "famiglia"], indizio: "Spider-Man" },
 
   // ---- Sport e giochi ----
   { testo: "I primi canestri erano cesti da pesche", categoria: "Sport e giochi", difficolta: "media", gruppi: ["bambini"], indizio: "Il basket" },
@@ -219,6 +246,10 @@ const FRASI = [
   { testo: "L'unico che può parare con le mani", categoria: "Sport e giochi", difficolta: "facile", gruppi: ["bambini"], indizio: "Il portiere di calcio" },
   { testo: "Quindici trenta quaranta", categoria: "Sport e giochi", difficolta: "media", gruppi: ["famiglia", "tutti", "esperti"], indizio: "Il punteggio del tennis" },
   { testo: "In piazza del Campo", categoria: "Sport e giochi", difficolta: "media", gruppi: ["tutti", "esperti"], indizio: "Il Palio di Siena" },
+  { testo: "Salti su un piede e lanci il sasso", categoria: "Sport e giochi", difficolta: "facile", gruppi: ["bambini"], indizio: "Il gioco della campana" },
+  { testo: "Perde chi viene spinto fuori", categoria: "Sport e giochi", difficolta: "media", gruppi: ["bambini", "famiglia"], indizio: "Il sumo" },
+  { testo: "Croci contro cerchi", categoria: "Sport e giochi", difficolta: "facile", gruppi: ["bambini"], indizio: "Il gioco del tris" },
+  { testo: "Passi dal via e prendi i soldi", categoria: "Sport e giochi", difficolta: "facile", gruppi: ["bambini", "famiglia"], indizio: "Il Monopoli" },
 
   // ---- Luoghi e viaggi ----
   { testo: "Pendeva già mentre la costruivano", categoria: "Luoghi e viaggi", difficolta: "facile", gruppi: ["bambini"], indizio: "La Torre di Pisa" },
@@ -247,6 +278,14 @@ const FRASI = [
   { testo: "Ha la forma di una Y rovesciata", categoria: "Luoghi e viaggi", difficolta: "media", gruppi: ["famiglia", "tutti"], indizio: "Il lago di Como" },
   { testo: "La città dei Sassi", categoria: "Luoghi e viaggi", difficolta: "media", gruppi: ["tutti", "esperti"], indizio: "Matera" },
   { testo: "Al tramonto diventano rosa", categoria: "Luoghi e viaggi", difficolta: "media", gruppi: ["famiglia", "tutti"], indizio: "Le Dolomiti" },
+  { testo: "Nell'arena lottavano i gladiatori", categoria: "Luoghi e viaggi", difficolta: "facile", gruppi: ["bambini", "famiglia"], indizio: "Il Colosseo" },
+  { testo: "Lanci una monetina per tornare", categoria: "Luoghi e viaggi", difficolta: "facile", gruppi: ["bambini", "famiglia", "tutti"], indizio: "La Fontana di Trevi" },
+  { testo: "Pinguini sì ma orsi polari no", categoria: "Luoghi e viaggi", difficolta: "media", gruppi: ["bambini", "famiglia"], indizio: "L'Antartide" },
+  { testo: "Tanto tempo fa era verde", categoria: "Luoghi e viaggi", difficolta: "media", gruppi: ["bambini", "famiglia"], indizio: "Il deserto del Sahara" },
+  { testo: "Ha coperto Pompei di cenere", categoria: "Luoghi e viaggi", difficolta: "media", gruppi: ["bambini", "famiglia"], indizio: "Il Vesuvio" },
+  { testo: "Ci galleggi senza nuotare", categoria: "Luoghi e viaggi", difficolta: "facile", gruppi: ["bambini", "famiglia"], indizio: "Il Mar Morto" },
+  { testo: "Il fiume più lungo d'Italia", categoria: "Luoghi e viaggi", difficolta: "facile", gruppi: ["bambini", "famiglia"], indizio: "Il Po" },
+  { testo: "Lo Stato più piccolo del mondo", categoria: "Luoghi e viaggi", difficolta: "facile", gruppi: ["bambini", "famiglia", "tutti"], indizio: "La Città del Vaticano" },
 
   // ---- Personaggi ----
   { testo: "Attraversa il Rubicone", categoria: "Personaggi", difficolta: "facile", gruppi: ["famiglia", "tutti"], indizio: "Giulio Cesare" },
@@ -271,6 +310,15 @@ const FRASI = [
   { testo: "Vide le lune di Giove col cannocchiale", categoria: "Personaggi", difficolta: "media", gruppi: ["famiglia", "tutti"], indizio: "Galileo Galilei" },
   { testo: "L'eroe dei due mondi", categoria: "Personaggi", difficolta: "facile", gruppi: ["famiglia", "tutti"], indizio: "Giuseppe Garibaldi" },
   { testo: "Era sulle mille lire", categoria: "Personaggi", difficolta: "media", gruppi: ["tutti", "esperti"], indizio: "Maria Montessori" },
+  { testo: "Da lui nasce Babbo Natale", categoria: "Personaggi", difficolta: "facile", gruppi: ["bambini", "famiglia"], indizio: "San Nicola" },
+  { testo: "Scriveva da destra a sinistra", categoria: "Personaggi", difficolta: "media", gruppi: ["bambini", "famiglia"], indizio: "Leonardo da Vinci" },
+  { testo: "Prestava la voce a Topolino", categoria: "Personaggi", difficolta: "media", gruppi: ["bambini", "famiglia"], indizio: "Walt Disney" },
+  { testo: "La prima italiana nello spazio", categoria: "Personaggi", difficolta: "facile", gruppi: ["bambini", "famiglia"], indizio: "Samantha Cristoforetti" },
+  { testo: "Era di Como e inventò la pila", categoria: "Personaggi", difficolta: "media", gruppi: ["bambini", "famiglia"], indizio: "Alessandro Volta" },
+  { testo: "Diventò faraone da bambino", categoria: "Personaggi", difficolta: "media", gruppi: ["bambini", "famiglia"], indizio: "Tutankhamon" },
+  { testo: "Il padre della lingua italiana", categoria: "Personaggi", difficolta: "media", gruppi: ["bambini", "famiglia", "tutti"], indizio: "Dante Alighieri" },
+  { testo: "Dà il nome alla tavola delle tabelline", categoria: "Personaggi", difficolta: "media", gruppi: ["bambini", "famiglia"], indizio: "Pitagora" },
+  { testo: "L'ultima regina dell'antico Egitto", categoria: "Personaggi", difficolta: "media", gruppi: ["bambini", "famiglia"], indizio: "Cleopatra" },
 
   // ---- Scienza e natura ----
   { testo: "Sempre la stessa faccia", categoria: "Scienza e natura", difficolta: "media", gruppi: ["bambini", "famiglia", "tutti"], indizio: "La Luna" },
@@ -297,6 +345,11 @@ const FRASI = [
   { testo: "Sassolini che bruciano nel cielo", categoria: "Scienza e natura", difficolta: "facile", gruppi: ["bambini", "famiglia"], indizio: "Le stelle cadenti" },
   { testo: "La nostra galassia", categoria: "Scienza e natura", difficolta: "facile", gruppi: ["famiglia", "tutti"], indizio: "La Via Lattea" },
   { testo: "Più caldo della superficie del Sole", categoria: "Scienza e natura", difficolta: "media", gruppi: ["tutti", "esperti"], indizio: "Il fulmine" },
+  { testo: "Non ce ne sono due uguali", categoria: "Scienza e natura", difficolta: "facile", gruppi: ["bambini", "famiglia"], indizio: "Le impronte delle dita" },
+  { testo: "È grande come il tuo pugno", categoria: "Scienza e natura", difficolta: "facile", gruppi: ["bambini", "famiglia"], indizio: "Il cuore" },
+  { testo: "Gli anelli dicono quanti anni ha", categoria: "Scienza e natura", difficolta: "facile", gruppi: ["bambini", "famiglia"], indizio: "Il tronco di un albero" },
+  { testo: "La più vicina a noi è il Sole", categoria: "Scienza e natura", difficolta: "media", gruppi: ["bambini", "famiglia", "tutti"], indizio: "Le stelle" },
+  { testo: "Sono venti e cadono tutti", categoria: "Scienza e natura", difficolta: "facile", gruppi: ["bambini"], indizio: "I denti da latte" },
 
   // ---- Invenzioni ----
   { testo: "È arancione per farsi trovare", categoria: "Invenzioni", difficolta: "facile", gruppi: ["bambini"], indizio: "La scatola nera" },
@@ -317,6 +370,14 @@ const FRASI = [
   { testo: "La fila di lettere in alto comincia con QWERTY", categoria: "Invenzioni", difficolta: "media", gruppi: ["famiglia", "tutti"], indizio: "La tastiera" },
   { testo: "Nati nel Duecento", categoria: "Invenzioni", difficolta: "media", gruppi: ["tutti", "esperti"], indizio: "Gli occhiali" },
   { testo: "Il tessuto blu di Genova", categoria: "Invenzioni", difficolta: "media", gruppi: ["famiglia", "tutti"], indizio: "I jeans" },
+  { testo: "Si dice che un bambino lo scoprì per sbaglio", categoria: "Invenzioni", difficolta: "facile", gruppi: ["bambini", "famiglia"], indizio: "Il ghiacciolo" },
+  { testo: "Prima si usava la mollica di pane", categoria: "Invenzioni", difficolta: "media", gruppi: ["bambini", "famiglia"], indizio: "La gomma della matita" },
+  { testo: "All'inizio non aveva i pedali", categoria: "Invenzioni", difficolta: "facile", gruppi: ["bambini", "famiglia"], indizio: "La prima bicicletta" },
+  { testo: "È arrivato molto dopo le scatolette", categoria: "Invenzioni", difficolta: "media", gruppi: ["bambini", "famiglia"], indizio: "L'apriscatole" },
+  { testo: "Nata nell'antica Cina", categoria: "Invenzioni", difficolta: "facile", gruppi: ["bambini", "famiglia", "tutti"], indizio: "La carta" },
+  { testo: "Riparava dal sole prima che dalla pioggia", categoria: "Invenzioni", difficolta: "media", gruppi: ["bambini", "famiglia"], indizio: "L'ombrello" },
+  { testo: "Un tempo aveva peli di maiale", categoria: "Invenzioni", difficolta: "media", gruppi: ["bambini", "famiglia"], indizio: "Lo spazzolino da denti" },
+  { testo: "Segna l'ora con l'ombra", categoria: "Invenzioni", difficolta: "facile", gruppi: ["bambini", "famiglia"], indizio: "La meridiana" },
 
   // ---- Frasi celebri ----
   { testo: "Qui si fa l'Italia o si muore", categoria: "Frasi celebri", difficolta: "difficile", gruppi: ["tutti", "esperti"], indizio: "Calatafimi, maggio 1860" },
@@ -333,6 +394,13 @@ const FRASI = [
   { testo: "Francamente me ne infischio", categoria: "Frasi celebri", difficolta: "difficile", gruppi: ["tutti", "esperti"], indizio: "Rhett Butler" },
   { testo: "C'era una volta", categoria: "Frasi celebri", difficolta: "facile", gruppi: ["bambini", "famiglia"], indizio: "L'inizio delle fiabe" },
   { testo: "Tutti per uno uno per tutti", categoria: "Frasi celebri", difficolta: "facile", gruppi: ["bambini", "famiglia", "tutti"], indizio: "I tre moschettieri" },
+  { testo: "Specchio servo delle mie brame", categoria: "Frasi celebri", difficolta: "facile", gruppi: ["bambini", "famiglia", "tutti"], indizio: "La regina di Biancaneve" },
+  { testo: "Ohana significa famiglia", categoria: "Frasi celebri", difficolta: "facile", gruppi: ["bambini", "famiglia"], indizio: "Lilo e Stitch" },
+  { testo: "Mi è sembrato di vedere un gatto", categoria: "Frasi celebri", difficolta: "facile", gruppi: ["bambini", "famiglia"], indizio: "Titti" },
+  { testo: "Che succede amico", categoria: "Frasi celebri", difficolta: "facile", gruppi: ["bambini", "famiglia"], indizio: "Bugs Bunny" },
+  { testo: "Io sono tuo padre", categoria: "Frasi celebri", difficolta: "facile", gruppi: ["bambini", "famiglia", "tutti"], indizio: "Darth Vader" },
+  { testo: "Ho un serpente nello stivale", categoria: "Frasi celebri", difficolta: "facile", gruppi: ["bambini", "famiglia"], indizio: "Lo sceriffo Woody" },
+  { testo: "Ricordati chi sei", categoria: "Frasi celebri", difficolta: "media", gruppi: ["bambini", "famiglia"], indizio: "Mufasa a Simba fra le nuvole" },
 
   // ---- Modi di dire ----
   { testo: "Dormire come un ghiro", categoria: "Modi di dire", difficolta: "facile", gruppi: ["bambini", "famiglia", "tutti"], indizio: "Chi non si sveglia mai" },
@@ -351,6 +419,11 @@ const FRASI = [
   { testo: "Avere gli occhi foderati di prosciutto", categoria: "Modi di dire", difficolta: "difficile", gruppi: ["tutti", "esperti"], indizio: "Chi non vede l'evidenza" },
   { testo: "Stonato come una campana", categoria: "Modi di dire", difficolta: "facile", gruppi: ["bambini", "famiglia"], indizio: "Si dice di chi canta male" },
   { testo: "Avere la testa fra le nuvole", categoria: "Modi di dire", difficolta: "facile", gruppi: ["bambini", "famiglia"], indizio: "Modo di dire per i distratti" },
+  { testo: "Avere le mani di burro", categoria: "Modi di dire", difficolta: "facile", gruppi: ["bambini", "famiglia", "tutti"], indizio: "Chi fa cadere tutto" },
+  { testo: "Avere gli occhi più grandi della pancia", categoria: "Modi di dire", difficolta: "facile", gruppi: ["bambini", "famiglia", "tutti"], indizio: "Chi si riempie troppo il piatto" },
+  { testo: "Avere un diavolo per capello", categoria: "Modi di dire", difficolta: "media", gruppi: ["bambini", "famiglia", "tutti"], indizio: "Chi è proprio arrabbiato" },
+  { testo: "Rosso come un peperone", categoria: "Modi di dire", difficolta: "facile", gruppi: ["bambini", "famiglia"], indizio: "Quando ti vergogni tanto" },
+  { testo: "Essere come cane e gatto", categoria: "Modi di dire", difficolta: "facile", gruppi: ["bambini", "famiglia", "tutti"], indizio: "Due fratelli che litigano sempre" },
 
   // ---- Proverbi ----
   { testo: "Rosso di sera bel tempo si spera", categoria: "Proverbi", difficolta: "facile", gruppi: ["bambini", "famiglia", "tutti"], indizio: "Proverbio sul cielo al tramonto" },
@@ -365,4 +438,10 @@ const FRASI = [
   { testo: "Aprile ogni goccia un barile", categoria: "Proverbi", difficolta: "difficile", gruppi: ["esperti"], indizio: "Lo dicono i contadini in primavera" },
   { testo: "Chi rompe paga e i cocci sono suoi", categoria: "Proverbi", difficolta: "media", gruppi: ["famiglia", "tutti"], indizio: "Proverbio per chi combina un danno" },
   { testo: "Batti il ferro finché è caldo", categoria: "Proverbi", difficolta: "media", gruppi: ["tutti"], indizio: "Proverbio sul momento giusto" },
+  { testo: "Chi si loda s'imbroda", categoria: "Proverbi", difficolta: "facile", gruppi: ["bambini", "famiglia", "tutti"], indizio: "Il compagno che si vanta sempre" },
+  { testo: "Chi la fa l'aspetti", categoria: "Proverbi", difficolta: "facile", gruppi: ["bambini", "famiglia", "tutti"], indizio: "Lo scherzo che ti torna indietro" },
+  { testo: "Il buongiorno si vede dal mattino", categoria: "Proverbi", difficolta: "facile", gruppi: ["bambini", "famiglia", "tutti"], indizio: "La prima ora di scuola va liscia" },
+  { testo: "Patti chiari amicizia lunga", categoria: "Proverbi", difficolta: "media", gruppi: ["bambini", "famiglia", "tutti"], indizio: "Prima di giocare si fissano le regole" },
+  { testo: "Volere è potere", categoria: "Proverbi", difficolta: "facile", gruppi: ["bambini", "famiglia", "tutti"], indizio: "Proverbio per chi non si arrende" },
+  { testo: "Chi si accontenta gode", categoria: "Proverbi", difficolta: "facile", gruppi: ["bambini", "famiglia", "tutti"], indizio: "Niente gelato ma c'è la frutta" },
 ];

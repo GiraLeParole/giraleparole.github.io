@@ -67,7 +67,7 @@ const Audio_ = (() => {
       // Il cursore era a zero (musica "spenta") ed e` stato appena alzato:
       // riparte da capo, come premere il vecchio interruttore "on".
       getCtx();
-      if (indiceMusicaFile >= 0) suonaSelezioneCorrente();
+      if (indiceMusicaFile >= 0 || inIscrizione) suonaSelezioneCorrente();
       return;
     }
     // Gia` in corso: si sposta subito il volume, senza fade — e` un
@@ -187,9 +187,13 @@ const Audio_ = (() => {
 
   // Durante il lampo suona la musica del lampo, al posto di quella del round.
   let inLampo = false;
+  // Schermata di iscrizione aperta (07/10/2026): suona MUSICA_ISCRIZIONE_FILE.
+  // Si spegne appena parte il primo round (musicaProssimoRound).
+  let inIscrizione = false;
 
   function fileCorrente() {
     if (inLampo) return MUSICA_LAMPO_FILE;
+    if (inIscrizione && MUSICA_ISCRIZIONE_FILE) return MUSICA_ISCRIZIONE_FILE;
     if (indiceMusicaFile < 0) return SEQUENZA_MUSICA_FILE[0];
     return SEQUENZA_MUSICA_FILE[indiceMusicaFile % SEQUENZA_MUSICA_FILE.length];
   }
@@ -216,8 +220,11 @@ const Audio_ = (() => {
   // passa al groove generato per QUESTO round.
   function provaAvviaFile(nomeFile) {
     const s = statoPerFile(nomeFile);
+    // Iscrizione: se il suo file manca o non parte, resta silenzio — il groove
+    // di riserva e` per i round, non per la schermata dove si scrivono i nomi.
+    const perIscrizione = inIscrizione && nomeFile === MUSICA_ISCRIZIONE_FILE;
     if (s.fallito) {
-      avviaModalitaGroove();
+      if (!perIscrizione) avviaModalitaGroove();
       return;
     }
     s.audio.currentTime = 0;
@@ -228,13 +235,36 @@ const Audio_ = (() => {
     // invece di lanciare un errore sincrono: entrambi i casi vanno
     // intercettati, altrimenti resta silenzio invece del groove.
     if (promessa && typeof promessa.catch === "function") {
-      promessa.catch(() => {
+      promessa.catch((err) => {
+        // Il browser rifiuta di suonare prima di un gesto dell'utente (succede
+        // all'apertura della pagina): non e` un file rotto. Si riprova al
+        // primo tocco o tasto, solo se siamo ancora in iscrizione.
+        if (err && err.name === "NotAllowedError" && perIscrizione) {
+          if (entroInRiproduzione && entroInRiproduzione.file === nomeFile) entroInRiproduzione = null;
+          riprovaIscrizioneAlPrimoGesto();
+          return;
+        }
         s.fallito = true;
+        if (perIscrizione) return;
         if (idQuestoFade === idFadeInCorso) avviaModalitaGroove();
       });
     }
     sfumaVolume(s.audio, volumeMusicaEffettivo(), DURATA_DISSOLVENZA_MUSICA_SEC);
     entroInRiproduzione = { file: nomeFile };
+  }
+
+  let inAttesaDelGesto = false;
+  function riprovaIscrizioneAlPrimoGesto() {
+    if (inAttesaDelGesto) return;
+    inAttesaDelGesto = true;
+    const riprova = () => {
+      document.removeEventListener("pointerdown", riprova, true);
+      document.removeEventListener("keydown", riprova, true);
+      inAttesaDelGesto = false;
+      if (inIscrizione && musicaEAccesa() && !entroInRiproduzione) suonaSelezioneCorrente();
+    };
+    document.addEventListener("pointerdown", riprova, true);
+    document.addEventListener("keydown", riprova, true);
   }
 
   // Riserva: il vecchio motore a groove generato (sotto), usato SOLO quando
@@ -602,8 +632,19 @@ const Audio_ = (() => {
   // brano con una dissolvenza; se il cursore e` a zero, si limita a segnare
   // la scelta — suonera` quando/se il cursore tornera` sopra zero.
   function musicaProssimoRound() {
+    inIscrizione = false; // la partita e` cominciata (o un round nuovo): la musica dell'iscrizione lascia il posto
     inLampo = false; // il lampo e` finito: torna la musica dei round
     indiceMusicaFile = (indiceMusicaFile + 1) % SEQUENZA_MUSICA_FILE.length;
+    if (musicaEAccesa()) suonaSelezioneCorrente();
+  }
+
+  // La schermata di iscrizione si apre (all'avvio, e con "Torna all'inizio"):
+  // parte la sua musica, se e` stata scelta e il cursore e` sopra zero. Alla
+  // prima apertura il browser puo` chiedere un gesto: si riprova al primo tocco.
+  function musicaIscrizione() {
+    if (!MUSICA_ISCRIZIONE_FILE) return;
+    inIscrizione = true;
+    inLampo = false;
     if (musicaEAccesa()) suonaSelezioneCorrente();
   }
 
@@ -836,6 +877,7 @@ const Audio_ = (() => {
     musicaFerma,
     isMusicaAttiva,
     musicaProssimoRound,
+    musicaIscrizione,
     musicaLampo,
     // Solo per verifica/debug (console, test): non usata dal gioco stesso.
     statoMusica: () => {

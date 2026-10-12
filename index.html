@@ -1,373 +1,126 @@
 <!doctype html>
-<html lang="it">
+<html lang="it" class="presentazione">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Gira le Parole</title>
-  <meta name="description" content="Il gioco della ruota, per giocare in famiglia sullo stesso schermo. Nessun dato esce da questo computer." />
+  <meta name="description" content="Il gioco della ruota e del tabellone, come in televisione, da giocare in famiglia o con gli amici, tutti davanti allo stesso schermo. Gratis, senza registrazione." />
+  <!--
+    LA PRESENTAZIONE (index.html): la prima pagina del sito. Disegno di Chiara,
+    testi di Penna. Il gioco e` gioco.html.
+    I numeri (versione, frasi, giocatori, gruppi, speciali) li scrive presentazione.js
+    dai file veri: qui non ce n'e` nessuno a mano. Niente audio.js, gioco.js, lampo.js.
+  -->
   <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="presentazione.css" />
 </head>
-<body>
+<body class="presentazione">
+<main class="pagina-presentazione">
 
-  <!-- SCHERMATA 1: iscrizione giocatori — Giro A (29/09/2026, disegno di
-       Chiara, `design/2026-09-29-scheda-otto-idee.md`, voce A1): rifatta per
-       lo schermo largo, due colonne — "Chi gioca" a sinistra, "Stasera" a
-       destra. Sotto i 1200px (non piu` il riferimento) resta leggibile in
-       colonna, "basta che non si rompa" (vedi style.css). -->
-  <section id="schermata-iscrizione" class="schermata iscrizione-larga">
-    <header class="testata-iscrizione">
-      <div class="titolo-iscrizione">
-        <h1>Gira le Parole</h1>
-        <p class="sottotitolo">Un gioco da fare in famiglia e tra amici, tutti davanti allo stesso schermo</p>
+  <!-- 1. La prima schermata: cos'e`, e` per me, come comincio. -->
+  <section class="eroe" aria-label="Gira le Parole">
+    <div class="eroe-testo">
+      <h1>Gira le Parole</h1>
+      <p class="eroe-cosa">Il gioco della ruota e del tabellone, come in televisione, da giocare in famiglia o con gli amici, tutti davanti allo stesso schermo.</p>
+      <div class="eroe-azioni">
+        <a id="btn-gioca" class="primario grande" href="gioco.html#gioca">Gioca</a>
+        <a class="eroe-link" href="#come-si-gioca">Come si gioca</a>
       </div>
-      <!-- Le porte del giro C (Albo d'oro, Le nostre frasi) restano nascoste
-           finche` GIRO_B_C_ATTIVO (config.js) non passa a true: gioco.js le
-           spegne all'avvio. -->
-      <nav class="porte-iscrizione" aria-label="Altre pagine">
-        <button id="btn-albo" type="button" class="secondario">Albo d'oro</button>
-        <button id="btn-frasi-nostre" type="button" class="secondario">Le nostre frasi</button>
-        <button id="btn-guida" type="button">Come si gioca</button>
-      </nav>
-    </header>
-
-    <div class="corpo-iscrizione">
-      <!-- colonna sinistra: chi gioca -->
-      <section class="blocco-chi-gioca" aria-label="Chi gioca">
-        <div class="riga-titolo-blocco">
-          <h2>Chi gioca</h2>
-          <div class="segmenti" id="modo-gioco" role="radiogroup" aria-label="Da soli o a squadre">
-            <button type="button" class="segmento selezionata" data-modo="singoli" role="radio" aria-checked="true">Ognuno per sé</button>
-            <button type="button" class="segmento" data-modo="squadre" role="radio" aria-checked="false">A squadre</button>
-          </div>
-        </div>
-        <!-- gioco.js costruisce Gioco.giocatori da Iscrizione (stato in
-             memoria), MAI leggendo i figli di questo contenitore: il posto
-             vuoto vive qui dentro ma non e` un giocatore (difetto trovato da
-             Chiara, corretto in questo giro). -->
-        <div id="lista-giocatori" class="lista-giocatori tessere-iscrizione"></div>
-        <!-- Il vecchio pulsante resta nel DOM (nascosto) solo perche` non
-             costa nulla tenerlo: il posto vuoto con il "+" lo sostituisce. -->
-        <button id="btn-aggiungi-giocatore" type="button" class="nascosta" aria-hidden="true">+ Aggiungi giocatore</button>
-      </section>
-
-      <!-- colonna destra: come si gioca stasera -->
-      <section class="blocco-stasera" aria-label="Stasera">
-        <h2>Stasera</h2>
-
-        <!-- Voce D, tredicesimo giro (29/09/2026, punto 64): con che frasi si
-             gioca stasera — costruita da gioco.js a partire da GRUPPI_FRASI
-             (config.js). -->
-        <div class="scelta-gruppi">
-          <p>Quali frasi?</p>
-          <div class="opzioni-gruppi" id="opzioni-gruppi" role="group" aria-label="Quali frasi"></div>
-          <p class="conta-frasi" id="conta-frasi" aria-live="polite"></p>
-        </div>
-
-        <!-- Punto 38 (28/09/2026, seconda dettatura): quanti round giocare —
-             costruito da gioco.js a partire da OPZIONI_NUMERO_ROUND (config.js). -->
-        <div class="scelta-round">
-          <p>Quanti round?</p>
-          <div class="opzioni-round" id="opzioni-round"></div>
-        </div>
-
-        <div class="scelta-extra">
-          <!-- Round lampo (giro B, voce B1, lampo.js): la leva lo accende e lo
-               spegne; gioco.js nasconde la riga se LAMPO_ATTIVO e` false. -->
-          <label class="interruttore" id="riga-lampo" for="lampo-attivo">
-            <input type="checkbox" id="lampo-attivo" />
-            <span class="leva" aria-hidden="true"></span>
-            <span class="testo-interruttore">Round lampo <small>fra un round e l'altro</small></span>
-          </label>
-          <label class="campo-premio">
-            <span>In palio stasera</span>
-            <input id="premio-casa" type="text" maxlength="40" placeholder="per esempio: sceglie il film" />
-          </label>
-        </div>
-      </section>
+      <p class="eroe-nota">Gratis, senza registrazione. I nomi che scrivete restano qui.</p>
     </div>
-
-    <div class="azioni-iscrizione">
-      <button id="btn-inizia-partita" type="button" class="primario grande">Inizia la partita</button>
+    <div class="eroe-ruota colonna-ruota">
+      <canvas id="canvas-ruota" width="1000" height="1000" aria-label="La ruota del gioco: toccala e gira" role="img"></canvas>
+      <div class="puntatore" aria-hidden="true"></div>
     </div>
-    <p id="errore-iscrizione" class="messaggio-errore" role="alert" aria-live="polite"></p>
-
-    <footer class="pie-iscrizione">
-      <!-- Settimo giro, secondo compito: crediti dei brani veri, discreti. -->
-      <p class="crediti-musica">Musiche: Kevin MacLeod, incompetech.com, CC BY 4.0</p>
-      <p class="versione-e-novita">
-        <span class="versione" id="versione-gioco"></span>
-        <button id="btn-novita" type="button" class="link"><span class="pallino-nuovo" aria-hidden="true"></span>Novità</button>
-      </p>
-    </footer>
   </section>
 
-  <!-- La finestra delle novità: si apre da «Novità», la versione più recente
-       in cima. Il contenuto (NOVITA) arriva da novita.js, generato da
-       CHANGELOG.md (vedi genera-novita.mjs, pubblica.sh). -->
-  <div id="finestra-novita" class="finestra nascosta" role="dialog" aria-modal="true" aria-labelledby="titolo-novita">
-    <div class="scheda-finestra">
-      <h2 id="titolo-novita">Novità</h2>
-      <div id="elenco-novita" class="elenco-novita"></div>
-      <div class="azioni-finestra">
-        <button id="btn-chiudi-novita" type="button" class="primario">Chiudi</button>
-        <button id="btn-tutte-novita" type="button">Tutte le novità</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- La mini guida «Come si gioca»: al massimo 8 voci, le prime 6 sempre
-       visibili — la 7 (round lampo) si accende con LAMPO_ATTIVO, la 8 (frase
-       premio) con GIRO_B_C_ATTIVO (config.js). -->
-  <div id="finestra-guida" class="finestra nascosta" role="dialog" aria-modal="true" aria-labelledby="titolo-guida">
-    <div class="scheda-finestra guida">
-      <h2 id="titolo-guida">Come si gioca</h2>
-      <div id="elenco-guida" class="elenco-guida"></div>
-      <button id="btn-chiudi-guida" type="button" class="primario">Chiudi</button>
-    </div>
-  </div>
-
-  <!-- SCHERMATA 2: partita -->
-  <section id="schermata-gioco" class="schermata nascosta">
-
-    <header class="intestazione-gioco">
-      <div class="pulsanti-audio">
-        <!-- Punto 36 (28/09/2026): un solo pulsante altoparlanti apre il
-             pannello coi due cursori di volume (assorbe i vecchi
-             interruttori sì/no separati per musica ed effetti). -->
-        <button id="btn-volume" type="button" class="btn-muto" aria-label="Apri i controlli del volume" aria-expanded="false" aria-controls="pannello-volume">🔊</button>
-        <!-- 06/10/2026, dettatura di Damiano: la X per finire la partita e tornare alla schermata iniziale -->
-        <button id="btn-esci" type="button" class="btn-muto" aria-label="Finisci la partita">✕</button>
-        <div id="pannello-volume" class="pannello-volume nascosta">
-          <label class="riga-volume">
-            <span>Musica</span>
-            <input id="cursore-volume-musica" type="range" min="0" max="100" step="1" />
-          </label>
-          <label class="riga-volume">
-            <span>Effetti</span>
-            <input id="cursore-volume-effetti" type="range" min="0" max="100" step="1" />
-          </label>
+  <!-- 2. Come si gioca, in tre passi: il pezzo vero in piccolo, poi una riga. -->
+  <section id="come-si-gioca" class="blocco passi" aria-labelledby="titolo-passi">
+    <h2 id="titolo-passi">Come si gioca</h2>
+    <ol class="tessere tre">
+      <li>
+        <div class="pezzo"><button type="button" class="primario" tabindex="-1">Gira la ruota</button></div>
+        <b>Gira la ruota</b>
+        <p>La cifra su cui si ferma vale per ogni lettera giusta. Su Bancarotta perdi tutto, anche quello che hai in cassaforte.</p>
+      </li>
+      <li>
+        <div class="pezzo">
+          <span class="mini-tabellone" aria-hidden="true"><i class="scoperta">R</i><i></i><i></i><i class="accesa">T</i><i></i></span>
         </div>
-      </div>
-      <!-- Decimo giro (28/09/2026), disegno di Chiara, intervento 4: i round
-           vinti diventano pallini qui al centro dell'intestazione — la
-           categoria si sposta sotto il tabellone (vedi colonna-centrale),
-           come la striscia della TV (intervento 1/3). -->
-      <div id="round-punti" class="round-punti" aria-live="polite"></div>
-      <!-- Punto 39 (28/09/2026, seconda dettatura): la classifica sostituisce
-           il vecchio spaziatore vuoto — un solo pulsante come a sinistra,
-           per bilanciare l'intestazione, che pero` ora fa qualcosa: apre la
-           classifica con un tocco (comodo anche a 375px, non spinge fuori
-           dallo schermo ruota e tabellone). -->
-      <div class="pulsanti-classifica">
-        <button id="btn-classifica" type="button" class="btn-muto" aria-label="Apri la classifica" aria-expanded="false" aria-controls="pannello-classifica">🏆</button>
-        <div id="pannello-classifica" class="pannello-classifica nascosta">
-          <div id="contenuto-classifica"></div>
-        </div>
-      </div>
-    </header>
-
-    <!-- Nono giro, punto 43-45 (28/09/2026): "un gioco da PC su schermo
-         largo" — ruota, tabellone/comandi e tessere dei giocatori diventano
-         tre colonne fianco a fianco quando c'e` spazio (vedi .area-partita
-         in style.css), invece di stare tutti stretti in una fascia centrale
-         con i lati vuoti. Sotto i 900px (telefono) restano impilate in
-         quest'ordine — non e` piu` il riferimento, "basta che non si rompa". -->
-    <div class="area-partita">
-      <div class="colonna-ruota">
-        <!-- Decimo giro (28/09/2026): risoluzione interna del canvas alzata
-             da 620 a 1000 — a 80vh su uno schermo 1080p la ruota e` larga
-             864px, e il vecchio 620 sgranava (vedi
-             `design/2026-09-28-revisione.md`, intervento 2). Il browser puo`
-             solo rimpicciolire un'immagine piu` grande, mai ingrandirla
-             senza sgranarla. -->
-        <canvas id="canvas-ruota" width="1000" height="1000"></canvas>
-        <div class="puntatore" aria-hidden="true"></div>
-      </div>
-
-      <div class="colonna-centrale">
-        <!-- Punto 38: "Round X di N" — resta per gli schermi sotto i 1200px
-             (telefono, non piu` il riferimento ma "basta che non si rompa");
-             da 1200px in su e` nascosto, sostituito dai pallini in
-             #round-punti nell'intestazione (vedi style.css). -->
-        <div id="indicatore-round" class="indicatore-round"></div>
-
-        <div id="tabellone-frase" class="tabellone-frase" aria-live="polite"></div>
-
-        <!-- Decimo giro, intervento 1/3 (28/09/2026): la categoria si sposta
-             qui, sotto il tabellone, come la striscia della TV — prima
-             stava nell'intestazione (vedi header sopra). -->
-        <!-- 05/10/2026: la targa mostra l'INDIZIO della frase (la categoria
-             solo se la frase non ne ha uno). L'id e la classe restano quelli
-             di prima. -->
-        <!-- 2.4.1 (Damiano 07/10): «Cambia frase» sta accanto alla targa, piccolo, e si vede
-             solo prima che sia uscita qualsiasi lettera del round (vedi cambiaFrasePossibile in gioco.js). -->
-        <div class="riga-targa">
-          <div id="categoria-corrente" class="categoria"></div>
-          <button id="btn-cambia-frase" type="button" class="cambia-frase nascosta" title="Un’altra frase: il round resta lo stesso">Cambia frase</button>
-        </div>
-
-        <!-- Undicesimo giro, punto 56 (28/09/2026, disegno di Chiara): il
-             "palco" dell'annuncio, come se fosse Gerry Scotti a dirlo —
-             sostituisce sia la vecchia riga verde (#messaggio-gioco) sia il
-             messaggio grande sopra il tabellone (#overlay-messaggio-grande,
-             punto 37/42): un solo posto dove guardare, vedi Annuncio in
-             gioco.js e il blocco @media(min-width:1200px) in style.css. -->
-        <div id="annuncio" class="annuncio" aria-live="assertive"></div>
-
-        <div class="area-comandi">
-          <button id="btn-gira" type="button" class="primario">Gira la ruota</button>
-          <button id="btn-compra-vocale" type="button">Vocale · 500 €</button>
-          <button id="btn-risolvi" type="button">Do la soluzione</button>
-          <!-- L'aiutino (Giro A, voce A2): c'e` solo per chi ce l'ha, si
-               spegne dopo l'uso nel round (vedi Gioco.aiutinoUsato in gioco.js). -->
-          <button id="btn-aiutino" type="button" class="aiutino nascosta">Aiutino</button>
-        </div>
-
-        <div id="pannello-vocali" class="pannello-scelta nascosta">
-          <p>Scegli la vocale</p>
-          <div class="griglia-lettere" id="griglia-vocali"></div>
-          <button id="btn-annulla-vocale" type="button" class="secondario">Annulla</button>
-        </div>
-
-        <div id="pannello-consonanti" class="pannello-scelta pannello-consonanti nascosta">
-          <!-- Express (2.4): la fascia e le due altre mosse si vedono solo con la classe «express» sul pannello -->
-          <div class="fascia-express" id="fascia-express"></div>
-          <p>Scegli una consonante</p>
-          <div class="griglia-lettere" id="griglia-consonanti"></div>
-          <div class="altre-mosse">
-            <button id="btn-express-vocale" type="button">Vocale · 500 €</button>
-            <button id="btn-express-soluzione" type="button">Do la soluzione</button>
-          </div>
-        </div>
-
-        <!-- Express (2.4, disegno di Chiara 06/10/2026): la scelta, nello stesso posto del «Usi un Jolly?».
-             Rifiutato = 200 € fissi e si gira di nuovo (Damiano, 06/10 sera). -->
-        <div id="pannello-express" class="pannello-scelta pannello-express nascosta">
-          <p><b>Express!</b> Consonanti una dopo l’altra, 500 € l’una. Se una lettera non c’è, bancarotta.</p>
-          <div class="scelte">
-            <button id="btn-express-si" type="button" class="primario">Gioco l’Express</button>
-            <button id="btn-express-no" type="button" class="secondario">No, prendo 200 €</button>
-          </div>
-        </div>
-
-        <div id="pannello-jolly" class="pannello-scelta nascosta">
-          <p id="testo-jolly-domanda"></p>
-          <button id="btn-jolly-si" type="button" class="primario">Sì, mi salvo</button>
-          <button id="btn-jolly-no" type="button" class="secondario">No, va così</button>
-        </div>
-
-        <!-- L'aiutino, toccato: si sceglie una casella coperta sul tabellone
-             (che respira, vedi style.css), il turno continua. -->
-        <div id="pannello-aiutino" class="pannello-scelta nascosta">
-          <p>Scegli una casella</p>
-        </div>
-
-        <div id="pannello-soluzione" class="pannello-scelta nascosta">
-          <p><span id="secondi-rimasti">20</span> secondi</p>
-          <form id="form-soluzione" autocomplete="off">
-            <input id="input-soluzione" type="text" placeholder="Scrivi qui la frase intera" />
-            <button type="submit" class="primario">Conferma</button>
-          </form>
-          <!-- la stessa barra del round lampo (06/10/2026); i secondi sono gia` scritti sopra -->
-          <div class="barra-tempo-lampo" aria-hidden="true"><div class="riempimento" id="riempimento-soluzione"></div></div>
-        </div>
-
-        <!-- Round lampo (giro B, voce B1, lampo.js): chi e` stato scelto
-             scrive la frase, LAMPO_SECONDI secondi (config.js). -->
-        <div id="pannello-lampo" class="pannello-scelta pannello-lampo nascosta">
-          <p><b id="lampo-chi"></b>, scrivi la frase</p>
-          <form id="form-lampo" autocomplete="off">
-            <input id="input-lampo" type="text" placeholder="Scrivi qui la frase intera" />
-            <button type="submit" class="primario">Conferma</button>
-          </form>
-          <div class="barra-tempo-lampo" aria-hidden="true"><div class="riempimento"></div><span class="secondi-lampo" id="secondi-lampo">15</span></div>
-        </div>
-
-        <div id="pannello-fine-round" class="pannello-scelta nascosta">
-          <p id="testo-fine-round"></p>
-          <button id="btn-round-successivo" type="button" class="primario">Prossimo round</button>
-        </div>
-      </div>
-
-      <div class="colonna-giocatori" id="colonna-giocatori"></div>
-    </div>
-
-    <!-- Punto 30 (28/09/2026): la festa di chi vince il round — resta un
-         modale a tutta pagina (position:fixed), sopra a tutto il resto
-         (compreso il pannello fine-round qui sopra, che resta pronto
-         sotto), musichetta a parte, e si chiude da sola o con un tocco. -->
-    <div id="overlay-festa" class="overlay-festa nascosta" role="dialog" aria-live="polite" aria-label="Festa di fine round">
-      <div class="scheda-festa">
-        <!-- Undicesimo giro, punto 58, strada B (28/09/2026): non piu` un
-             disegnino ma la tessera con l'iniziale del nome e l'anello del
-             colore del giocatore (gioco.js, mostraFestaVittoria). -->
-        <div id="festa-immagine" class="festa-immagine" aria-hidden="true"></div>
-        <div id="festa-nome" class="festa-nome"></div>
-        <div class="festa-testo">ha risolto la frase!</div>
-        <div class="festa-cifra-wrap"><span id="festa-cifra">0</span><span class="festa-euro"> €</span></div>
-        <div class="festa-cassaforte">volano in cassaforte</div>
-        <div id="festa-monete" class="festa-monete" aria-hidden="true"></div>
-        <button id="btn-chiudi-festa" type="button" class="secondario">Continua</button>
-      </div>
-    </div>
-
+        <b>Chiama una consonante</b>
+        <p>Se c’è, si accende e incassi; le vocali costano 500 €. Niente appunti: le lettere già chiamate bisogna ricordarsele.</p>
+      </li>
+      <li>
+        <div class="pezzo"><button type="button" tabindex="-1">Do la soluzione</button></div>
+        <b>Indovina la frase</b>
+        <p>Chi la risolve porta i soldi del round in cassaforte, e gli altri perdono i loro. Alla fine vince la cassaforte più piena.</p>
+      </li>
+    </ol>
   </section>
 
-  <!-- Conferma della X (06/10/2026): «No» e` il pulsante grande e col fuoco, perche` un tocco per sbaglio non butti via la partita -->
-  <div id="overlay-esci" class="overlay-festa nascosta" role="dialog" aria-modal="true" aria-labelledby="titolo-esci">
-    <div class="scheda-esci">
-      <p id="titolo-esci">Vuoi finire la partita?</p>
-      <div class="azioni-iscrizione">
-        <button id="btn-esci-no" type="button" class="primario">No</button>
-        <button id="btn-esci-si" type="button" class="secondario">Sì</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- SCHERMATA 3 (punto 39, 28/09/2026): fine partita, dopo l'ultimo round.
-       Non si chiude da sola (Damiano, seconda dettatura): resta finché non
-       si tocca "Gioca ancora" o "Torna all'inizio". -->
-  <section id="schermata-finale" class="schermata nascosta">
-    <!-- Punto 46 (28/09/2026, nono giro): "feste più animate, sia alla
-         vittoria del round sia alla vittoria finale". Alcuni botti di
-         pallini colorati, generati e rimossi al volo da gioco.js
-         (avviaFuochiFinale) — la schermata resta sobria a regime, i fuochi
-         durano solo pochi secondi dopo l'arrivo qui. -->
-    <div id="overlay-fuochi-finale" class="overlay-fuochi-finale" aria-hidden="true"></div>
-    <h1>Fine partita!</h1>
-    <div class="scheda-finale-vincitore">
-      <div id="finale-vincitore-immagine" class="festa-immagine" aria-hidden="true"></div>
-      <div id="finale-vincitore-nome" class="festa-nome"></div>
-      <div class="festa-testo">ha vinto la partita!</div>
-      <div class="festa-cifra-wrap"><span id="finale-vincitore-cifra">0</span><span class="festa-euro"> €</span></div>
-      <div class="festa-cassaforte">in cassaforte</div>
-      <!-- Il premio di casa (Giro A, voce A4): solo se all'iscrizione era
-           scritto qualcosa in "In palio stasera" (vedi Gioco.premioCasa). -->
-      <div id="finale-premio-casa" class="premio-casa nascosta"><small>e stasera</small><b id="finale-premio-testo"></b></div>
-    </div>
-    <p class="titolo-classifica">Classifica finale</p>
-    <div id="finale-classifica" class="finale-classifica"></div>
-    <div class="azioni-iscrizione">
-      <button id="btn-gioca-ancora" type="button" class="primario">Gioca ancora</button>
-      <button id="btn-torna-inizio" type="button" class="secondario">Torna all'inizio</button>
-    </div>
-    <p class="crediti-musica">A fine partita, se vi va, scrivetemi chi ha vinto: <a href="mailto:barbattack84@gmail.com?subject=Gira%20le%20Parole">barbattack84@gmail.com</a></p>
+  <!-- 3. Cosa c'e` dentro: solo quello che oggi si gioca davvero. -->
+  <section class="blocco dentro" aria-labelledby="titolo-dentro">
+    <h2 id="titolo-dentro">Cosa c’è dentro</h2>
+    <ul class="tessere tre">
+      <li>
+        <div class="pezzo pezzo-pillole" id="pillole-speciali"></div>
+        <b>Gli spicchi speciali</b>
+        <p>Due per round, dal secondo in poi. Con Robin Hood una consonante giusta vale 500 €, presi a chi è in testa.</p>
+      </li>
+      <li>
+        <div class="pezzo"><span class="interruttore" aria-hidden="true"><span class="leva acceso"></span><span class="testo-interruttore">Round lampo</span></span></div>
+        <b>Il round lampo</b>
+        <p>Se lo volete, le lettere escono da sole: chi capisce per primo preme un tasto qualsiasi, o tocca lo schermo, e il regista tocca la sua tessera.</p>
+      </li>
+      <li>
+        <div class="pezzo pezzo-pillole" id="pillole-gruppi"></div>
+        <b>Frasi per bambini e per grandi</b>
+        <p><span id="conta-frasi"></span> frasi scritte apposta, in quattro gruppi. L’indizio dice «Il polpo», la frase da scoprire è «Ha tre cuori e il sangue blu».</p>
+      </li>
+      <li>
+        <div class="pezzo"><span class="segmenti" aria-hidden="true"><span class="segmento">Ognuno per sé</span><span class="segmento selezionata">A squadre</span></span></div>
+        <b>Ognuno per sé, o a squadre</b>
+        <p>Un turno a testa anche in squadra: il gioco chiama per nome chi deve giocare, non la squadra.</p>
+      </li>
+      <li>
+        <div class="pezzo"><span class="interruttore" aria-hidden="true"><span class="leva acceso"></span><span class="testo-interruttore">Aiutino</span></span></div>
+        <b>L’aiutino per il più piccolo</b>
+        <p>Gli accendete la sua levetta: una volta a round tocca una casella coperta, e quella lettera si scopre gratis in tutta la frase.</p>
+      </li>
+      <li>
+        <div class="pezzo"><span class="finto-campo" aria-hidden="true">sceglie il film</span></div>
+        <b>Un premio vero</b>
+        <p>Scrivete cosa c’è in palio stasera: chi vince se lo trova sulla sua scheda.</p>
+      </li>
+    </ul>
   </section>
+
+  <!-- 4. Cosa serve, e il secondo «Gioca» per chi ha letto fin qui. -->
+  <section class="blocco serve" aria-labelledby="titolo-serve">
+    <h2 id="titolo-serve">Cosa serve</h2>
+    <ul class="lista-serve">
+      <li><b>Uno schermo grande che vedano tutti</b>: un computer collegato a un monitor o alla TV. Sul telefono funziona, ma ci si stringe.</li>
+      <li><b>Da 2 a <span class="max-giocatori"></span> giocatori</b>, o due squadre fino a <span id="max-per-squadra"></span> per parte.</li>
+      <li><b>Meglio ancora, un regista</b>: uno solo sta al computer e fa le mosse per tutti. Chiede «cosa fate?», gli altri rispondono «gira» o «compro una vocale», e la partita si gioca a voce. Nel round lampo è lui a toccare la tessera di chi è stato più veloce.</li>
+    </ul>
+    <p class="azioni-fondo"><a class="primario grande" href="gioco.html#gioca">Gioca</a></p>
+  </section>
+
+  <footer class="pie-presentazione">
+    <!-- «Novità» apre nel gioco la finestra delle novità, con le idee in arrivo in fondo (gioco.html#novita) -->
+    <p><span id="versione-gioco"></span> · <a href="gioco.html#novita">Novità</a></p>
+    <p>Il gioco e il suo codice sono su <a href="https://github.com/GiraLeParole/giraleparole.github.io">GitHub</a>. Musiche: Kevin MacLeod, incompetech.com, CC BY 4.0.</p>
+    <p>Se vi va, scrivetemi chi ha vinto: <a href="mailto:barbattack84@gmail.com?subject=Gira%20le%20Parole">barbattack84@gmail.com</a></p>
+  </footer>
+
+</main>
 
   <script src="config.js"></script>
-  <!-- Punto 66 (29/09/2026): le frasi nostre (Penna), non piu` quelle del
-       sito di partenza. frasi.js resta nel repository ma non si carica piu`:
-       i due file dichiarano lo stesso `const FRASI`, quindi va caricato uno
-       solo, mai insieme. -->
   <script src="frasi-nostre.js"></script>
-  <!-- Le novità e la versione (Giro A, voce A5): generato da CHANGELOG.md,
-       vedi genera-novita.mjs e pubblica.sh — non si scrive a mano. -->
   <script src="novita.js"></script>
-  <script src="audio.js"></script>
-  <!-- La ruota pesante (05/10/2026): il motore fisico, uno solo per pulsante e mano. Va prima di ruota.js. -->
+  <script src="speciali-comuni.js"></script>
   <script src="fisica-ruota.js"></script>
   <script src="ruota.js"></script>
-  <script src="gioco.js"></script>
-  <script src="lampo.js"></script>
+  <script src="presentazione.js"></script>
 </body>
 </html>

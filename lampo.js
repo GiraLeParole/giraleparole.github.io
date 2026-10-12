@@ -50,6 +50,12 @@ const Lampo = (() => {
   function pianifica() {
     Gioco.lampoDopo = new Set();
     if (!Gioco.lampoAttivo) return;
+    // Percorso (sesta stesura, Damiano 09/10 sera): il lampo c'e` SEMPRE fra un giorno e l'altro, dopo ogni giorno tranne l'ultimo
+    // (5 giorni = 4 lampi). Il numero dei round conta solo i giorni. Nella Classica resta com'e`, a caso (LAMPO_QUANDO).
+    if (inPercorso()) {
+      for (let n = 1; n < Gioco.numeroRoundTotale; n++) Gioco.lampoDopo.add(n);
+      return;
+    }
     const regola = LAMPO_QUANDO[Gioco.numeroRoundTotale];
     if (!regola) return;
     // quanti: un numero, oppure [min, max] estratto a caso a ogni partita
@@ -83,7 +89,7 @@ const Lampo = (() => {
   // aggiornaSchedeGiocatori() ricostruisce la fila da zero: dopo ogni suo
   // giro le classi del lampo si rimettono qui, dalla fase e da chi e` fuori.
   function segnaTessere() {
-    [...colonnaGiocatoriEl.children].forEach((t, i) => {
+    elementiDeiGiocatori().forEach((t, i) => { // la fila delle tessere, o nel Percorso le corsie
       t.classList.toggle("fuori", fuori.has(i));
       t.classList.toggle("prenotato", scelto === i);
     });
@@ -91,8 +97,8 @@ const Lampo = (() => {
   }
 
   function indiceDiTessera(el) {
-    const t = el.closest && el.closest(".scheda-giocatore");
-    return t && colonnaGiocatoriEl.contains(t) ? [...colonnaGiocatoriEl.children].indexOf(t) : -1;
+    const t = el.closest && el.closest(".scheda-giocatore, .tessera-viaggio");
+    return t && colonnaGiocatoriEl.contains(t) ? elementiDeiGiocatori().indexOf(t) : -1;
   }
 
   // ---- avvio ----------------------------------------------------------------
@@ -114,6 +120,8 @@ const Lampo = (() => {
     Gioco.lettereUsate = new Set();
     Gioco.stato = "lampo";
     categoriaEl.textContent = testoTarga(Gioco.fraseCorrente); // come nei round: l'indizio
+    // Percorso (§7): il lampo conta come un giorno, ma senza passo subito, tenda, tempo ne' tramonto; i bivacchi accesi ieri non fermano piu', e tutti lo giocano (il sonno finisce con la sera)
+    if (inPercorso()) { Percorso.alba(Gioco, { lampo: true }); PercorsoVista.lampo(true); }
 
     areaPartitaEl.classList.add("lampo");
     aggiornaSchedeGiocatori();
@@ -263,8 +271,7 @@ const Lampo = (() => {
   formLampoEl.addEventListener("submit", (ev) => {
     ev.preventDefault();
     if (fase !== "risposta") return;
-    const tentativo = normalizzaTesto(inputLampoEl.value);
-    if (tentativo.length > 0 && tentativo === normalizzaTesto(Gioco.fraseCorrente.testo)) giusto();
+    if (soluzioneGiusta(inputLampoEl.value, Gioco.fraseCorrente.testo)) giusto();
     else sbagliato();
   });
 
@@ -291,7 +298,17 @@ const Lampo = (() => {
       sotto: nomeFuori + (tuttiFuori ? " è fuori" : " è fuori, le lettere continuano"), // testo di Penna, da rivedere
       durata: DURATA_ANNUNCIO_MS,
     });
-    timerLettere = setTimeout(tuttiFuori ? nessuno : prossimaLettera, DURATA_ANNUNCIO_MS + 200);
+    // Dopo una soluzione sbagliata le lettere non ripartono subito (Damiano, 10/10, quarta prova): tre secondi di conto alla rovescia a vista,
+    // perche' chi e` ancora in gioco si rimetta sulla tastiera. Vale per la Classica e per il Percorso (il lampo e` lo stesso).
+    timerLettere = setTimeout(tuttiFuori ? nessuno : () => contoAllaRovescia(LAMPO_CONTO_SECONDI), DURATA_ANNUNCIO_MS + 200);
+  }
+
+  // 3, 2, 1: un numero al secondo nel cartello; a zero le lettere riprendono. Nessun tocco e nessun tasto ferma le lettere in questa fase.
+  function contoAllaRovescia(n) {
+    if (n <= 0) { Annuncio.nascondi(); timerLettere = setTimeout(prossimaLettera, 240); return; }
+    fase = "conto";
+    Annuncio.mostra({ stile: "scena", lettera: String(n), titolo: "Le lettere ripartono", sotto: "rimettetevi sulla tastiera" });
+    timerLettere = setTimeout(() => contoAllaRovescia(n - 1), 1000);
   }
 
   function giusto() {
@@ -300,6 +317,7 @@ const Lampo = (() => {
     pannelloLampoEl.classList.add("nascosta");
     const i = scelto;
     const g = Gioco.giocatori[i];
+    if (inPercorso()) { giustoPercorso(i, g); return; } // al posto dei 500 €: un Castello davanti a se' oppure un passo
     g.soldiTotale += LAMPO_PREMIO;
     Gioco.posizioniRivelate = new Set([...Gioco.fraseCorrente.testo].map((_, k) => k));
     disegnaTabellone();
@@ -316,11 +334,88 @@ const Lampo = (() => {
     timerLettere = setTimeout(() => fine(i), DURATA_ANNUNCIO_LAMPO_MS + 200);
   }
 
+  // Percorso (settima stesura, §7): chi vince il lampo NON fa piu` i 2 passi: sceglie fra un Castello suo su una pietra libera DAVANTI alla propria
+  // pedina e un passo con la pedina (se davanti non c'e` nessuna pietra buona, fa il passo). Poi apre il giorno dopo l'ultimo, come ogni mattina.
+  function giustoPercorso(i, g) {
+    Gioco.posizioniRivelate = new Set([...Gioco.fraseCorrente.testo].map((_, k) => k));
+    disegnaTabellone();
+    aggiornaSchedeGiocatori();
+    segnaTessere();
+    Audio_.jingleLampo();
+    festeggiaTessera(i);
+    Annuncio.mostra({ stile: "scena oro", titolo: g.nome + "!", sotto: "vince il lampo · un Castello o un passo", durata: DURATA_ANNUNCIO_LAMPO_MS });
+    timerLettere = setTimeout(() => scegliPremioPercorso(i, g), DURATA_ANNUNCIO_LAMPO_MS + 200);
+  }
+
+  function chiudiScelta() { PercorsoVista.nascondiLibere(); pannelloPercorso.classList.add("nascosta"); pannelloPercorso.innerHTML = ""; }
+  // «Domani parte X» (l'ultimo): detto alla fine, quando le pedine sono dove restano.
+  const domaniParte = () => Percorso.ultimo(Gioco).nome;
+
+  function scegliPremioPercorso(i, g) {
+    if (Gioco.traguardo) { dopoPremioPercorso(i, g); return; }
+    const libere = caselleLibereDelPercorso(g);
+    fase = "pedaggio";
+    Annuncio.nascondi();
+    pannelloPercorso.innerHTML = "";
+    pannelloPercorso.appendChild(domandaPercorso("<b>Hai vinto il lampo.</b> Costruisci un Castello davanti a te, oppure fai un passo?"));
+    const scelte = document.createElement("div");
+    scelte.className = "scelte";
+    scelte.appendChild(pulsantePercorso("Un passo avanti", "secondario", () => { chiudiScelta(); faiPassoLampo(i, g); }));
+    if (libere.length) scelte.appendChild(pulsantePercorso("Un Castello davanti a me", "primario", () => scegliCasella(i, g, libere)));
+    pannelloPercorso.appendChild(scelte);
+    pannelloPercorso.classList.remove("nascosta");
+  }
+
+  function faiPassoLampo(i, g) {
+    const ev = Percorso.passoLampo(Gioco, g);
+    Audio_.letteraRivelata();
+    PercorsoVista.riproduci(ev, {});
+    accodaBolleDegliEventi(ev);
+    aggiornaSchedeGiocatori();
+    segnaTessere();
+    Annuncio.mostra({ stile: "scena oro", titolo: g.nome + ": un passo", sotto: "domani parte " + domaniParte(), durata: DURATA_ANNUNCIO_LUNGO_MS });
+    timerLettere = setTimeout(() => dopoPremioPercorso(i, g), DURATA_ANNUNCIO_LUNGO_MS + 200);
+  }
+
+  function scegliCasella(i, g, libere) {
+    pannelloPercorso.innerHTML = "";
+    pannelloPercorso.appendChild(domandaPercorso("<b>Castello!</b> Tocca una pietra libera davanti a te: ci costruisci il tuo Castello"));
+    const scelte = document.createElement("div");
+    scelte.className = "scelte";
+    scelte.appendChild(pulsantePercorso("Meglio un passo", "secondario", () => { chiudiScelta(); faiPassoLampo(i, g); }));
+    pannelloPercorso.appendChild(scelte);
+    PercorsoVista.mostraLibere(libere, (pos) => {
+      chiudiScelta();
+      piazzaPedaggio(g, pos);
+      segnaTessere();
+      Audio_.click();
+      Annuncio.mostra({ stile: "speciale", casella: "pedaggio", titolo: "Castello!", sottoHtml: `la pietra ${pos} è di <b>${escHtml(g.nome)}</b>: chi lo visita le regala un passo · domani parte ${escHtml(domaniParte())}`, durata: DURATA_ANNUNCIO_LUNGO_MS });
+      timerLettere = setTimeout(() => dopoPremioPercorso(i, g), DURATA_ANNUNCIO_LUNGO_MS + 200);
+    }, g); // il colore di chi ha vinto il lampo: l'anello dell'anteprima del Castello
+  }
+
+  function dopoPremioPercorso(i, g) {
+    if (Gioco.traguardo) {
+      // il traguardo: chi lo tocca vince subito, nessun round da aprire (come al termine di un round)
+      fase = null;
+      fermaTimerRisposta();
+      clearTimeout(timerLettere);
+      areaPartitaEl.classList.remove("lampo", "lampo-scelta");
+      PercorsoVista.lampo(false);
+      elementiDeiGiocatori().forEach((t) => t.classList.remove("prenotato", "fuori"));
+      alFine = null;
+      Audio_.musicaProssimoRound(); // via la musica del lampo
+      traguardoDalLampo(g);
+      return;
+    }
+    fine(i);
+  }
+
   // La festa piccola del lampo (06/10/2026): un botto di scintille sulla
   // tessera di chi ha indovinato, e basta. Niente finestra, niente monete,
   // niente coriandoli: quelli restano al round e alla schermata finale.
   function festeggiaTessera(i) {
-    const tessera = colonnaGiocatoriEl.children[i];
+    const tessera = elementiDeiGiocatori()[i];
     if (!tessera) return;
     const r = tessera.getBoundingClientRect();
     const botto = document.createElement("div");
@@ -344,7 +439,7 @@ const Lampo = (() => {
     Annuncio.mostra({
       stile: "scena",
       titolo: "Nessuno!",
-      sotto: "apre " + Gioco.giocatori[chiApre].nome,
+      sotto: inPercorso() ? "domani parte " + Percorso.ultimo(Gioco).nome : "apre " + Gioco.giocatori[chiApre].nome,
       durata: DURATA_ANNUNCIO_LAMPO_MS,
     });
     timerLettere = setTimeout(() => fine(chiApre), DURATA_ANNUNCIO_LAMPO_MS + 200);
@@ -355,8 +450,10 @@ const Lampo = (() => {
     fermaTimerRisposta();
     clearTimeout(timerLettere);
     areaPartitaEl.classList.remove("lampo", "lampo-scelta");
-    [...colonnaGiocatoriEl.children].forEach((t) => t.classList.remove("prenotato", "fuori"));
+    elementiDeiGiocatori().forEach((t) => t.classList.remove("prenotato", "fuori"));
     Gioco.stato = "idle";
+    // Percorso: i bivacchi accesi durante il lampo valgono per chi apre il giorno dopo, se non c'e' gia' un premio dal giorno prima
+    if (inPercorso()) PercorsoVista.lampo(false);
     const vaAvanti = alFine;
     alFine = null;
     if (vaAvanti) vaAvanti(chiApre);

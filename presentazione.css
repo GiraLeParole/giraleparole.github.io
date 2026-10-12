@@ -1,0 +1,121 @@
+/* ============================================================================
+   GIRA LE PAROLE — la pagina di presentazione (Chiara, 07/10/2026).
+   Si aggiunge DOPO style.css e ne usa variabili e pezzi (pulsanti, leva,
+   segmenti, pillole degli speciali, ruota e freccia). Niente font e niente
+   risorse dalla rete. Due disegni: lo schermo largo (da 900px) e il telefono.
+   ============================================================================ */
+
+/* style.css, da 1200px, blocca lo scorrimento di html/body per il gioco
+   (html, body { height: 100%; overflow: hidden }). La presentazione scorre:
+   la classe sull'<html> vince per specificita`, senza !important. */
+html.presentazione, html.presentazione body { height: auto; min-height: 100vh; overflow: auto; }
+/* lo sfondo del gioco e` fisso alla finestra (background-attachment: fixed): per una pagina che
+   scorre lo si attacca alla pagina, cosi` il gradiente la copre tutta anche dove «fixed» non
+   e` sostenuto (Safari su iPhone: non verificato oggi, vedi la scheda). */
+html.presentazione body { background-attachment: scroll; }
+html.presentazione { scroll-behavior: smooth; }
+@media (prefers-reduced-motion: reduce) { html.presentazione { scroll-behavior: auto; } }
+
+.pagina-presentazione { max-width: 1500px; margin: 0 auto; padding: 0 4vw 4vh; }
+
+/* --- 1. la prima schermata --------------------------------------------- */
+.eroe {
+  min-height: 91vh;              /* il titolo della sezione dopo fa capolino: la pagina continua */
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center;
+  column-gap: 5vw; padding: 4vh 0 2vh;
+}
+.eroe-testo { max-width: 42rem; }
+.eroe h1 { text-align: left; font-size: clamp(2.6rem, 7.5vh, 6rem); line-height: 1; margin: 0 0 2.2vh; font-weight: 700; }
+.eroe-cosa { font-size: clamp(1.1rem, 2.4vh, 1.7rem); line-height: 1.4; margin: 0 0 3.6vh; max-width: 34em; }
+.eroe-azioni { display: flex; align-items: center; gap: 2.4vw; flex-wrap: wrap; margin-bottom: 1.8vh; }
+/* «Gioca» e` un link vestito da pulsante primario: stesso arancione, stessa forma */
+a.primario { display: inline-block; text-decoration: none; text-align: center; font-family: var(--font-titoli); font-weight: 700; background: var(--accento); color: #1a1a1a; border: 2px solid var(--accento); border-radius: 10px; cursor: pointer; }
+a.primario.grande { font-size: clamp(1.25rem, 3vh, 2.1rem); padding: 0.75em 2.4em; box-shadow: 0 0.5vh 2vh rgba(0, 0, 0, 0.3); transition: transform 140ms ease-out, box-shadow 140ms ease-out; }
+a.primario.grande:hover { transform: translateY(-2px); box-shadow: 0 0.9vh 2.6vh rgba(0, 0, 0, 0.36); }
+a.primario:focus-visible { outline: 3px solid #fff; outline-offset: 3px; }
+.eroe-link { color: var(--testo); font-weight: 700; font-size: clamp(1rem, 2.2vh, 1.4rem); text-decoration: underline; text-underline-offset: 0.25em; text-decoration-color: var(--accento); text-decoration-thickness: 2px; }
+.eroe-link:hover { color: #fff; text-decoration-color: #fff; }
+.eroe-nota { margin: 0; color: var(--testo-attenuato); font-size: clamp(0.85rem, 1.7vh, 1.05rem); }
+
+/* la ruota vera, piu` piccola che in partita; si tocca e gira */
+/* style.css da 1200px da` a .colonna-ruota grid-row: 1 / span 2 (la griglia della partita):
+   qui la griglia e` un'altra, e la ruota sta in una riga sola accanto al testo. */
+.eroe .colonna-ruota { grid-area: auto; align-self: center; width: min(62vh, 36vw); max-width: none; margin: 0; justify-self: end; }
+.eroe #canvas-ruota { touch-action: auto; cursor: pointer; filter: drop-shadow(0 1.2vh 2.4vh rgba(0, 0, 0, 0.35)); }
+.eroe #canvas-ruota.gira { cursor: default; }
+
+/* --- i blocchi sotto ------------------------------------------------------- */
+.blocco { padding: 5vh 0 1vh; }
+.blocco h2 { font: 700 clamp(1rem, 2vh, 1.3rem) var(--font-titoli); color: var(--testo-attenuato); letter-spacing: 0.06em; text-transform: uppercase; margin: 0 0 2.4vh; }
+
+.tessere { list-style: none; margin: 0; padding: 0; display: grid; gap: 2vh 1.6vw; }
+.tessere.tre { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.tessere li { background: var(--sfondo-pannello); border: 2px solid var(--bordo); border-radius: 18px; padding: 2.2vh 1.6vw 2.4vh; display: flex; flex-direction: column; min-width: 0; }
+.tessere li b { display: block; font: 700 clamp(1.1rem, 2.4vh, 1.5rem) var(--font-titoli); margin: 0 0 0.6vh; }
+.tessere li p { margin: 0; font-size: clamp(0.95rem, 1.9vh, 1.2rem); line-height: 1.4; }
+/* il pezzo vero in piccolo: si guarda, non si tocca */
+.tessere .pezzo { height: 7vh; min-height: 3.2rem; display: flex; align-items: center; margin-bottom: 1.6vh; pointer-events: none; }
+.tessere .pezzo button { font-size: clamp(0.85rem, 1.8vh, 1.1rem); padding: 0.5em 1em; }
+.tessere .pezzo .segmenti { font-size: clamp(0.8rem, 1.6vh, 1rem); }
+.tessere .pezzo .segmento { padding: 0.35em 0.9em; }
+.tessere .pezzo .interruttore { font-size: clamp(0.85rem, 1.8vh, 1.1rem); }
+.tessere .pezzo .interruttore .leva { width: 2.3em; height: 1.3em; border-width: 2px; }
+.tessere .pezzo .interruttore .leva::after { top: 0.1em; left: 0.1em; width: 0.85em; height: 0.85em; }
+.tessere .pezzo .interruttore .leva.acceso { background: var(--accento); border-color: var(--accento); }
+.tessere .pezzo .interruttore .leva.acceso::after { transform: translateX(1em); background: #1a1a1a; }
+.tessere .pezzo .interruttore .testo-interruttore { font-weight: 700; }
+.pezzo-pillole { flex-wrap: wrap; gap: 0.4em 0.5em; font-size: clamp(0.72rem, 1.5vh, 0.95rem); align-content: center; }
+.pezzo-pillole .pillola-speciale { font-size: 1em; }
+.pillola-gruppo { display: inline-flex; align-items: center; padding: 0.3em 0.9em; border-radius: 8px; border: 2px solid var(--bordo); background: #1d2454; font-weight: 700; font-size: 1.05em; }
+.pillola-gruppo.scelto { background: var(--accento); border-color: var(--accento); color: #1a1a1a; }
+/* un angolo di tabellone: le caselle come in partita (bianca coperta, gialla accesa, bianca con la lettera scoperta) */
+.mini-tabellone { display: inline-flex; gap: 0.15em; padding: 0.3em; border-radius: 0.4em; background: linear-gradient(90deg, #e0219f 0%, #b52bb0 45%, #7c2fb8 100%); border: 0.2em solid #fff; font-size: clamp(0.9rem, 2vh, 1.3rem); box-shadow: 0 0 0 2px #ff3dcb; }
+.mini-tabellone i { display: inline-flex; align-items: center; justify-content: center; width: 1.7em; height: 2.2em; background: #fff; color: #111; border-radius: 0.15em; font: 800 1.3em var(--font-titoli); box-shadow: inset 0 -0.2em 0 rgba(0, 0, 0, 0.12); }
+.mini-tabellone i:not(.scoperta):not(.accesa) { color: transparent; }
+.mini-tabellone i.accesa { background: #ffc233; box-shadow: 0 0 0 2px #fff, 0 0 0.8em 0.2em rgba(255, 194, 51, 0.8); }
+.finto-campo { display: inline-block; padding: 0.5em 1em; min-width: 11em; border-radius: 8px; background: #0d1230; border: 2px solid var(--bordo); color: #6a72a8; font-size: clamp(0.9rem, 1.9vh, 1.15rem); }
+
+.lista-serve { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 2vh 1.6vw; }
+.lista-serve li { font-size: clamp(0.95rem, 1.9vh, 1.2rem); line-height: 1.45; padding-left: 1.1em; border-left: 3px solid var(--accento); }
+.lista-serve b { font-family: var(--font-titoli); }
+.azioni-fondo { text-align: center; margin: 5vh 0 1vh; }
+
+.pie-presentazione { margin-top: 6vh; padding-top: 2.4vh; border-top: 1px solid rgba(255, 255, 255, 0.18); color: var(--testo-attenuato); font-size: clamp(0.78rem, 1.5vh, 0.95rem); }
+.pie-presentazione p { margin: 0 0 0.5em; }
+.pie-presentazione a { color: var(--testo); }
+
+/* --- il telefono, e gli schermi stretti (sotto i 900px) -------------------- */
+@media (max-width: 899px) {
+  .pagina-presentazione { padding: 0 5vw 6vh; }
+  .eroe { grid-template-columns: 1fr; min-height: 0; padding: 4vh 0 1vh; row-gap: 2.5vh; text-align: center; }
+  .eroe-testo { max-width: none; display: contents; }
+  .eroe h1 { text-align: center; font-size: clamp(2.3rem, 11vw, 3.2rem); margin: 0; order: 1; }
+  .eroe .colonna-ruota { width: min(62vw, 300px); margin: 0 auto; justify-self: center; order: 2; }
+  .eroe-cosa { order: 3; margin: 0 auto; font-size: 1.05rem; }
+  .eroe-azioni { order: 4; flex-direction: column; gap: 1.6vh; margin: 0.5vh 0 0; }
+  a.primario.grande { width: 100%; max-width: 22rem; font-size: 1.35rem; padding: 0.75em 1em; }
+  .eroe-nota { order: 5; font-size: 0.85rem; }
+  .blocco { padding: 4vh 0 0; }
+  .tessere.tre, .lista-serve { grid-template-columns: 1fr; }
+  /* le tessere diventano righe: il pezzo a sinistra, il testo a destra — la pagina si accorcia */
+  .tessere li { padding: 0.9rem 0.9rem 1rem; display: grid; grid-template-columns: 6.6rem minmax(0, 1fr); column-gap: 0.8rem; align-items: center; }
+  .tessere li b { grid-column: 2; font-size: 1.05rem; margin-bottom: 0.2rem; }
+  .tessere li p { grid-column: 2; font-size: 0.92rem; }
+  .tessere .pezzo { grid-column: 1; grid-row: 1 / span 2; height: auto; min-height: 2.8rem; margin: 0; justify-content: center; font-size: 0.85rem; }
+  .tessere .pezzo button { font-size: 0.78rem; padding: 0.45em 0.7em; white-space: nowrap; }
+  .tessere .pezzo .segmenti { font-size: 0.68rem; }
+  .tessere .pezzo .interruttore { font-size: 0.78rem; }
+  .tessere .pezzo .interruttore .testo-interruttore { display: none; }
+  .pezzo-pillole { font-size: 0.62rem; justify-content: center; }
+  .mini-tabellone { font-size: 0.6rem; }
+  /* nella colonna stretta i due segmenti non ci stanno: resta la pillola accesa */
+  .tessere .pezzo .segmento:not(.selezionata) { display: none; }
+  .tessere .pezzo .segmento { white-space: nowrap; }
+  .finto-campo { min-width: 0; width: 100%; font-size: 0.72rem; padding: 0.45em 0.6em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .pillola-gruppo { font-size: 0.92em; padding: 0.25em 0.6em; }
+  .azioni-fondo { margin: 3vh 0 0; }
+  .pie-presentazione { text-align: center; }
+}
+@media (min-width: 900px) and (max-width: 1199px) {
+  .tessere.tre { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}

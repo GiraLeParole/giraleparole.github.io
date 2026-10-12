@@ -204,7 +204,7 @@ const DURATA_MISTERO_GIRA_MS = 800;      // la carta che si gira e mostra cosa c
 // restava 2400 ms; ora viaggia 1100 ms (da 300 a 1400) e il cartello resta 3000 ms. Il CSS legge i due valori da qui.
 const ROBIN_HOOD_PEDINA_RITARDO_MS = 300; // la pedina aspetta questo, poi parte
 const ROBIN_HOOD_PEDINA_MS = 1100;        // quanto dura il viaggio da chi e` in testa a chi gira
-const DURATA_ROBIN_HOOD_MS = 3000;        // il cartello intero con la pedina che passa di mano
+let DURATA_ROBIN_HOOD_MS = 3000;          // il cartello intero con la pedina che passa di mano
 const DURATA_SCUDO_PRESO_MS = 1800;
 const DURATA_SCUDO_SCATTA_MS = 1800;
 
@@ -440,8 +440,11 @@ const VOLUME_EFFETTI_CURSORE_INIZIALE = 1.0;
 // serve più). Due durate, in millisecondi: quanto il gioco aspetta prima di
 // passare il turno dopo un esito negativo (DURATA_ANNUNCIO_MS) e quanto dopo
 // un esito più pesante — bancarotta, avvisi (DURATA_ANNUNCIO_LUNGO_MS).
-const DURATA_ANNUNCIO_MS = 1300;
-const DURATA_ANNUNCIO_LUNGO_MS = 1800;
+// Dal 09/10/2026 (Damiano, prima partita del Percorso: «un secondo in piu`, sennò non si legge») queste durate sono `let`:
+// preparaModalita() (gioco.js) le rimette ai valori di base nella Classica e ci somma PERCORSO_ANNUNCIO_IN_PIU_MS nel Percorso,
+// cosi` anche le attese che seguono un annuncio (il turno che passa, «gira ancora») restano d'accordo con l'annuncio.
+let DURATA_ANNUNCIO_MS = 1300;
+let DURATA_ANNUNCIO_LUNGO_MS = 1800;
 
 // Punto 69, quattordicesimo giro (29/09/2026, disegno di Chiara): ogni
 // annuncio che passa il turno ha un secondo tempo, «Tocca a <nome>», che
@@ -450,7 +453,7 @@ const DURATA_ANNUNCIO_LUNGO_MS = 1800;
 // gia` passato e la fila dei giocatori mostra il balzo (voce 2 della scheda).
 // I comandi tornano solo alla fine di questo secondo tempo, non prima.
 // Raccomandazione di Chiara: 2400. Se in prova sembra lento, scendere a 1800.
-const DURATA_TOCCA_A_MS = 2400;
+let DURATA_TOCCA_A_MS = 2400; // nel Percorso 2700 (DURATA_TOCCA_A_PERCORSO_MS)
 
 // La tessera di chi NON e` di turno si sbiadisce a questa opacita` (1 =
 // piena, 0 = invisibile) — cosi` la tessera di chi gioca ora risalta senza
@@ -529,6 +532,7 @@ const GIRO_B_C_ATTIVO = false;
 // ----------------------------------------------------------------------------
 const LAMPO_ATTIVO = true;           // false = il lampo sparisce del tutto (leva dell'iscrizione compresa)
 const LAMPO_INTERVALLO_MS = 1200;    // una lettera si accende ogni 1,2 s
+const LAMPO_CONTO_SECONDI = 3;      // dopo una soluzione sbagliata: tre secondi di conto alla rovescia a vista prima che le lettere ripartano (10/10, quarta prova)
 const LAMPO_SECONDI = 15;            // chi risponde ha 15 s, contati dal tocco sulla sua tessera (non da quello che ferma le lettere)
 const LAMPO_PREMIO = 500;            // in cassaforte, a chi indovina
 const LAMPO_MAX_LETTERE = 22;        // «frase breve»: al massimo 22 lettere (spazi esclusi)
@@ -660,11 +664,20 @@ const CARTELLA_MUSICA = "musica/";
 const SEQUENZA_MUSICA_FILE = [
   "Funk-Game-Loop.mp3",
   "Funky-Chunk.mp3",
-  "Funk-Game-Loop.mp3",
+  "Funkorama.mp3",
   "C-Funk.mp3",
-  "Funk-Game-Loop.mp3",
+  "Enter-the-Party.mp3",
   "Protofunk.mp3",
+  "Loopster.mp3",
+  "Got-Funk.mp3",
+  "Funk-Game-Loop.mp3",
+  "Aces-High.mp3",
 ];
+// 07/10/2026: dai 4 brani ai 9 (+ Funk Game Loop, che ricorre due volte), su
+// richiesta di Damiano ("sono sempre le stesse"). Regola: due round di fila
+// non hanno mai lo stesso file, nemmeno al giro di coda (l'ultimo, Aces High,
+// e il primo, Funk Game Loop, sono diversi): chi ritocca l'elenco la rispetti.
+// Con 10 posizioni, una partita da 5 round ne usa 5 e non ripete.
 
 // Volume dei brani veri, sotto voci ed effetti (stesso principio dei groove
 // generati: la musica non deve mai coprire ne` i bambini ne` il gioco).
@@ -685,6 +698,16 @@ const VOLUME_MUSICA_FILE = 0.3;
 // effetti: circa tre volte il picco della musica. Non provato ad orecchio.
 const MUSICA_LAMPO_FILE = "Rocket-Power.mp3";
 const MUSICA_LAMPO_FATTORE = 1; // 06/10/2026 sera: Damiano la vuole allo stesso livello dei round (era 0.3)
+
+// La musica della schermata di iscrizione (giocatori, modalita`, gruppi),
+// 07/10/2026. Parte quando si apre la schermata e lascia il posto alla musica
+// dei round (con la dissolvenza qui sotto) quando la partita comincia. Stesso
+// cursore e stesso volume di tutta la musica, nessun fattore proprio.
+// DAMIANO SCEGLIE A ORECCHIO fra i tre candidati in
+// `musica-candidati/iscrizione/` (Sunshine, Chee-Zee-Beach, Somewhere-Sunny):
+// si sposta il file scelto dentro `musica/` e qui si scrive il suo nome, per
+// esempio "Sunshine.mp3". Finche` e` null, l'iscrizione resta muta come prima.
+const MUSICA_ISCRIZIONE_FILE = "Chee-Zee-Beach.mp3"; // scelta di Damiano (10/10/2026, «la meno peggio»); il file e` copiato in musica/, i candidati restano in musica-candidati/
 
 // Durata della dissolvenza fra un brano e il successivo a inizio round —
 // "non uno stacco" (richiesta di Damiano). In secondi.
@@ -726,3 +749,464 @@ const FUOCHI_FINALE_PARTICELLE_PER_BURST = 42; // pallini per ogni botto
 // "resta finche` non la chiude qualcuno") — cosi` la festa non si spegne
 // dopo pochi secondi mentre la schermata rimane a lungo sullo schermo.
 const FUOCHI_FINALE_INTERVALLO_MS = 2500;
+
+// ============================================================================
+// LA MODALITA` «PERCORSO» (07/10/2026) — disegno di Chiara, decisioni di Damiano.
+// Pagine: design/2026-10-07-percorso.md (il disegno), design/2026-10-07-percorso-conti.md
+// (i conti, i due set, la Nebbia, le scelte A-H), scheda per Erbottega
+// design/2026-10-07-scheda-percorso.md; le costanti sono quelle di
+// design/prototipi/2026-10-07-percorso/proposta-config.js. Damiano, 07/10: «approvo
+// tutte le raccomandazioni di Chiara», compresa la lunghezza che segue la serata.
+//
+// In una riga: la Classica con i passi al posto degli euro. Una lettera giusta spinge
+// avanti l'OMBRA; chi risolve la frase porta la PEDINA fin dove sta l'ombra; la
+// Nebbia (la Bancarotta del Percorso) fa sparire l'ombra. Vince chi tocca il
+// traguardo (subito, anche a round non finiti), altrimenti chi e` piu` avanti
+// alla fine. La partita Classica non cambia in niente.
+// ============================================================================
+
+// ---- gli interruttori ---------------------------------------------------------
+// Il set di speciali e di caselle (scelta B dei conti di Chiara): alla prima prova il
+// RIDOTTO (4 spicchi e 5 caselle, senza il Fiume); il PIENO (8 spicchi e 10 caselle,
+// Fiume compreso) si accende cambiando questa riga. Per provarlo SENZA toccare
+// questo file basta scrivere ?set=pieno in fondo all'indirizzo della pagina
+// (gioco.html?set=pieno): vince l'indirizzo.
+const PERCORSO_SET = "ridotto"; // "ridotto" | "pieno" — Damiano li prova tutti e due (07/10)
+// L'unita` scritta sotto il numero dei passi sulla ruota (scelta H): "orme" (due impronte,
+// raccomandazione di Chiara) oppure "parola" (PASSI scritto per esteso). Anche qui
+// ?unita=parola nell'indirizzo vince su questa riga.
+const PERCORSO_UNITA_RUOTA = "parola"; // "orme" | "parola" — dal 09/10/2026 (quinta stesura) sugli spicchi si legge «N PASSI», senza orme
+// Per provare una striscia di una lunghezza decisa a mano: ?caselle=40 nell'indirizzo
+// (tra 15 e 80). Senza, la lunghezza e` quella della serata (percorsoCaselle).
+const PERCORSO_CASELLE_FISSE = null; // oppure un numero (es. 40): tutte le serate, qualunque round e giocatori
+
+// Cosa c'e` nell'indirizzo (gioco.html?set=pieno&unita=parola&caselle=40). Il gioco non
+// manda niente a nessuno: legge solo il proprio indirizzo.
+const PERCORSO_INDIRIZZO = (() => {
+  try { return new URLSearchParams(window.location.search); } catch (e) { return { get: () => null }; }
+})();
+function percorsoSetInUso() {
+  // Regolamento del 09/10/2026 (§1): «Solo il set ridotto. Il set pieno e il suo interruttore (PERCORSO_SET, ?set=pieno)
+  // restano spenti: si riprendono dopo la prova». Finche' non si riprende, ?set=pieno nell'indirizzo non fa niente.
+  return "ridotto";
+}
+function percorsoUnitaInUso() {
+  const v = PERCORSO_INDIRIZZO.get("unita");
+  return v === "orme" || v === "parola" ? v : PERCORSO_UNITA_RUOTA;
+}
+function percorsoCaselleForzate() {
+  const n = parseInt(PERCORSO_INDIRIZZO.get("caselle"), 10);
+  if (Number.isFinite(n) && n >= 15 && n <= 80) return n;
+  return PERCORSO_CASELLE_FISSE;
+}
+
+// ---- la striscia -------------------------------------------------------------
+// La lunghezza segue la serata (scelta A): 5 × (round + 6 − giocatori). In quattro
+// 25 · 35 · 45 caselle per 3 · 5 · 7 round, in tre 30 · 40 · 50, in due 35 · 45 · 55
+// (a squadre contano le squadre). L'alternativa e` PERCORSO_CASELLE_FISSE = 40.
+function percorsoCaselle(round, giocatori) { return 5 * (round + 6 - giocatori); }
+
+// ---- gli spicchi: passi al posto degli euro --------------------------------------
+// Un valore per ogni posto di SEGMENTI_RUOTA (24): null dove non ci sono passi (Nebbia — cosi` si chiama la Bancarotta nel Percorso —, Passa, il
+// triplo, e i sette spicchi che nel Percorso sono speciali: sei Scatole e Robin Hood, vedi PERCORSO_RUOTA_SPECIALI). Settima stesura (10/10/2026,
+// §1): la ruota e` la stessa tutti i giorni e i passi sono solo da 1, 2 e 3 — 13 spicchi: 1 ×3 · 2 ×5 · 3 ×5, media circa 2,2. Mai due spicchi
+// vicini con lo stesso numero, mai due Scatole vicine. Il Jolly sta sul 2 del posto 7.
+const PASSI_PER_SPICCHIO = [
+  null, // 0  Nebbia (la Bancarotta del Percorso)
+  null, // 1  Scatola
+  1,    // 2
+  null, // 3  Passa
+  2,    // 4
+  null, // 5  Scatola
+  3,    // 6
+  2,    // 7  il Jolly ci sta sopra (jolly: true in SEGMENTI_RUOTA)
+  3,    // 8
+  null, // 9  Scatola (posto speciale di oggi)
+  2,    // 10
+  3,    // 11
+  null, // 12 triplo: Nebbia · RADDOPPIO · Nebbia
+  null, // 13 Scatola
+  1,    // 14
+  null, // 15 Passa
+  3,    // 16
+  null, // 17 Scatola
+  2,    // 18
+  null, // 19 Robin Hood
+  1,    // 20
+  null, // 21 Scatola (posto speciale di oggi)
+  2,    // 22
+  3,    // 23
+];
+// I sette spicchi speciali della ruota del Percorso (settima stesura, §1): sei Scatole (anche ai due posti speciali di oggi, 9 e 21) e l'unico
+// speciale visibile, Robin Hood. Sempre quelli, tutti i giorni: niente programma di speciali per round.
+const PERCORSO_RUOTA_SPECIALI = { 1: "scatola", 5: "scatola", 9: "scatola", 13: "scatola", 17: "scatola", 19: "robinhood", 21: "scatola" };
+
+
+// La Nebbia (Damiano, 07/10 sera). Stesso posto e stessa regola della Bancarotta (l'ombra
+// sparisce, il turno passa, il Jolly salva), ma non e` il nero: un grigio di nebbia scuro, con la
+// parola bianca. ΔE dai vicini sulla ruota (validate_palette.mjs, 07/10): 25,2 dal blu del 3
+// (24,2 per protan/deutan), 30,8 dal rosso dell'1 (13,1), 21,6 dal nero.
+const COLORE_NEBBIA = "#3E4A5A";
+
+// Un colore per numero (spirito del punto 29: stessa cifra, stesso colore). Quattro tinte della
+// ruota di oggi (300, 500, 800, 900 €) piu` l'olografico oro del 1.500 € per il 5, «da premio».
+// Le 24 adiacenze della ruota: ΔE ≥ 18,4 a vista normale e ≥ 12,4 per protan/deutan
+// (design/strumenti/colori-percorso.mjs).
+const COLORE_PER_PASSI = {
+  1: "#E53935",
+  2: "#FBC02D",
+  3: "#1E88E5",
+  4: "#8E24AA",
+  5: "olografico",
+};
+
+// ---- gli spicchi speciali del Percorso --------------------------------------------
+// Otto, nei due posti fissi 9 e 21, due per round dal round 2. Il Raddoppio non e` fra questi: sta
+// al centro dello spicchio in tre, al posto di RADDOPPIA. `nome` e` la parola sullo spicchio (al
+// massimo 10 lettere, come ROBIN HOOD), `titolo` il nome intero nei cartelli. Robin Hood e` lo
+// stesso della Classica (SPECIALI): simbolo e nome gia` decisi; nel Percorso prende caselle.
+const SPECIALI_PERCORSO = {
+  robinhood: SPECIALI.robinhood,
+  sorpasso: {
+    nome: "SORPASSO",
+    titolo: "Sorpasso",
+    simbolo: [
+      { d: "M12 72 Q50 8 86 60", stroke: 9 },              // il balzo
+      { d: "M94 74 L72 52 L94 46 Z", fill: true },          // la punta
+      { d: "M41 80 a9 9 0 1 0 18 0 a9 9 0 1 0 -18 0 Z", fill: true }, // chi viene scavalcato
+    ],
+  },
+  freno: {
+    nome: "FRENO",
+    titolo: "Freno",
+    simbolo: [
+      { d: "M50 9 a41 41 0 1 0 0.1 0 Z", stroke: 9 },      // il disco
+      { d: "M28 50 L72 50", stroke: 11 },                   // la sbarra
+    ],
+  },
+  scatola: {
+    nome: "SCATOLA",
+    titolo: "Scatola",
+    simbolo: [ // una scatola con il punto interrogativo (settima stesura, §12: il minimo)
+      { d: "M14 12 H86 V92 H14 Z", stroke: 8 },
+      { d: "M36 40 C36 24 64 24 64 40 C64 52 50 52 50 64", stroke: 9 },
+      { d: "M44.5 77 a5.5 5.5 0 1 0 11 0 a5.5 5.5 0 1 0 -11 0 Z", fill: true },
+    ],
+  },
+  scambio: {
+    nome: "SCAMBIO",
+    titolo: "Scambio d’ombra",
+    simbolo: [
+      { d: "M12 34 H74", stroke: 9 },
+      { d: "M94 34 L72 20 L72 48 Z", fill: true },
+      { d: "M88 66 H26", stroke: 9 },
+      { d: "M6 66 L28 52 L28 80 Z", fill: true },
+    ],
+  },
+  calamita: {
+    nome: "CALAMITA",
+    titolo: "Calamita",
+    simbolo: [
+      { d: "M24 8 V54 a26 26 0 0 0 52 0 V8", stroke: 14 },
+      { d: "M16 10 H32 M68 10 H84", stroke: 6 },
+    ],
+  },
+  bivio: {
+    nome: "BIVIO",
+    titolo: "Bivio",
+    simbolo: [
+      { d: "M50 92 V52 L18 14 M50 52 L82 14", stroke: 11 },
+    ],
+  },
+  eco: {
+    nome: "ECO",
+    titolo: "Eco",
+    simbolo: [
+      { d: "M10 50 a8 8 0 1 0 16 0 a8 8 0 1 0 -16 0 Z", fill: true },
+      { d: "M40 26 a30 30 0 0 1 0 48", stroke: 8 },
+      { d: "M58 12 a48 48 0 0 1 0 76", stroke: 8 },
+    ],
+  },
+};
+// La ruota (ruota.js) e la pagina (svgSimbolo, pillola) leggono i simboli con definizioneSpeciale(): i cinque della
+// Classica (SPECIALI) e questi otto. SPECIALI resta di cinque voci, com'e` (la scheda di Chiara diceva di
+// estenderlo con Object.assign, ma le prove della Classica pretendono che gli speciali siano cinque).
+function definizioneSpeciale(chiave) { return SPECIALI[chiave] || SPECIALI_PERCORSO[chiave]; }
+const POSTI_SPECIALI_PERCORSO = POSTI_SPECIALI; // gli stessi due posti, 9 e 21
+
+// ---- le caselle speciali della striscia --------------------------------------------
+// Stesso linguaggio degli spicchi speciali: distintivo bianco, simbolo verde-azzurro scuro.
+// Il Fiume non e` un distintivo: e` una colonna d'acqua su tutte le corsie.
+// Dall'08/10/2026 (tappe del viaggio, disegno di Chiara, scelte di Damiano) le caselle hanno nomi e segni di viaggio:
+// Trampolino → Scorciatoia, Pedaggio → Castello, la Bottega tiene il nome col segno della bancarella. Le chiavi
+// (trampolino, pedaggio...) restano quelle del codice: sono nomi interni, non si vedono. `riga` e` quello che dice la
+// legenda «Le tappe» sulla mappa dell'iscrizione (al massimo 48 lettere); `rigaSetPieno` se col set pieno cambia.
+const CASELLE_PERCORSO = {
+  pedaggio: {
+    titolo: "Castello",
+    simbolo: [
+      { d: "M12 92 V34 H28 V16 H42 V34 H58 V16 H72 V34 H88 V92 Z M40 92 V66 a10 10 0 0 1 20 0 V92 Z", fill: true, regola: "evenodd" },
+    ],
+    riga: "Costruito col lampo, regala un passo a chi l’ha costruito.", // Damiano, 09/10/2026: la seconda meta` della riga di prima (scheda dei ritocchi R1); la prima, «chi ci passa perde un passo del fantasma», era del Castello del gioco, tolto nella sesta stesura. La legenda dell'iscrizione oggi non lo mostra (la plancia non ha Castelli fissi).
+  },
+  trampolino: {
+    titolo: "Scorciatoia",
+    simbolo: [
+      { d: "M20 22 L48 50 L20 78", stroke: 13 },
+      { d: "M52 22 L80 50 L52 78", stroke: 13 },
+    ],
+    riga: "Ci arrivi? Salti avanti di 3 caselle.",
+  },
+  rifugio: {
+    titolo: "Rifugio",
+    simbolo: [{ d: "M50 10 L8 54 H24 V90 H76 V54 H92 Z M42 90 V64 H58 V90 Z", fill: true, regola: "evenodd" }],
+    riga: "Finché ci stai sopra, Robin Hood e Sorpasso non ti toccano.",
+    rigaSetPieno: "Al sicuro: niente furti, sorpassi o calamite.",
+  },
+  belvedere: {
+    titolo: "Belvedere",
+    simbolo: [
+      { d: "M6 50 Q50 4 94 50 Q50 96 6 50 Z", stroke: 8 },
+      { d: "M36 50 a14 14 0 1 0 28 0 a14 14 0 1 0 -28 0 Z", fill: true },
+    ],
+    riga: "Al round dopo, una consonante gratis.",
+  },
+  fiume: {
+    titolo: "Fiume",
+    simbolo: [
+      { d: "M4 36 q11 -14 22 0 t22 0 t22 0 t22 0", stroke: 8 },
+      { d: "M4 66 q11 -14 22 0 t22 0 t22 0 t22 0", stroke: 8 },
+    ],
+    riga: "L’ombra si ferma qui finché non risolvi.",
+  },
+  bottega: {
+    titolo: "Bottega",
+    simbolo: [
+      { d: "M8 24 H92", stroke: 10 },
+      { d: "M12 28 H88 V42 q-9.5 12 -19 0 q-9.5 12 -19 0 q-9.5 12 -19 0 q-9.5 12 -19 0 Z", fill: true },
+      { d: "M24 62 H76 V92 H24 Z", fill: true },
+    ],
+    riga: "Compri un Jolly o uno Scudo coi tuoi passi.",
+  },
+  ponte: {
+    titolo: "Ponte",
+    simbolo: [
+      { d: "M8 82 V60 Q50 6 92 60 V82", stroke: 9 },
+      { d: "M4 84 H96", stroke: 9 },
+    ],
+    riga: "Al prossimo Castello passi gratis.",
+  },
+};
+// La riga della legenda per una tappa, secondo il set in uso (il Rifugio protegge da piu` cose col set pieno).
+function rigaTappa(tipo) {
+  const c = CASELLE_PERCORSO[tipo];
+  return (percorsoSetInUso() === "pieno" && c.rigaSetPieno) || c.riga;
+}
+
+// Le dieci caselle del primo disegno, su una striscia di 40: mai due vicine, il Fiume a meta`.
+const CASELLE_SPECIALI_40 = {
+  6: "trampolino",
+  9: "pedaggio",
+  12: "rifugio",
+  15: "belvedere",
+  20: "fiume",
+  24: "bottega",
+  27: "ponte",
+  30: "pedaggio",
+  33: "rifugio",
+  36: "trampolino",
+};
+
+// I due set (scelta B): ridotto = le idee del primo giro, pieno = tutto.
+const PERCORSO_SETS = {
+  // settima stesura (10/10/2026): niente speciali a rotazione (la ruota e` sempre la stessa: Scatole e Robin Hood) e niente tappe fisse
+  // (le Scorciatoie sono nascoste e nascono a caso, i Castelli li costruisce il lampo). Il set pieno resta spento.
+  ridotto: { spicchi: [], caselle: {} },
+  pieno:   { spicchi: [], caselle: {} },
+};
+
+// Quali speciali escono a ogni round: la regola «i due meno visti» di programmaSpeciali (sopra),
+// sugli speciali del set in uso. Con quattro speciali e 5 round escono tutti e quattro due volte;
+// con otto, cinque o sei una volta. Round 1: nessuno (come la Classica). Una copia della
+// regola, non la stessa funzione, perche` la Classica non deve cambiare in niente.
+function programmaSpecialiPercorso(numeroRound) {
+  const chiavi = PERCORSO_SETS[percorsoSetInUso()].spicchi;
+  const conto = {};
+  chiavi.forEach((k) => { conto[k] = 0; });
+  const chiave = (c) => c.slice().sort().join("+");
+  const programma = [null]; // round 1
+  const uscite = new Set();
+  let precedente = null;
+  for (let r = 2; r <= numeroRound; r++) {
+    const minimo = Math.min(...chiavi.map((k) => conto[k]));
+    const alMinimo = chiavi.filter((k) => conto[k] === minimo);
+    const coppie = [];
+    if (alMinimo.length >= 2) {
+      for (let i = 0; i < alMinimo.length; i++) for (let j = i + 1; j < alMinimo.length; j++) coppie.push([alMinimo[i], alMinimo[j]]);
+    } else {
+      chiavi.filter((k) => k !== alMinimo[0]).forEach((k) => coppie.push([alMinimo[0], k]));
+    }
+    let ammesse = coppie.filter((c) => chiave(c) !== precedente);
+    if (!ammesse.length) ammesse = coppie;
+    const nuove = ammesse.filter((c) => !uscite.has(chiave(c)));
+    const scelta = (nuove.length ? nuove : ammesse)[Math.floor(Math.random() * (nuove.length ? nuove : ammesse).length)].slice();
+    if (Math.random() < 0.5) scelta.reverse(); // chi va nel posto 9 e chi nel 21
+    programma.push(scelta);
+    scelta.forEach((k) => { conto[k] += 1; });
+    precedente = chiave(scelta);
+    uscite.add(precedente);
+  }
+  return programma;
+}
+
+// Le caselle speciali del set in uso, su una striscia della lunghezza data: le posizioni del set
+// (scritte per 40) si scalano in proporzione (Math.round(i × caselle / 40)), mai due sulla stessa
+// casella, mai la casella 0 (il via) ne` l'ultima (il traguardo). Con 40 sono quelle del set.
+function posizioniCaselleSpeciali(caselle) {
+  const base = PERCORSO_SETS[percorsoSetInUso()].caselle;
+  const out = {};
+  Object.keys(base).map(Number).sort((a, b) => a - b).forEach((i) => {
+    let p = Math.min(caselle - 1, Math.max(1, Math.round((i * caselle) / 40)));
+    // se e` gia` presa, si cerca la piu` vicina libera (prima avanti, poi indietro)
+    for (let d = 1; out[p] && d < caselle; d++) {
+      if (p + d <= caselle - 1 && !out[p + d]) { p = p + d; break; }
+      if (p - d >= 1 && !out[p - d]) { p = p - d; break; }
+    }
+    out[p] = base[i];
+  });
+  return out;
+}
+
+// ---- i numeri delle regole (tutti da ritoccare qui) ---------------------------------
+const PERCORSO_COSTO_VOCALE_PASSI = 1;      // la vocale costa un passo all'ombra (Damiano, 06/10)
+const PERCORSO_ROBIN_HOOD_PASSI = 3;         // dalla pedina di chi e` in testa alla tua ombra
+const PERCORSO_SORPASSO_ENTRO = Infinity;    // Sorpasso a qualunque distanza (scelta D dei conti)
+const PERCORSO_CALAMITA_ENTRO = 5;           // Calamita entro 5 caselle (scelta D)
+const PERCORSO_TRAMPOLINO_SALTO = 3;
+const PERCORSO_SASSO_INDIETRO = 3;           // il Sasso si posa al massimo 3 pietre dietro la propria pedina (10/10, quarta prova)
+const PERCORSO_VALANGA_PASSI = 2;            // la Valanga: chi e` in testa torna indietro di 2 (settima stesura, §8)
+const PERCORSO_BIVIO = { sicuri: 2, rischio: 6 };
+const PERCORSO_BOTTEGA = { jolly: 4, scudo: 3 }; // prezzi in passi, pagati dall'ombra
+const PERCORSO_PEDAGGIO_PASSI = 1;
+const PERCORSO_BELVEDERE_PASSI_PER_LETTERA = 1; // Belvedere: un passo per ogni volta che la consonante c'e` (scelta E)
+const PERCORSO_PASSO_SOLUZIONE = 1;          // chi risolve con l'ombra a +0 avanza di 1 (scelta F)
+
+// ---- la quinta stesura (regolamento del 09/10/2026, design/2026-10-09-regolamento-percorso.md) ---------------------
+// La plancia (§12-bis): un sentiero DISEGNATO, non calcolato. Per ora ne esiste una sola, da 40 pietre (3 giocatori, 5 round, la
+// serata di casa) e si usa per tutte le serate: le altre si disegnano dopo la prova. Le misure sono nelle unita` del paesaggio
+// (viewBox 1920 × 1080). Sesta stesura (09/10 sera): il sentiero in prospettiva, disegnato da Chiara (design/2026-10-09-scheda-paesaggio-percorso.md).
+// Le tappe sono le due Scorciatoie (6 e 35, in PERCORSO_SETS) e i due bivacchi (13 e 27, un terzo e due terzi, mai su una tappa).
+const PLANCIA_40 = {
+  caselle: 40,
+  // il sentiero parte vicino a chi guarda (in basso a sinistra), corre lungo il prato, gira al bordo destro, torna sul fianco della
+  // montagna, gira ancora e sale alla vetta (in alto a destra). Le pietre non sono equidistanti: la spaziatura la da` la prospettiva.
+  sentiero: "M720,946 C980,972 1260,952 1500,892 C1670,850 1860,840 1842,756 C1824,680 1620,690 1506,646 C1432,618 1446,548 1520,486 C1600,422 1700,364 1700,316 C1700,294 1722,278 1734,262",
+  bivacchi: [13, 27],
+  campoBase: { x: 655, y: 942 },
+  cima: { x: 1734, y: 262 },
+  // la prospettiva (sesta stesura, scheda di Chiara §1.1): la misura dipende solo dalla y. A `vicino` (in basso) tutto e` a misura 1;
+  // a `lontano` (in alto) il suolo (pietre, nastro, alberi, edifici) e` a `suolo` e le pedine (meeple, fantasmi, tende, chip) a `pezzi`.
+  prospettiva: { vicino: 950, lontano: 262, suolo: 0.55, pezzi: 0.7 },
+  // il lato dell'edificio accanto alle tappe fisse, alternato lungo il sentiero (scelto sul disegno: il 13 e il 27 stanno quasi sulla stessa verticale)
+  lato: { 6: "sopra", 13: "sotto", 27: "sopra", 35: "sotto" },
+  // le pietre dove il Castello del lampo non ha posto non sono scritte qui: le calcola il paesaggio (dipende dai Castelli gia` costruiti)
+};
+// La lunghezza del sentiero la sceglie il regista dal pannello (`caselle`, partenza 25; Damiano 10/10, quarta prova: su 40 pietre in 5 giorni la vetta non si
+// raggiungeva). I due bivacchi si mettono da soli a un terzo e a due terzi (arrotondati), mai sul campo base (0) ne' sul traguardo (ultima pietra).
+function percorsoBivacchi(n) {
+  const a = Math.min(n - 2, Math.max(1, Math.round(n / 3)));
+  const b = Math.min(n - 1, Math.max(a + 1, Math.round((2 * n) / 3)));
+  return [a, b];
+}
+const PLANCE_PERCORSO = [{ id: "40", nome: "Il sentiero", plancia: PLANCIA_40 }]; // una sola; la lunghezza e` del pannello (percorsoBivacchi)
+
+// I sei meeple (scheda §5.1): ognuno con la sua sagoma e il suo colore; il colore segue il meeple. Le sagome sono disegnate in un
+// riquadro 48 × 64 con i piedi a y 64, senza colore (lo danno gli <use>).
+const MEEPLE_CORPO = '<path d="M24,24 C16,24 12,31 12,40 L12,64 L36,64 L36,40 C36,31 32,24 24,24 Z"/>';
+const MEEPLE = [
+  { id: "viandante", nome: "Viandante", colore: "#E74C3C",
+    sagoma: '<circle cx="24" cy="16" r="9"/><path d="M7,21 L41,21 L37,15 L30,15 L28,7 L20,7 L18,15 L11,15 Z"/>' + MEEPLE_CORPO },
+  { id: "esploratrice", nome: "Esploratrice", colore: "#3498DB",
+    sagoma: '<circle cx="24" cy="15" r="9"/><path d="M30,9 C40,10 42,20 37,30 L31,22 Z"/>' + MEEPLE_CORPO + '<rect x="33" y="30" width="11" height="22" rx="5"/>' },
+  { id: "alpinista", nome: "Alpinista", colore: "#27AE60",
+    sagoma: '<path d="M24,1 L35,20 L13,20 Z"/><circle cx="24" cy="3.5" r="3.5"/><circle cx="24" cy="17" r="8.5"/>' + MEEPLE_CORPO + '<rect x="40" y="22" width="4.5" height="42" rx="2"/>' },
+  { id: "cavaliere", nome: "Cavaliere", colore: "#F39C12",
+    sagoma: '<path d="M13,9 L35,9 L35,23 L13,23 Z"/><circle cx="24" cy="16" r="9"/><path d="M24,10 C19,1 31,-1 36,4 C31,5 28,7 26,10 Z"/><path d="M24,24 C13,24 7,32 7,42 L7,64 L41,64 L41,42 C41,32 35,24 24,24 Z"/>' },
+  { id: "maga", nome: "Maga", colore: "#9B59B6",
+    sagoma: '<path d="M24,0 L34,19 L14,19 Z"/><path d="M6,22 L42,22 L39,16 L9,16 Z"/><circle cx="24" cy="17" r="8"/><path d="M24,24 C18,24 14,30 13,38 L7,64 L41,64 L35,38 C34,30 30,24 24,24 Z"/>' },
+  { id: "pellegrina", nome: "Pellegrina", colore: "#A6D930",
+    sagoma: '<path d="M11,22 C11,7 37,7 37,22 L37,27 L11,27 Z"/><circle cx="24" cy="19" r="8"/><path d="M24,24 C12,24 7,34 7,46 L7,64 L41,64 L41,46 C41,34 36,24 24,24 Z"/>' },
+];
+
+// Il pannello di controllo (§12): i numeri che il regista regola giocando. I valori di partenza sono una PRIMA PROPOSTA di
+// Erbottega (il regolamento dice «i numeri non sono decisi»); il pannello li ritocca e il browser li ricorda.
+//   oreStabile / oreVariabile: ogni quante ore (giri di ruota) cambia il tempo, nelle giornate stabili e in quelle variabili;
+//   crescita: la probabilita` (in %) che l'ULTIMA giornata della serata sia variabile; sale in linea retta dal giorno 2
+//             (il primo giorno e` sempre calmo) all'ultimo;
+//   preavviso: quante ore prima le nuvole avvisano (e il tempo non cambia mai piu` spesso di cosi`);
+//   oreTramonto: quanti giri di ruota restano dopo la prima tenda (minimo 1).
+const PERCORSO_REGOLE_DI_PARTENZA = { caselle: 25, oreTempo: 4, oreInPiuPrimoGiorno: 4, preavviso: 3, oreTramonto: 3, scorciatoie: 2, scatolaForza: 4, scatolaDistanza: 8 };
+const PERCORSO_REGOLE_LIMITI = {
+  caselle: [20, 40, "Lunghezza del sentiero (pietre)"],
+  oreTempo: [3, 24, "Ogni quante ore cambia il tempo"],
+  oreInPiuPrimoGiorno: [0, 24, "Il primo giorno cambia più di rado: ore in più"],
+  preavviso: [1, 6, "Preavviso delle nuvole (ore)"],
+  oreTramonto: [1, 6, "Ore del tramonto (giri di ruota dopo la prima tenda)"],
+  scorciatoie: [0, 4, "Scorciatoie nascoste"],
+  scatolaForza: [0, 10, "Scatola: quanto la distanza da chi è in testa sposta le probabilità (0 = per niente)"],
+  scatolaDistanza: [1, 20, "Scatola: a quante caselle dal primo la spinta è al massimo"],
+};
+// Gli otto potenziamenti della Scatola (settima stesura, §8). `peso`: forte | medio | leggero (come spinge la Scatola, vedi Percorso.pesiScatola);
+// `auto`: scatta da solo (Scudo, Ramponi), gli altri si usano nel proprio turno, prima di girare. `riga`: cosa dice quando esce (una riga sola).
+const PERCORSO_POTENZIAMENTI = {
+  valanga:  { nome: "Valanga", peso: "forte", auto: false, riga: "Chi è in testa torna indietro di 2 caselle." },
+  sorpasso: { nome: "Sorpasso", peso: "forte", auto: false, riga: "Vai sulla pietra davanti alla prima pedina che hai davanti." },
+  scarponiGrandi: { nome: "Scarponi grandi", peso: "forte", auto: false, extra: 2, riga: "Alla tua prossima consonante giusta fai 2 passi in più." },
+  freno:    { nome: "Freno", peso: "medio", auto: false, riga: "Scegli chi frenare: al suo prossimo turno né il passo né l’ombra si muovono." },
+  scarponi: { nome: "Scarponi", peso: "medio", auto: false, extra: 1, riga: "Alla tua prossima consonante giusta fai 1 passo in più." },
+  scudo:    { nome: "Scudo", peso: "leggero", auto: true, riga: "Scatta da solo: para il primo attacco che ti arriva." },
+  sasso:    { nome: "Sasso", peso: "leggero", auto: false, riga: "Lo posi su una delle 3 pietre dietro di te: il primo che ci passa torna indietro di un passo." },
+  ramponi:  { nome: "Ramponi", peso: "leggero", auto: true, riga: "Scatta da solo: la prossima Nebbia non ti fa sparire l’ombra." },
+};
+const CHIAVE_REGOLE_PERCORSO = "giraleparole-percorso-regole";
+// Che tempo arriva (pesi): il Sereno e` il piu` frequente (§5). Anche questi sono una proposta.
+const PERCORSO_TEMPO_PESI = { sereno: 36, ventoso: 20, temporale: 14 }; // tre tempi (settima stesura, §6)
+const PERCORSO_BIVACCO_PASSO_CASTELLO = 1;   // il passo che il Castello regala al castellano
+const DURATA_PASSO_MS = 480;                  // UN ritmo solo: 480 ms a pietra, di giorno, di sera, sul Castello, nei passi del lampo (Damiano 09/10 sera, scelta 2 di Chiara)
+const DURATA_BOLLA_PRIMA_VOLTA_MS = 0;        // 0 = resta finche' il regista non la chiude (Ok, il velo, Esc)
+const DURATA_PASSEGGIATA_PAUSA_MS = 450;
+const DURATA_SALTO_SCORCIATOIA_PAUSA_MS = 200;
+const DURATA_TENDA_RIPIEGA_MS = 300;
+
+// ---- le durate (ms) --------------------------------------------------------------------
+// Il CSS (proposta.css, ora in style.css) ha gli stessi numeri scritti nelle sue animazioni:
+// se si cambia uno qui, va cambiato anche li`.
+const DURATA_OMBRA_SCIVOLA_MS = 420;
+const DURATA_CHIP_PASSI_MS = 1200;
+const DURATA_NEBBIA_MS = 520;          // l'ombra trema e svanisce (poi il velo grigio della corsia, 600)
+const DURATA_FANTASMA_SERA_MS = 900;  // la sera il fantasma si dissolve (quando la pedina lo raggiunge, o subito per chi non cammina)
+const DURATA_VELO_NEBBIA_MS = 600;
+const DURATA_SALTO_PEDINA_MS = 650;    // poi l'ombra assorbita, 320 ms
+const DURATA_SORPASSO_MS = 420;
+const DURATA_SCAMBIO_MS = 600;
+let DURATA_CARTELLO_PERCORSO_MS = 3000; // i cartelli degli speciali del Percorso con la riga lunga (Vento, Eco, Calamita...): come Robin Hood (controllo di Chiara 08/10: il regista li legge a voce)
+const DURATA_RITARDO_OMBRA_MS = 350;       // l'ombra parte dopo che il cartello della lettera e` sul palco (come nel prototipo)
+// (Robin Hood: DURATA_ROBIN_HOOD_MS, quella del 07/10, 3000)
+
+// ---- i ritocchi dopo la prima partita (09/10/2026 sera, design/2026-10-09-scheda-ritocchi-percorso.md) --------------------
+// R11: nel Percorso ogni annuncio a tempo dura un secondo in piu` (lo applica preparaModalita); «Tocca a» va a 2700; la lettera
+// resta finche' le caselle sono scoperte (non ha durata).
+const PERCORSO_ANNUNCIO_IN_PIU_MS = 1000;
+const DURATA_TOCCA_A_PERCORSO_MS = 2700;
+const DURATE_BASE_ANNUNCI = { annuncio: 1300, lungo: 1800, toccaA: 2400, robin: 3000, cartello: 3000 }; // i valori della Classica
+// R4: il fantasma in due tempi sulle tappe
+const DURATA_FANTASMA_PAUSA_TAPPA_MS = 200;
+const DURATA_FANTASMA_INDIETRO_MS = 300;
+const DURATA_FANTASMA_PAUSA_CASTELLO_MS = 150;
+// R9/R10: gli annunci grandi del tempo, dell'ultimo giro e della sera
+const DURATA_ANNUNCIO_TEMPO_MS = 3100;         // «Ultimo giro!», «Non si gira piu`»
+const DURATA_ANNUNCIO_CAMBIO_TEMPO_MS = 4100; // il cambio di tempo: un secondo in piu` (Damiano 09/10 sera, appunto 9), al centro e col resto offuscato
+const DURATA_ANNUNCIO_SERA_MS = 2800;
+const DURATA_ANNUNCIO_VIAGGIATORE_MIN_MS = 1500; // l'annuncio di chi cammina resta finche' cammina, almeno questo
+// R12: il cartellino della tappa toccata si chiude da solo
+const DURATA_CARTELLINO_TAPPA_MS = 6000;

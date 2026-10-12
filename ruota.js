@@ -29,8 +29,44 @@
 // Spicchi speciali (2.4, disegno di Chiara 06/10/2026): colore unico, distintivo
 // bianco col simbolo, due posti fissi (POSTI_SPECIALI in config.js) che cambiano
 // coppia a ogni round (programmaSpeciali in config.js).
+// Modalita` «Percorso» (disegno di Chiara, 07/10/2026): i passi al posto degli euro, la Nebbia
+// al posto della Bancarotta, RADDOPPIO al centro dello spicchio in tre. Le righe sono marcate
+// «Percorso»; in modalita` "classica" (quella di partenza) la ruota si disegna come sempre.
 const Ruota = (() => {
   let canvas, ctx;
+  let modalita = "classica"; // Percorso: "classica" | "percorso"
+  // Settima stesura (10/10/2026): nel Percorso la ruota e` sempre la stessa — sei Scatole e Robin Hood nei sette posti di
+  // PERCORSO_RUOTA_SPECIALI; fuori dal Percorso quei posti tornano com'erano (il tipo di base, e i due posti 9 e 21 li decide impostaRound).
+  const TIPO_BASE = SEGMENTI_RUOTA.map((s) => s.tipo);
+  function disponi() {
+    SEGMENTI_RUOTA.forEach((s, i) => {
+      const sp = modalita === "percorso" ? PERCORSO_RUOTA_SPECIALI[i] : null;
+      s.tipo = sp ? "speciale" : TIPO_BASE[i];
+      s.speciale = sp || null;
+    });
+  }
+  function impostaModalita(m) { modalita = m; disponi(); if (canvas) disegna(); }
+  // Percorso: l'unità sotto il numero dei passi: "parola" (PASSI, una lettera per riga) oppure "orme" (due impronte)
+  let unitaPassi = "orme"; // scelta H (Chiara, raccomandata): le orme; la parola PASSI si prova con impostaUnitaPassi("parola")
+  function impostaUnitaPassi(u) { unitaPassi = u; if (canvas) disegna(); }
+  const ORMA = "M50 8 C66 8 72 28 70 46 C68 60 60 62 50 62 C40 62 32 60 30 46 C28 28 34 8 50 8 Z M50 70 C60 70 66 78 65 88 C64 96 56 98 50 98 C44 98 36 96 35 88 C34 78 40 70 50 70 Z";
+  function disegnaOrme(angolo, r, lato) {
+    ctx.save();
+    ctx.rotate(angolo);
+    ctx.translate(r, 0);
+    ctx.rotate(Math.PI / 2);
+    ctx.lineJoin = "round";
+    [[-lato * 0.26, lato * 0.08], [lato * 0.26, -lato * 0.08]].forEach(([dx, dy]) => {
+      ctx.save();
+      ctx.translate(dx - lato * 0.22, dy - lato * 0.5);
+      ctx.scale(lato * 0.44 / 100, lato / 100);
+      const p = new Path2D(ORMA);
+      ctx.lineWidth = 14; ctx.strokeStyle = "#0A0E23"; ctx.stroke(p);
+      ctx.fillStyle = "#fff"; ctx.fill(p);
+      ctx.restore();
+    });
+    ctx.restore();
+  }
   let rotazioneCorrente = 0; // radianti, stato persistente fra una girata e l'altra
   let animando = false;
   let evidenziato = null; // indice dello spicchio sotto la freccia, a ruota ferma
@@ -106,6 +142,7 @@ const Ruota = (() => {
     for (let i = 0; i < N; i++) {
       const base = VALORE_BASE_SEGMENTI[i];
       if (base === null) continue;
+      if (modalita === "percorso") { SEGMENTI_RUOTA[i].valore = base; continue; } // Percorso: i passi non salgono di round in round (e un euro rimasto da una Classica prima non resta)
       const livello = LIVELLI_BASE_CIFRE.indexOf(base);
       if (livello === -1) continue; // non dovrebbe succedere: ogni valore del round 1 e` in LIVELLI_BASE_CIFRE
       SEGMENTI_RUOTA[i].valore = riga[livello];
@@ -118,7 +155,7 @@ const Ruota = (() => {
     // Damiano, 06/10 sera: il round 1 non ha speciali («anche in televisione non
     // appaiono mai al primo round»). Nei due posti c'e` la ruota della 2.3 (soldi,
     // stessi valori e colori: VALORE_BASE_SEGMENTI li ricorda); dal round 2 ci sono gli speciali.
-    POSTI_SPECIALI.forEach((posto, k) => {
+    if (modalita !== "percorso") POSTI_SPECIALI.forEach((posto, k) => { // (nel Percorso la ruota e` sempre la stessa, disponi())
       if (numeroRound >= 2) {
         SEGMENTI_RUOTA[posto].tipo = "speciale";
         SEGMENTI_RUOTA[posto].speciale = coppiaSpecialiDelRound(numeroRound)[k];
@@ -322,7 +359,7 @@ const Ruota = (() => {
   // disegnato centrato nell'origine in un quadrato di lato `lato`, nel colore
   // dato. Lo stesso tracciato che la pagina usa come <svg>: un disegno solo.
   function disegnaSimbolo(chiave, lato, colore) {
-    const sp = SPECIALI[chiave];
+    const sp = definizioneSpeciale(chiave);
     if (!sp) return;
     ctx.save();
     ctx.translate(-lato / 2, -lato / 2);
@@ -377,7 +414,7 @@ const Ruota = (() => {
       disegnaSimbolo(chiave, latoSimbolo, COLORE_SPECIALE_SIMBOLO);
       ctx.restore();
       // la parola
-      scrittaRadiale(am, SPECIALI[chiave].nome, rParola, dimParola, "#fff", "#0A0E23", dimParola * 0.9);
+      scrittaRadiale(am, definizioneSpeciale(chiave).nome, rParola, dimParola, "#fff", "#0A0E23", dimParola * 0.9);
       ctx.restore();
     };
     const fo = faseOnda(i);
@@ -419,7 +456,8 @@ const Ruota = (() => {
         // finiscono vicine sulla ruota (verificato con
         // `design/strumenti/colori-round.mjs`: ΔE 0 dal round 5). Riapre il
         // punto 29 solo fra un round e l'altro, mai dentro lo stesso round.
-        const c = COLORE_PER_CIFRA[VALORE_BASE_SEGMENTI[i]];
+        // Percorso: nel Percorso il colore segue il numero di passi (COLORE_PER_PASSI)
+        const c = modalita === "percorso" ? COLORE_PER_PASSI[PASSI_PER_SPICCHIO[i]] : COLORE_PER_CIFRA[VALORE_BASE_SEGMENTI[i]];
         if (mostraJolly(seg) && !(transizioneJolly && transizioneJolly.indice === i)) {
           // Voce 5 (28/09/2026): finche` il jolly c'e`, lo spicchio e`
           // bianco — "JOLLY" si legge da solo, senza contorno colorato.
@@ -436,14 +474,15 @@ const Ruota = (() => {
       } else if (tipoSeg === "passa") {
         fetta(a0, a1, rSpicchi, COLORE_PASSA);
       } else if (tipoSeg === "bancarotta") {
-        fetta(a0, a1, rSpicchi, "#141414");
+        fetta(a0, a1, rSpicchi, modalita === "percorso" ? COLORE_NEBBIA : "#141414"); // Percorso: nel Percorso è la Nebbia (Damiano, 07/10 sera)
       } else if (tipoSeg === "speciale") {
         fetta(a0, a1, rSpicchi, COLORE_SPECIALE);  // un colore per tutta la classe
       } else if (tipoSeg === "triplo") {
         const t = ANGOLO_SPICCHIO / 3;
-        fetta(a0, a0 + t, rSpicchi, "#141414");
+        const cNera = modalita === "percorso" ? COLORE_NEBBIA : "#141414";
+        fetta(a0, a0 + t, rSpicchi, cNera);
         riempiOlografico(a0 + t, a0 + 2 * t, 0, rSpicchi, "arcobaleno");
-        fetta(a0 + 2 * t, a1, rSpicchi, "#141414");
+        fetta(a0 + 2 * t, a1, rSpicchi, cNera);
       }
       // rilievo leggero, come sempre
       const gloss = ctx.createRadialGradient(0, 0, 0, 0, 0, rSpicchi);
@@ -488,6 +527,23 @@ const Ruota = (() => {
     const dimCifra = rSpicchi * 0.118; // una cifra per riga
     const passoCifra = dimCifra * 0.86;
     const rDa = rSpicchi - dimCifra * 0.8;
+    // Percorso: il valore di uno spicchio: euro (cifra + «€») oppure, nel Percorso, il numero
+    // dei passi grande come una cifra e sotto la parola PASSI/PASSO, piccola come «€» ma
+    // per esteso (una lettera per riga, come BANCAROTTA).
+    const scrittaValore = (am, i, testoEuro) => {
+      if (modalita === "percorso") {
+        const n = PASSI_PER_SPICCHIO[i];
+        const dimNumero = dimCifra * 1.25;
+        scrittaRadiale(am, String(n), rDa - dimNumero * 0.1, dimNumero, "#fff", "#0A0E23", passoCifra);
+        if (unitaPassi === "orme") { disegnaOrme(am, rDa - dimNumero * 1.25, dimCifra * 0.95); return; }
+        const parola = n === 1 ? "PASSO" : "PASSI";
+        const dimParola = rSpicchi * 0.052;
+        scrittaRadiale(am, parola, rDa - dimNumero * 1.05, dimParola, "#fff", "#0A0E23", dimParola * 0.9);
+        return;
+      }
+      scrittaRadiale(am, testoEuro, rDa, dimCifra, "#fff", "#0A0E23", passoCifra);
+      scrittaRadiale(am, "€", rDa - passoCifra * testoEuro.length + passoCifra * 0.15, dimCifra * 0.6, "#fff", "#0A0E23", passoCifra);
+    };
     for (let i = 0; i < N; i++) {
       const seg = SEGMENTI_RUOTA[i];
       const tipoSeg = tipoVisto(i); // durante l'onda un posto che cambia tipo lo cambia a meta` lampo
@@ -511,16 +567,7 @@ const Ruota = (() => {
           }
           ctx.save();
           ctx.globalAlpha = t;
-          scrittaRadiale(am, String(seg.valore), rDa, dimCifra, "#fff", "#0A0E23", passoCifra);
-          scrittaRadiale(
-            am,
-            "€",
-            rDa - passoCifra * String(seg.valore).length + passoCifra * 0.15,
-            dimCifra * 0.6,
-            "#fff",
-            "#0A0E23",
-            passoCifra
-          );
+          scrittaValore(am, i, String(seg.valore));
           ctx.restore();
         } else if (faseOnda(i) !== null && faseOnda(i) < 1) {
           // Voce C: durante l'onda la cifra vecchia sfuma via nella prima
@@ -531,16 +578,7 @@ const Ruota = (() => {
           const mostraCifra = (testo, alfa) => {
             ctx.save();
             ctx.globalAlpha = alfa;
-            scrittaRadiale(am, testo, rDa, dimCifra, "#fff", "#0A0E23", passoCifra);
-            scrittaRadiale(
-              am,
-              "€",
-              rDa - passoCifra * testo.length + passoCifra * 0.15,
-              dimCifra * 0.6,
-              "#fff",
-              "#0A0E23",
-              passoCifra
-            );
+            scrittaValore(am, i, testo);
             ctx.restore();
           };
           if (fo < 0.5) mostraCifra(vecchia, 1 - fo * 2);
@@ -548,29 +586,23 @@ const Ruota = (() => {
         } else {
           // cifra normale — bianca con contorno scuro, leggibile su
           // qualunque colore (TV, foto 04).
-          scrittaRadiale(am, String(seg.valore), rDa, dimCifra, "#fff", "#0A0E23", passoCifra);
-          scrittaRadiale(
-            am,
-            "€",
-            rDa - passoCifra * String(seg.valore).length + passoCifra * 0.15,
-            dimCifra * 0.6,
-            "#fff",
-            "#0A0E23",
-            passoCifra
-          );
+          scrittaValore(am, i, String(seg.valore));
         }
       } else if (tipoSeg === "speciale") {
         disegnaSpeciale(i, am, rSpicchi);
       } else if (tipoSeg === "passa") {
         scrittaRadiale(am, "PASSA", rDa, rSpicchi * 0.1, "#20233A", null, rSpicchi * 0.1 * 0.9);
       } else if (tipoSeg === "bancarotta") {
-        scrittaRadiale(am, "BANCAROTTA", rDa, rSpicchi * 0.072, "#fff", null, rSpicchi * 0.072 * 0.88);
+        // Percorso: nel Percorso la parola è NEBBIA: sei lettere, quindi più grandi (0,09 contro 0,072), e la parola non arriva al mozzo
+        if (modalita === "percorso") scrittaRadiale(am, "NEBBIA", rDa, rSpicchi * 0.09, "#fff", null, rSpicchi * 0.09 * 0.88);
+        else scrittaRadiale(am, "BANCAROTTA", rDa, rSpicchi * 0.072, "#fff", null, rSpicchi * 0.072 * 0.88);
       } else if (tipoSeg === "triplo") {
         const t = ANGOLO_SPICCHIO / 3;
         const a0 = i * ANGOLO_SPICCHIO;
-        scrittaRadiale(a0 + t / 2, "BANCAROTTA", rDa, rSpicchi * 0.052, "#fff", null, rSpicchi * 0.052 * 0.9);
-        scrittaRadiale(a0 + t * 1.5, "RADDOPPIA", rDa, rSpicchi * 0.06, "#fff", "#0A0E23", rSpicchi * 0.06 * 0.95);
-        scrittaRadiale(a0 + t * 2.5, "BANCAROTTA", rDa, rSpicchi * 0.052, "#fff", null, rSpicchi * 0.052 * 0.9);
+        const lati = modalita === "percorso" ? ["NEBBIA", 0.058] : ["BANCAROTTA", 0.052]; // Percorso: ai lati del triplo: sei lettere un poco più grandi di BANCAROTTA, senza toccare RADDOPPIO
+        scrittaRadiale(a0 + t / 2, lati[0], rDa, rSpicchi * lati[1], "#fff", null, rSpicchi * lati[1] * 0.9);
+        scrittaRadiale(a0 + t * 1.5, modalita === "percorso" ? "RADDOPPIO" : "RADDOPPIA", rDa, rSpicchi * 0.06, "#fff", "#0A0E23", rSpicchi * 0.06 * 0.95);
+        scrittaRadiale(a0 + t * 2.5, lati[0], rDa, rSpicchi * lati[1], "#fff", null, rSpicchi * lati[1] * 0.9);
       }
     }
 
@@ -874,6 +906,8 @@ const Ruota = (() => {
     animaPresaJolly,
     impostaRound,
     impostaProgrammaSpeciali,
+    impostaModalita,
+    impostaUnitaPassi,
     puoIniziareTrascinamento,
     iniziaTrascinamento,
     muoviTrascinamento,

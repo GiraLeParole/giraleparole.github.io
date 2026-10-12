@@ -1,12 +1,12 @@
 # Gira le Parole
 
-Il gioco della ruota, per giocare in famiglia sullo stesso schermo. Si gira la ruota, si indovina la parola nascosta lettera per lettera, si accumulano i soldi del round. Da 1 a 4 giocatori, nessun dato esce dal browser.
+Il gioco della ruota, per giocare in famiglia sullo stesso schermo. Si gira la ruota, si indovina la frase nascosta lettera per lettera, si accumulano i soldi del round. Da 2 a 4 giocatori, o due squadre fino a 3 per parte; nessun dato esce dal browser.
 
-Per giocare: apri [`index.html`](index.html), oppure vai direttamente su https://giraleparole.github.io/.
+Per giocare: apri [`index.html`](index.html) (la presentazione, con il pulsante «Gioca» che porta a [`gioco.html`](gioco.html)), oppure vai direttamente su https://giraleparole.github.io/.
 
 ## Crediti
 
-Musiche di sottofondo scaricate da incompetech.com, licenza verificata sul sito il 28/09/2026.
+Musiche di sottofondo scaricate da incompetech.com, licenza verificata sul sito il 28/09/2026 (Funkorama, Enter the Party, Got Funk, Loopster e Aces High: scaricate il 07/10/2026 dallo stesso sito, licenza letta sulla pagina di ciascun brano).
 
 "Funk Game Loop" Kevin MacLeod (incompetech.com)
 Licensed under Creative Commons: By Attribution 4.0
@@ -21,6 +21,34 @@ Licensed under Creative Commons: By Attribution 4.0
 https://creativecommons.org/licenses/by/4.0/
 
 "Protofunk" Kevin MacLeod (incompetech.com)
+Licensed under Creative Commons: By Attribution 4.0
+https://creativecommons.org/licenses/by/4.0/
+
+"Rocket Power" Kevin MacLeod (incompetech.com)
+Licensed under Creative Commons: By Attribution 4.0
+https://creativecommons.org/licenses/by/4.0/
+
+"Funkorama" Kevin MacLeod (incompetech.com)
+Licensed under Creative Commons: By Attribution 4.0
+https://creativecommons.org/licenses/by/4.0/
+
+"Enter the Party" Kevin MacLeod (incompetech.com)
+Licensed under Creative Commons: By Attribution 4.0
+https://creativecommons.org/licenses/by/4.0/
+
+"Got Funk" Kevin MacLeod (incompetech.com)
+Licensed under Creative Commons: By Attribution 4.0
+https://creativecommons.org/licenses/by/4.0/
+
+"Loopster" Kevin MacLeod (incompetech.com)
+Licensed under Creative Commons: By Attribution 4.0
+https://creativecommons.org/licenses/by/4.0/
+
+"Aces High" Kevin MacLeod (incompetech.com)
+Licensed under Creative Commons: By Attribution 4.0
+https://creativecommons.org/licenses/by/4.0/
+
+"Chee Zee Beach" Kevin MacLeod (incompetech.com)
 Licensed under Creative Commons: By Attribution 4.0
 https://creativecommons.org/licenses/by/4.0/
 

@@ -791,10 +791,12 @@ function percorsoSetInUso() {
   return "ridotto";
 }
 function percorsoUnitaInUso() {
+  if (!PANNELLO_REGOLE_PERCORSO) return PERCORSO_UNITA_RUOTA; // online gli indirizzi di prova non fanno niente
   const v = PERCORSO_INDIRIZZO.get("unita");
   return v === "orme" || v === "parola" ? v : PERCORSO_UNITA_RUOTA;
 }
 function percorsoCaselleForzate() {
+  if (!PANNELLO_REGOLE_PERCORSO) return PERCORSO_CASELLE_FISSE; // online gli indirizzi di prova non fanno niente
   const n = parseInt(PERCORSO_INDIRIZZO.get("caselle"), 10);
   if (Number.isFinite(n) && n >= 15 && n <= 80) return n;
   return PERCORSO_CASELLE_FISSE;
@@ -947,7 +949,7 @@ const CASELLE_PERCORSO = {
     simbolo: [
       { d: "M12 92 V34 H28 V16 H42 V34 H58 V16 H72 V34 H88 V92 Z M40 92 V66 a10 10 0 0 1 20 0 V92 Z", fill: true, regola: "evenodd" },
     ],
-    riga: "Costruito col lampo, regala un passo a chi l’ha costruito.", // Damiano, 09/10/2026: la seconda meta` della riga di prima (scheda dei ritocchi R1); la prima, «chi ci passa perde un passo del fantasma», era del Castello del gioco, tolto nella sesta stesura. La legenda dell'iscrizione oggi non lo mostra (la plancia non ha Castelli fissi).
+    riga: "Costruito vincendo la Battaglia, regala un passo a chi l’ha costruito.", // Damiano, 09/10/2026: la seconda meta` della riga di prima (scheda dei ritocchi R1); la prima, «chi ci passa perde un passo del fantasma», era del Castello del gioco, tolto nella sesta stesura. La legenda dell'iscrizione oggi non lo mostra (la plancia non ha Castelli fissi).
   },
   trampolino: {
     titolo: "Scorciatoia",
@@ -1145,6 +1147,12 @@ const MEEPLE = [
 //             (il primo giorno e` sempre calmo) all'ultimo;
 //   preavviso: quante ore prima le nuvole avvisano (e il tempo non cambia mai piu` spesso di cosi`);
 //   oreTramonto: quanti giri di ruota restano dopo la prima tenda (minimo 1).
+// Il pannello «Regola il Percorso» esiste solo nella copia di lavoro (13/10/2026, decisione di Damiano: «sono settaggi che non devono poter
+// cambiare» sul sito online). Qui sta true; pubblica.sh, copiando config.js nella cartella pubblica, riscrive QUESTA RIGA con false (e si
+// ferma se non ci riesce). Con false: il pulsante e la finestra vengono tolti dalla pagina, il gioco usa sempre i valori di partenza qui sotto
+// (un valore salvato prima nel browser di qualcuno non conta, e viene cancellato), e gli indirizzi ?caselle= e ?unita= non fanno niente.
+// Non cambiare il testo di questa riga a mano senza cambiare anche pubblica.sh, che la cerca cosi' com'e'.
+const PANNELLO_REGOLE_PERCORSO = false;
 const PERCORSO_REGOLE_DI_PARTENZA = { caselle: 25, oreTempo: 4, oreInPiuPrimoGiorno: 4, preavviso: 3, oreTramonto: 3, scorciatoie: 2, scatolaForza: 4, scatolaDistanza: 8 };
 const PERCORSO_REGOLE_LIMITI = {
   caselle: [20, 40, "Lunghezza del sentiero (pietre)"],

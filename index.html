@@ -34,10 +34,16 @@
     </div>
   </section>
 
-  <!-- 2. Come si gioca, in tre passi: il pezzo vero in piccolo, poi una riga. -->
+  <!-- 2. Come si gioca, in tre passi: il pezzo vero in piccolo, poi una riga. Due versioni, una per partita (13/10/2026):
+       due linguette Classica / Percorso (le stesse del gioco: «Ognuno per se`» / «A squadre») che mostrano una versione alla volta, cosi` la sezione
+       resta alta quanto prima. Le linguette le accende presentazione.js; senza, le due versioni stanno una sotto l'altra. -->
   <section id="come-si-gioca" class="blocco passi" aria-labelledby="titolo-passi">
     <h2 id="titolo-passi">Come si gioca</h2>
-    <ol class="tessere tre">
+    <div class="linguette-partita segmenti" role="tablist" aria-label="Quale partita" hidden>
+      <button type="button" role="tab" id="linguetta-classica" class="segmento selezionata" aria-selected="true" aria-controls="passi-classica">Classica</button>
+      <button type="button" role="tab" id="linguetta-percorso" class="segmento" aria-selected="false" aria-controls="passi-percorso" tabindex="-1">Percorso</button>
+    </div>
+    <ol id="passi-classica" class="tessere tre" role="tabpanel" aria-labelledby="linguetta-classica">
       <li>
         <div class="pezzo"><button type="button" class="primario" tabindex="-1">Gira la ruota</button></div>
         <b>Gira la ruota</b>
@@ -54,6 +60,25 @@
         <div class="pezzo"><button type="button" tabindex="-1">Do la soluzione</button></div>
         <b>Indovina la frase</b>
         <p>Chi la risolve porta i soldi del round in cassaforte, e gli altri perdono i loro. Alla fine vince la cassaforte più piena.</p>
+      </li>
+    </ol>
+    <!-- Il Percorso: i pezzi in piccolo sono il meeple (config.js, MEEPLE), il suo fantasma, la tenda e la bandiera a scacchi che il gioco ha gia`;
+         il meeple lo disegna presentazione.js dalla sagoma vera, la tenda e la bandiera sono le stesse forme del gioco (percorso-vista.js, percorso-gioco.js). -->
+    <ol id="passi-percorso" class="tessere tre" role="tabpanel" aria-labelledby="linguetta-percorso">
+      <li>
+        <div class="pezzo pezzo-sentiero"><svg viewBox="0 0 156 64" aria-hidden="true" focusable="false"><g class="mp-pieno"></g><g class="mp-fantasma"></g></svg></div>
+        <b>Gira e chiama una consonante</b>
+        <p>Se c’è, il tuo meeple fa subito un passo, e la sua ombra si allunga dei passi dello spicchio.</p>
+      </li>
+      <li>
+        <div class="pezzo pezzo-sentiero"><svg viewBox="0 0 110 64" aria-hidden="true" focusable="false"><g class="mp-pieno"></g><g transform="translate(62 8) scale(0.95)" fill="none" stroke="#fff" stroke-width="3.2" stroke-linejoin="round" stroke-linecap="round"><path d="M24 9L5 38h38z"/><path d="M24 20l-8 18h16z" fill="#fff"/><path d="M3 42h42"/><path d="M24 9V3h7l-7 3"/></g></svg></div>
+        <b>Risolvi la frase</b>
+        <p>Il meeple corre fino alla sua ombra. Oppure ti accampi: metà della strada, e per oggi hai finito.</p>
+      </li>
+      <li>
+        <div class="pezzo pezzo-sentiero"><svg viewBox="0 0 110 64" aria-hidden="true" focusable="false"><defs><pattern id="scacchi-presentazione" width="6" height="6" patternUnits="userSpaceOnUse"><rect width="3" height="3" fill="#111"/><rect x="3" y="3" width="3" height="3" fill="#111"/><rect x="3" width="3" height="3" fill="#fff"/><rect y="3" width="3" height="3" fill="#fff"/></pattern></defs><g class="mp-pieno"></g><g transform="translate(80 60)"><line x1="0" y1="0" x2="0" y2="-54" stroke="#fff" stroke-width="3.2" stroke-linecap="round"/><rect x="0.8" y="-54" width="27" height="19.5" rx="1.5" fill="url(#scacchi-presentazione)" stroke="#fff" stroke-width="1.8"/></g></svg></div>
+        <b>Arriva in vetta</b>
+        <p>Vince chi arriva per primo. Sul sentiero: Scatole, bivacchi, scorciatoie nascoste e castelli.</p>
       </li>
     </ol>
   </section>

@@ -129,7 +129,7 @@ const Lampo = (() => {
     disegnaTabellone(true);
     Annuncio.mostra({
       stile: "scena oro",
-      titolo: "Round lampo!",
+      titolo: inPercorso() ? "Battaglia per il castello!" : "Round lampo!", // nel Percorso si chiama cosi' (Damiano, 10/10/2026, regolamento §7)
       sotto: "chi la sa, tocca lo schermo o un tasto", // testo di Penna, da rivedere
       durata: DURATA_ANNUNCIO_LAMPO_MS,
     });
@@ -343,7 +343,7 @@ const Lampo = (() => {
     segnaTessere();
     Audio_.jingleLampo();
     festeggiaTessera(i);
-    Annuncio.mostra({ stile: "scena oro", titolo: g.nome + "!", sotto: "vince il lampo · un Castello o un passo", durata: DURATA_ANNUNCIO_LAMPO_MS });
+    Annuncio.mostra({ stile: "scena oro", titolo: g.nome + "!", sotto: "vince la battaglia · un Castello o un passo", durata: DURATA_ANNUNCIO_LAMPO_MS });
     timerLettere = setTimeout(() => scegliPremioPercorso(i, g), DURATA_ANNUNCIO_LAMPO_MS + 200);
   }
 
@@ -357,7 +357,7 @@ const Lampo = (() => {
     fase = "pedaggio";
     Annuncio.nascondi();
     pannelloPercorso.innerHTML = "";
-    pannelloPercorso.appendChild(domandaPercorso("<b>Hai vinto il lampo.</b> Costruisci un Castello davanti a te, oppure fai un passo?"));
+    pannelloPercorso.appendChild(domandaPercorso("<b>Hai vinto la Battaglia per il castello.</b> Costruisci un Castello davanti a te, oppure fai un passo?"));
     const scelte = document.createElement("div");
     scelte.className = "scelte";
     scelte.appendChild(pulsantePercorso("Un passo avanti", "secondario", () => { chiudiScelta(); faiPassoLampo(i, g); }));

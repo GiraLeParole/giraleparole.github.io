@@ -40,6 +40,42 @@
   // stanno in speciali-comuni.js (una copia sola, la usa anche gioco.js).
   setHtml('#pillole-speciali', SPECIALI_TUTTI.map(pillola).join(''));
 
+  // «Come si gioca», le due versioni (13/10/2026): i meeple dei pezzi in piccolo del Percorso, dalla sagoma vera di config.js (MEEPLE), come nella
+  // carta «Percorso» del gioco: contorno bianco, colore del meeple; il fantasma e` lo stesso, tratteggiato e piu` chiaro.
+  if (typeof MEEPLE !== 'undefined' && MEEPLE.length) {
+    const m = MEEPLE[0];
+    const pieno = '<g transform="translate(4 3.5) scale(0.9)"><g fill="#fff" stroke="#fff" stroke-width="5" stroke-linejoin="round" stroke-linecap="round">' + m.sagoma + '</g><g fill="' + m.colore + '">' + m.sagoma + '</g></g>';
+    const fantasma = '<g transform="translate(104 3.5) scale(0.9)" opacity="0.55"><g fill="none" stroke="#fff" stroke-width="5" stroke-dasharray="4 3" stroke-linejoin="round">' + m.sagoma + '</g><g fill="' + m.colore + '" opacity="0.75">' + m.sagoma + '</g></g>';
+    setHtml('#passi-percorso .mp-pieno', pieno);
+    setHtml('#passi-percorso .mp-fantasma', fantasma);
+  }
+
+  // le linguette Classica / Percorso: una versione alla volta (senza questo script restano tutte e due, una sotto l'altra)
+  (function () {
+    const barra = $('.linguette-partita');
+    const classica = $('#passi-classica'), percorso = $('#passi-percorso');
+    const lc = $('#linguetta-classica'), lp = $('#linguetta-percorso');
+    if (!barra || !classica || !percorso || !lc || !lp) return;
+    const mostra = (percorsoScelto) => {
+      classica.hidden = percorsoScelto;
+      percorso.hidden = !percorsoScelto;
+      [[lc, !percorsoScelto], [lp, percorsoScelto]].forEach(([b, su]) => {
+        b.classList.toggle('selezionata', su);
+        b.setAttribute('aria-selected', su ? 'true' : 'false');
+        b.tabIndex = su ? 0 : -1;
+      });
+    };
+    lc.addEventListener('click', () => mostra(false));
+    lp.addEventListener('click', () => mostra(true));
+    barra.addEventListener('keydown', (ev) => { // frecce sinistra/destra come in ogni gruppo di linguette
+      if (ev.key !== 'ArrowLeft' && ev.key !== 'ArrowRight') return;
+      const p = ev.key === 'ArrowRight';
+      mostra(p); (p ? lp : lc).focus();
+    });
+    barra.hidden = false;
+    mostra(false);
+  })();
+
   // la ruota vera (round 1, senza speciali, come a inizio partita). Parte da sola una volta,
   // dopo 700 ms, come se qualcuno l'avesse spinta: dice «e` una ruota» senza una parola.
   // Non parte da sola se chi guarda ha chiesto meno movimento; si tocca e gira di nuovo.

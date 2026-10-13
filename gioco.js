@@ -1280,7 +1280,34 @@ const GUIDA = [
     elenco.appendChild(t);
   });
   const fin = document.getElementById("finestra-guida");
-  document.querySelectorAll(".apri-guida").forEach((b) => b.addEventListener("click", () => fin.classList.remove("nascosta")));
+  // La guida del Percorso (13/10/2026, testo approvato da Damiano il 13/10: si adattano solo grassetti e a capo, non le parole).
+  // Si apre dal «Come si gioca» che sta dentro l'iscrizione del Percorso (classe apri-guida-percorso); gli altri due pulsanti, la
+  // scelta della partita e l'iscrizione della Classica, aprono la guida di sempre.
+  const guidaPercorso = document.getElementById("guida-percorso");
+  const schedaGuida = fin.querySelector(".scheda-finestra");
+  const giri = (n) => (n === 1 ? "un giro" : ({ 2: "due", 3: "tre", 4: "quattro", 5: "cinque", 6: "sei" }[n] || String(n)) + " giri"); // il numero e` quello vero del pannello (di partenza: 3)
+  function scriviGuidaPercorso() {
+    const oreTramonto = Percorso.leggiRegole().oreTramonto;
+    const voci = [
+      "<b>Gira e chiama una consonante.</b> Se c’è, il tuo meeple fa subito un passo, e la sua ombra si allunga dei passi dello spicchio per ogni volta che la lettera c’è.",
+      "<b>Risolvi la frase</b> e il meeple corre fino alla sua ombra. Le ombre degli altri svaniscono.",
+      "<b>La tenda.</b> Quando il turno passa ti puoi accampare: incassi metà della strada dell’ombra, ma per oggi hai finito. La prima tenda fa calare il sole: dopo " + giri(oreTramonto) + " di ruota scende la sera.",
+      "<b>La Scatola</b> ti dà un potenziamento. Più sei indietro, più è forte. Si usa nel tuo turno, prima di girare.",
+      "<b>Sul sentiero</b> i bivacchi ti fermano a dormire fino all’alba. Le Scorciatoie sono nascoste, e le trova solo l’ombra.",
+      "<b>La Battaglia per il castello</b>, a fine giornata: chi la vince costruisce un castello davanti a sé, e guadagna un passo ogni volta che qualcuno ci passa. Oppure fa un passo.",
+      "<b>Il tempo cambia</b>: col vento ogni consonante giusta vale due passi, col temporale nessuno.",
+    ];
+    guidaPercorso.innerHTML = "<ol>" + voci.map((v) => "<li>" + v + "</li>").join("") + "</ol>" +
+      "<p class=\"vittoria-guida\">Vince chi arriva per primo in vetta. Ogni mattina parte per primo chi è più indietro.</p>";
+  }
+  function apriGuida(delPercorso) {
+    if (delPercorso) scriviGuidaPercorso();
+    guidaPercorso.classList.toggle("nascosta", !delPercorso);
+    elenco.classList.toggle("nascosta", delPercorso);
+    schedaGuida.classList.toggle("guida-del-percorso", delPercorso);
+    fin.classList.remove("nascosta");
+  }
+  document.querySelectorAll(".apri-guida").forEach((b) => b.addEventListener("click", () => apriGuida(b.classList.contains("apri-guida-percorso"))));
   document.getElementById("btn-chiudi-guida")?.addEventListener("click", () => fin.classList.add("nascosta"));
   fin.addEventListener("click", (ev) => { if (ev.target === fin) fin.classList.add("nascosta"); });
 })();

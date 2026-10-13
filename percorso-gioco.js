@@ -692,7 +692,7 @@ function fineGiornata(solutore) {
   Gioco.ultimoRoundFinito = Gioco.numeroRoundCorrente >= Gioco.numeroRoundTotale;
   aggiornaSchedeGiocatori();
   if (Gioco.ultimoRoundFinito) btnRoundSuccessivo.textContent = "Vedi la classifica finale";
-  else btnRoundSuccessivo.textContent = Lampo.dovuto(Gioco.numeroRoundCorrente) ? "Round lampo · tutti pronti" : "Prossimo giorno · comincia " + Gioco.giocatori[Gioco.indiceProssimoRound].nome + ", che è l’ultimo";
+  else btnRoundSuccessivo.textContent = Lampo.dovuto(Gioco.numeroRoundCorrente) ? "Battaglia per il castello · tutti pronti" : "Prossimo giorno · comincia " + Gioco.giocatori[Gioco.indiceProssimoRound].nome + ", che è l’ultimo";
   Gioco.stato = "fine_round";
   pannelloFineRound.classList.remove("nascosta");
   aggiornaComandi();
@@ -780,6 +780,11 @@ const PercorsoRegole = (() => {
   const btnApri = document.getElementById("btn-regole-percorso");
   const btnChiudi = document.getElementById("btn-chiudi-regole");
   const btnPartenza = document.getElementById("btn-regole-di-partenza");
+  if (!PANNELLO_REGOLE_PERCORSO) { // sito pubblicato: il pulsante e la finestra non ci sono (nemmeno nascosti)
+    if (btnApri) btnApri.remove();
+    if (finestra) finestra.remove();
+    return {};
+  }
   if (!finestra || !campi || !btnApri) return {};
   const ordine = ["caselle", "oreTempo", "oreInPiuPrimoGiorno", "preavviso", "oreTramonto", "scorciatoie", "scatolaForza", "scatolaDistanza"];
   const unita = { caselle: "pietre", oreTempo: "ore", oreInPiuPrimoGiorno: "ore", preavviso: "ore", oreTramonto: "giri", scorciatoie: "", scatolaForza: "", scatolaDistanza: "caselle" };

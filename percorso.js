@@ -521,6 +521,12 @@ const Percorso = (() => {
     return out;
   }
   function leggiRegole() {
+    // Sul sito pubblicato il pannello non c'e` (PANNELLO_REGOLE_PERCORSO, config.js): valgono solo i valori di partenza, e un valore salvato
+    // prima dal pannello nel browser di qualcuno si cancella.
+    if (!PANNELLO_REGOLE_PERCORSO) {
+      try { window.localStorage.removeItem(CHIAVE_REGOLE_PERCORSO); } catch (e) { /* niente memoria nel browser: niente da cancellare */ }
+      return limitaRegole(null);
+    }
     try {
       const v = JSON.parse(window.localStorage.getItem(CHIAVE_REGOLE_PERCORSO));
       return limitaRegole(v);
